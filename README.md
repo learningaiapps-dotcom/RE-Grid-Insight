@@ -44,3 +44,14 @@ The data built into tabs 7 and 8, as separate files:
 * `india_profile.csv`: average generation per 15-minute block, per region
 * `re_map.json`: India state outlines (svg-maps/india, CC BY 4.0, simplified)
 * `ists-pooling-stations.html`: the pooling stations map on its own
+
+## Mobile and laptop views
+
+The site opens Mobile Lite on narrow touch screens. Mobile Lite includes
+weather lookup, model comparison, charts and CSV export. Open the full
+dashboard for NRPC/WRPC imports, DSM, forecast correction and maps.
+
+- Mobile Lite: `mobile.html`
+- Full dashboard: `index.html?view=full`
+
+Both pages use the same static hosting setup and share the weather code.

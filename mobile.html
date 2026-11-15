@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RE Grid Insight · Mobile Lite</title>
+<script src="vendor/chart.umd.min.js"></script>
+<script>if(typeof Chart==="undefined")document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>')</script>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--mute:#5b6b7a;--line:#d9e0e6;--accent:#0f766e;--sun:#d97706}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1720;--card:#17222d;--ink:#e8eef3;--mute:#93a4b3;--line:#2a3a48;--accent:#2dd4bf;--sun:#fbbf24}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif;padding:20px}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:24px;margin:0 0 4px}
+p.sub{color:var(--mute);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+.row{display:flex;flex-wrap:wrap;gap:12px}
+label.f{display:flex;flex-direction:column;font-size:13px;color:var(--mute);gap:4px;flex:1 1 180px}
+input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+button{font:inherit;padding:9px 18px;border:0;border-radius:6px;background:var(--accent);color:#fff;cursor:pointer;font-weight:600}
+@media (prefers-color-scheme:dark){button{color:#08201d}}
+button.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.5}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.models{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px;margin-top:8px;max-height:230px;overflow:auto;padding:4px}
+.models label{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;cursor:pointer}
+.models small{color:var(--mute);display:block}
+#msg{margin:8px 0;min-height:20px}
+.err{color:#c2410c}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.chartbox{height:360px;position:relative}
+.scroll{overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th{position:sticky;top:0;background:var(--card)}
+.hide{display:none}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}.kpi b{display:block;font-size:19px}.kpi span{font-size:12px;color:var(--mute)}
+tr.sel td{background:var(--bg)}
+td.na{color:var(--mute)}
+th{white-space:normal;vertical-align:bottom;line-height:1.25}
+th .u{font-weight:400;color:var(--mute);font-size:11px}
+td[data-c]{cursor:help}
+.bm{overflow:auto;margin:6px 0 12px}.bmg{display:grid;grid-template-columns:repeat(24,minmax(30px,1fr));gap:5px;min-width:820px}
+.bt{border:0;border-radius:6px;color:#fff;font:600 11px/1 inherit;padding:8px 0;cursor:pointer}.bt:hover{outline:2px solid var(--ink)}
+tr.flash td{background:#fde68a !important}li.sevw{color:#b45309}
+td.bu{background:rgba(234,88,12,.16)}td.bo{background:rgba(22,163,74,.16)}
+.tabs button{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.tabs button.on{background:var(--accent);color:#fff}
+@media (prefers-color-scheme:dark){.tabs button.on{color:#08201d}}
+.sum p{margin:4px 0;font-size:14px}
+.tip{border-bottom:1px dotted var(--mute);cursor:help}
+#tipbox{position:fixed;z-index:99;max-width:290px;background:#17212b;color:#fff;padding:8px 10px;border-radius:6px;font-size:13px;line-height:1.4;pointer-events:none;display:none;box-shadow:0 4px 14px rgba(0,0,0,.3);font-weight:400}
+@media (prefers-color-scheme:dark){#tipbox{background:#e8eef3;color:#0f1720}}
+.note{font-size:13px;color:var(--mute)}
+details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}summary{cursor:pointer;color:var(--ink)}
+.upd div{margin:3px 0}
+</style>
+<style>
+  .lite-header {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:18px}
+  .lite-header a, .desktop-tools a {color:var(--accent);display:inline-flex;align-items:center;min-height:44px}
+  .lite-header strong {font-size:18px}
+  .wrap {max-width:680px}
+  .chartbox {height:240px}
+  input, select {min-width:0;font-size:16px}
+  button {min-height:44px}
+  @media (max-width:540px) {
+    body {padding:12px}
+    .card {padding:12px}
+    .models {grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="lite-header">
+    <strong>RE Grid Insight · Mobile Lite</strong>
+    <a href="index.html?view=full">Open full dashboard</a>
+  </header>
+<div id="p1">
+<h1>Weather in 96 time blocks</h1>
+<p class="sub">Type a place (the country is optional) and the coordinates fill in by themselves, or type latitude and longitude (or paste "lat, lon") and the place name fills in. Pick 1 to 3 weather models and compare 15-minute forecasts for one day or a date range (up to 93 days). Data: Open-Meteo.</p>
+
+<div class="card">
+  <div class="row">
+    <label class="f">Location<input id="loc" placeholder="e.g. Vadodara"></label>
+    <label class="f">Country<input id="cty" placeholder="optional, e.g. India"></label>
+    <label class="f">Latitude<input id="lat" placeholder="auto, or type e.g. 22.2994"></label>
+    <label class="f">Longitude<input id="lon" placeholder="auto, or type e.g. 73.2081"></label>
+    <label class="f">From date<input id="dt" type="date"></label>
+    <label class="f">To date (optional, up to 93 days)<input id="dt2" type="date"></label>
+  </div>
+  <div id="geost" class="note" style="margin-top:8px;min-height:20px"></div>
+  <p style="margin:14px 0 0;font-size:13px;color:var(--mute)">Weather models (choose up to 3): <b id="cnt">0</b> selected</p>
+  <label style="display:flex;gap:6px;align-items:center;font-size:13px;margin:6px 0"><input type="checkbox" id="mfilter" checked> Show only the models that cover this country (type a country above)</label>
+  <div class="note" id="mfnote" style="margin-bottom:6px"></div>
+  <div class="note" id="accnote" style="margin-bottom:6px"></div>
+  <div class="models" id="models"></div>
+  <div style="margin-top:14px"><button id="go">Get 96-block data</button></div>
+  <div id="msg"></div>
+</div>
+
+<div class="card hide" id="out">
+  <div class="tools">
+    <strong id="place"></strong>
+    <select id="metric" aria-label="Measure">
+      <option value="ghi">Solar radiation (W/m²)</option>
+      <option value="w10">Wind speed at 10 m (m/s)</option>
+      <option value="w80">Wind speed at 80 m (m/s)</option>
+    </select>
+    <button class="alt" id="csv">Download CSV</button>
+  </div>
+  <div class="upd note" id="upd"></div>
+  <div class="chartbox"><canvas id="chart"></canvas></div>
+</div>
+
+<div class="card hide" id="tbl">
+  <div class="scroll"><table><thead id="th"></thead><tbody id="tb"></tbody></table></div>
+</div>
+</div>
+
+  <aside class="card desktop-tools">
+    <strong>NRPC, WRPC and QCA DSM</strong>
+    <p class="note">Use the full dashboard for file imports, DSM calculations, forecast correction and maps.</p>
+  </aside>
+</main>
+<script src="weather.js"></script>
+</body>
+</html>
