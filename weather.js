@@ -190,9 +190,42 @@ applyModelFilter();
 })();
 
 const updateMeteogramResults=(()=>{
-  $("p1").insertAdjacentHTML("beforeend", `
-    <details class="card" style="margin-top:12px">
-      <summary><strong>IMD meteogram analysis</strong></summary>
+  const weatherPanel=$("p1");
+  const layout=document.createElement("div");
+  layout.className="weather-split";
+  const forecastPanel=document.createElement("section");
+  forecastPanel.className="weather-forecast";
+  forecastPanel.setAttribute("aria-label","Weather forecast");
+  Array.from(weatherPanel.children).forEach(child=>{
+    if(!child.matches("h1,p.sub"))forecastPanel.appendChild(child);
+  });
+  layout.appendChild(forecastPanel);
+  weatherPanel.appendChild(layout);
+  const blockTable=$("tbl");
+  const tableDetails=document.createElement("details");
+  const tableSummary=document.createElement("summary");
+  tableSummary.textContent="Show forecast table";
+  tableDetails.appendChild(tableSummary);
+  while(blockTable.firstChild)tableDetails.appendChild(blockTable.firstChild);
+  blockTable.appendChild(tableDetails);
+  document.head.insertAdjacentHTML("beforeend", `<style>
+    .weather-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+    .weather-split > *{min-width:0}
+    .weather-split .card{padding:12px}
+    .weather-split .chartbox{height:255px}
+    .weather-split .models{grid-template-columns:repeat(auto-fit,minmax(min(100%,185px),1fr));max-height:180px}
+    .weather-split input,.weather-split select,.weather-split textarea{min-width:0;max-width:100%}
+    .weather-split #tbl .scroll{margin-top:8px;max-height:270px}
+    .weather-split #tbl details{margin:0}
+    .weather-split #tbl th,.weather-split #tbl td{padding:4px 7px}
+    .weather-split #imd-review img{max-width:100%;height:auto}
+    .weather-split #imd-review fieldset{min-width:0}
+    .weather-split #imd-review fieldset > label:not(.f){display:block}
+    @media(max-width:800px){.weather-split{grid-template-columns:minmax(0,1fr)}}
+  </style>`);
+  layout.insertAdjacentHTML("beforeend", `
+    <details class="card" open style="margin-top:0">
+      <summary><strong>IMD Meteogram Analysis</strong></summary>
       <p><a href="https://nwp.imd.gov.in/gfs_meteograms_mausam.php" target="_blank" rel="noopener noreferrer">Open IMD GFS meteograms ↗</a></p>
       <div class="row">
         <label class="f">Upload meteogram image<input id="imd-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
