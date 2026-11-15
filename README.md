@@ -55,3 +55,29 @@ dashboard for NRPC/WRPC imports, DSM, forecast correction and maps.
 - Full dashboard: `index.html?view=full`
 
 Both pages use the same static hosting setup and share the weather code.
+
+## Deploy three separate Render websites
+
+Run `node scripts/build-sites.cjs` from the repository root to generate:
+
+| Website | Publish directory | Tools |
+| --- | --- | --- |
+| Weather & Forecasting | `dist/forecast` | Weather, solar and wind correction, Mobile Lite |
+| Grid Maps | `dist/maps` | ISTS pooling stations and India renewable plants |
+| DSM & Data Processing | `dist/dsm` | DSM calculator, QCA analysis, NRPC/WRPC imports |
+
+On Render, choose **New → Blueprint** and select this repository once the
+changes are on your deploy branch. Render reads `render.yaml` and creates
+the three Static Sites. You can also create them individually with the same
+build command and the corresponding publish directory above.
+
+Navigation defaults to `https://re-grid-forecast.onrender.com`,
+`https://re-grid-maps.onrender.com` and `https://re-grid-dsm.onrender.com`.
+If Render assigns different URLs, set `RE_GRID_FORECAST_URL`,
+`RE_GRID_MAPS_URL` and `RE_GRID_DSM_URL` to the actual addresses on each
+service and redeploy.
+
+The existing combined dashboard still works when published from the
+repository root. Export any saved DSM runs you need from that dashboard
+before switching to the new DSM URL. Browser storage is tied to each URL's
+origin.
