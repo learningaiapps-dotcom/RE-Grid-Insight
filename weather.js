@@ -198,11 +198,12 @@ applyModelFilter();
   ["2","3"].forEach(k=>$("qd"+k).value=tom);
   const interp=(arr,n)=>{ // hourly (24) -> 96 blocks, linear
     const out=[];for(let i=0;i<96;i++){const x=i/4,a=Math.floor(x),b=Math.min(a+1,arr.length-1),f=x-a;const va=arr[a],vb=arr[b];out.push(va==null||vb==null?0:va+(vb-va)*f)}return out};
-  const svg=(v,cap,unit)=>{const W=760,H=200,pl=40,pb=22,max=Math.max(cap,...v,1),bw=(W-pl)/96;
+  const svg=(v,cap,unit,actual=new Map())=>{const W=760,H=200,pl=40,pb=22,max=Math.max(cap,...v,...actual.values(),1),bw=(W-pl)/96;
     let b="";v.forEach((x,i)=>{const h=(H-pb)*x/max;b+=`<rect x="${(pl+i*bw).toFixed(1)}" y="${(H-pb-h).toFixed(1)}" width="${(bw-0.6).toFixed(1)}" height="${h.toFixed(1)}" fill="#2563eb"><title>${hh(i)}  ${x.toFixed(2)} ${unit}</title></rect>`});
     let ax="";for(let i=0;i<=96;i+=16)ax+=`<text x="${pl+i*bw}" y="${H-6}" font-size="10" fill="#888" text-anchor="middle">${hh(Math.min(i,95))}</text>`;
     for(let k=0;k<=4;k++){const y=(H-pb)*(1-k/4);ax+=`<text x="${pl-4}" y="${y+3}" font-size="10" fill="#888" text-anchor="end">${(max*k/4).toFixed(0)}</text><line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#8884" stroke-width="0.5"/>`}
-    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;display:block;margin:10px 0">${ax}${b}</svg>`};
+    const points=[...actual].map(([i,mw])=>`<circle cx="${pl+(i+0.5)*bw}" cy="${(H-pb)*(1-mw/max)}" r="3" fill="#c2410c"><title>${hh(i)} Actual: ${mw.toFixed(2)} MW</title></circle>`).join("");
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;display:block;margin:10px 0">${ax}${b}${points}</svg>`};
 
   function windOutput(speed,kw,rotor,cutIn,cutOut){
     if(speed<cutIn||speed>=cutOut)return 0;
@@ -222,6 +223,90 @@ applyModelFilter();
       <label class="f" id="solar-azimuth-label">Panel azimuth (°)<input id="solar-azimuth" type="number" min="-180" max="180" step="any" value="0"></label>
     </div>
     <p class="note" id="solar-mount-note">Azimuth is 0° south, −90° east, 90° west, and ±180° north.</p>`);
+  $("qo2").insertAdjacentHTML("beforebegin", `
+    <details class="card" style="margin-top:12px">
+      <summary><strong>Compare SCADA actual generation</strong></summary>
+      <p class="note">Open your plant’s SCADA portal, download actual generation as CSV, then upload it here.</p>
+      <div class="row">
+        <label class="f">SCADA website address<input id="scada-url" type="url" placeholder="https://your-scada-portal"></label>
+        <label class="f">Upload SCADA CSV<input id="scada-file" type="file" accept=".csv,text/csv"></label>
+      </div>
+      <div class="tools" style="margin-top:8px"><button class="alt" type="button" id="scada-open">Open SCADA website ↗</button></div>
+      <p class="note">CSV columns: date (YYYY-MM-DD), block (1–96) or time (HH:MM), and actual_mw. Use plant local time.</p>
+      <p class="note" id="scada-status" role="status"></p>
+    </details>`);
+  const scadaUrl=$("scada-url"),scadaStatus=$("scada-status");
+  const storageKey="re-grid-scada-portal";
+  try{scadaUrl.value=localStorage.getItem(storageKey)||""}catch{}
+  $("scada-open").onclick=()=>{
+    let url;
+    try{url=new URL(scadaUrl.value.trim())}catch{}
+    if(!url||!["https:","http:"].includes(url.protocol)||url.username||url.password){
+      scadaStatus.textContent="Enter your SCADA portal’s full web address.";
+      scadaUrl.focus();
+      return;
+    }
+    try{localStorage.setItem(storageKey,url.href)}catch{}
+    scadaStatus.textContent="Download the CSV from the portal, then select it here.";
+    window.open(url.href,"_blank","noopener,noreferrer");
+  };
+  function readScada(csv){
+    const [header,...lines]=csv.replace(/^\uFEFF/,"").trim().split(/\r?\n/);
+    const cells=line=>line.split(",").map(cell=>cell.trim().replace(/^"|"$/g,""));
+    const names=cells(header).map(name=>name.toLowerCase().replace(/\s+/g,"_"));
+    const dateCol=names.indexOf("date"),blockCol=names.indexOf("block"),timeCol=names.indexOf("time");
+    const mwCol=names.indexOf("actual_mw");
+    if(dateCol<0||mwCol<0||(blockCol<0&&timeCol<0))throw new Error("Use date, block or time, and actual_mw as CSV headers.");
+    const days=new Map();
+    let skipped=0;
+    for(const line of lines){
+      if(!line.trim())continue;
+      const row=cells(line),date=row[dateCol],raw=row[mwCol],mw=Number(raw);
+      const time=/^([01]\d|2[0-3]):(00|15|30|45)(?::00)?$/.exec(row[timeCol]||"");
+      const block=blockCol>=0?Number(row[blockCol]):time?Number(time[1])*4+Number(time[2])/15+1:0;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!raw||!Number.isFinite(mw)||mw<0||!Number.isInteger(block)||block<1||block>96){
+        skipped++;
+        continue;
+      }
+      if(!days.has(date))days.set(date,new Map());
+      days.get(date).set(block-1,mw);
+    }
+    if(!days.size)throw new Error("The CSV has no valid generation rows.");
+    return {days,skipped};
+  }
+  let scada,solarEstimate,uploadId=0;
+  function renderScada(){
+    const chart=$("solar-generation-plot");
+    if(chart&&solarEstimate){
+      const {day,mw,cap}=solarEstimate,actual=scada?.days.get(day);
+      chart.innerHTML=svg(mw,cap,"MW",actual)+
+        (actual?'<p class="note">Blue bars show forecast. Orange dots show SCADA actuals.</p>':"");
+    }
+    if(!scada)return;
+    const day=solarEstimate?.day||$("qd2").value;
+    const count=scada.days.get(day)?.size||0;
+    scadaStatus.textContent=(count?`${count} actual blocks loaded for ${day}.`:`No actual readings in this CSV for ${day}.`)+
+      (scada.skipped?` Skipped ${scada.skipped} invalid rows.`:"");
+  }
+  $("qd2").addEventListener("change",()=>{
+    solarEstimate=null;
+    $("qo2").innerHTML="";
+    renderScada();
+  });
+  $("scada-file").onchange=async ()=>{
+    const request=++uploadId;
+    const file=$("scada-file").files[0];
+    scada=null;
+    scadaStatus.textContent="";
+    renderScada();
+    if(!file)return;
+    try{
+      const csv=await file.text();
+      if(request!==uploadId)return;
+      scada=readScada(csv);
+      renderScada();
+    }catch(error){if(request===uploadId)scadaStatus.textContent=error.message}
+  };
   $("solar-mount").onchange=()=>{
     const mode=$("solar-mount").value;
     $("fixed-tilt-label").classList.toggle("hide",mode!=="fixed");
@@ -360,10 +445,14 @@ applyModelFilter();
       m.textContent="";
       const rows=mw.map((x,i)=>`<tr><td>${i+1}</td><td>${hh(i)}</td>${wind?`<td>${ws[i].toFixed(1)}</td>`:""}<td>${x.toFixed(2)}</td><td>${(x*0.25).toFixed(3)}</td></tr>`).join("");
       o.innerHTML=`<div class="sum" style="margin-top:12px"><div><b>${tot.toLocaleString("en-IN",{maximumFractionDigits:0})} MWh</b><br><span class="note">tentative generation for ${day}</span></div><div><b>${pk.toFixed(1)} MW</b><br><span class="note">peak</span></div><div><b>${cuf.toFixed(1)} %</b><br><span class="note">capacity factor</span></div></div>
-       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block</p>${wind?"":'<h2 style="font-size:16px;margin:12px 0 0">Solar generation by 15-minute block (MW)</h2>'}${svg(mw,cap,"MW")}
+       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block</p>${wind?"":'<h2 style="font-size:16px;margin:12px 0 0">Solar generation by 15-minute block (MW)</h2>'}${wind?svg(mw,cap,"MW"):'<div id="solar-generation-plot"></div>'}
        <div class="tools"><button class="alt" id="qcsv${k}">Download CSV</button></div>
        <details><summary>Show all 96 blocks</summary><div class="scroll"><table><thead><tr><th>Block</th><th>Time</th>${wind?`<th>Wind at ${hub} m (m/s)</th>`:""}<th>MW</th><th>MWh</th></tr></thead><tbody>${rows}</tbody></table></div></details>
        <p class="note" style="margin-top:8px">${wind?"Estimated from the forecast wind speed with the power curve of the chosen turbine (calculated from its rated power and rotor size) and 10% losses. The wind speed is adjusted from the model heights (80 m and 120 m) to your hub height.":"Estimated using irradiance on the panels, plant capacity and performance ratio, capped at plant capacity."} It is a tentative figure from the weather forecast only. For a better result use the advanced section with your own past data.</p>`;
+      if(!wind){
+        solarEstimate={day,mw,cap};
+        renderScada();
+      }
       $("qcsv"+k).onclick=()=>{const csv="block,time,"+(wind?"wind_ms,":"")+"mw,mwh\n"+mw.map((x,i)=>`${i+1},${hh(i)},${wind?ws[i].toFixed(2)+",":""}${x.toFixed(3)},${(x*0.25).toFixed(4)}`).join("\n");
         const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=(wind?"wind":"solar")+"-tentative-"+day+".csv";a.click()};
     }catch(e){m.className="note err";m.textContent=e.message&&!/fetch/i.test(e.message)?e.message:"Could not reach the weather service. Check your internet connection."}
