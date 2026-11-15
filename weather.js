@@ -191,15 +191,19 @@ applyModelFilter();
     for(let k=0;k<=4;k++){const y=(H-pb)*(1-k/4);ax+=`<text x="${pl-4}" y="${y+3}" font-size="10" fill="#888" text-anchor="end">${(max*k/4).toFixed(0)}</text><line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#8884" stroke-width="0.5"/>`}
     return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;display:block;margin:10px 0">${ax}${b}</svg>`};
 
-  const TURB=[ // name, rated kW, rotor m, cut-in, cut-out  (approximate public specifications)
+  const TURB=[ // name, rated kW, rotor m, cut-in, cut-out, optional hub m (editable defaults)
    ["Suzlon S97 - 2.1 MW",2100,97,3,25],["Suzlon S120 - 2.1 MW",2100,120,3,25],["Suzlon S144 - 3.15 MW",3150,144,3,25],
    ["Vestas V120 - 2.2 MW",2200,120,3,22],["Vestas V150 - 4.2 MW",4200,150,3,22.5],
    ["Siemens Gamesa SG 2.1-114",2100,114,3,25],["Siemens Gamesa SG 3.4-132",3400,132,3,25],
    ["GE 1.5 sle - 1.5 MW",1500,77,3.5,25],["GE 2.5-120 - 2.5 MW",2500,120,3,25],
    ["Envision EN-131 - 2.3 MW",2300,131,3,25],["Inox 2 MW (113 m rotor)",2000,113,3,25],
+   // Adani model ratings, rotor diameters and hub heights are from MNRE ALMM Wind.
+   // Cut-in and cut-out use the estimator's generic defaults.
+   ["Adani MWL-160 – 5.2 MW",5200,160,3,25,120],
+   ["Adani WD164-3300 – 3.3 MW",3300,163.95,3,25,139.73],
    ["Generic 2 MW",2000,100,3,25],["Generic 3 MW",3000,130,3,25],["Generic 4 MW",4000,150,3,25],["Custom (type the details below)",2500,120,3,25]];
   $("qm_t3").innerHTML=TURB.map((t,i)=>`<option value="${i}">${t[0]}</option>`).join("");
-  const fillT=()=>{const t=TURB[+$("qm_t3").value];$("qkw3").value=t[1];$("qrd3").value=t[2];$("qci3").value=t[3];$("qco3").value=t[4];capNote()};
+  const fillT=()=>{const t=TURB[+$("qm_t3").value];$("qkw3").value=t[1];$("qrd3").value=t[2];$("qci3").value=t[3];$("qco3").value=t[4];if(t[5])$("qh3").value=t[5];capNote()};
   const capNote=()=>{const mw=(+$("qn3").value||0)*(+$("qkw3").value||0)/1000;$("qcap3").textContent=mw>0?`Plant capacity: ${mw.toLocaleString("en-IN",{maximumFractionDigits:1})} MW`:""};
   $("qm_t3").onchange=fillT;["qn3","qkw3"].forEach(i=>$(i).addEventListener("input",capNote));fillT();
   $("qy3").value=$("cty").value;$("cty").addEventListener("input",()=>{if(!$("qy3").dataset.t)$("qy3").value=$("cty").value});$("qy3").addEventListener("input",()=>{$("qy3").dataset.t=1});
