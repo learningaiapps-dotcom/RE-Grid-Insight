@@ -67,27 +67,12 @@ td.bu{background:rgba(234,88,12,.16)}td.bo{background:rgba(22,163,74,.16)}
 details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}summary{cursor:pointer;color:var(--ink)}
 .upd div{margin:3px 0}
 </style>
+<link rel="stylesheet" href="task-home.css">
 </head>
 <body>
-<div class="wrap">
-<p class="note"><a href="mobile.html" style="color:var(--accent)">Switch to mobile lite</a></p>
-<form id="task-picker" class="card">
-  <label for="dashboard-task"><strong>What would you like to do?</strong></label>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
-    <select id="dashboard-task" required style="max-width:100%">
-      <option value="">Choose a task</option>
-    <option value="weather">Check weather forecasts</option>
-    <option value="solar">Correct a solar forecast</option>
-    <option value="wind">Correct a wind forecast</option>
-    <option value="dsm">Calculate DSM for a time block</option>
-    <option value="qca">Run QCA DSM and deviation analysis</option>
-    <option value="imports">Import NRPC or WRPC files</option>
-    <option value="ists">Find ISTS pooling stations</option>
-    <option value="plants">Explore renewable energy plants</option>
-    </select>
-    <button type="submit">Open tool</button>
-  </div>
-</form>
+<div id="task-home" hidden></div>
+<div id="task-workspace" class="wrap">
+<p><a class="task-back" href="index.html?view=full">← All tools</a></p>
 <div class="tabs"><button id="t1" class="on">Weather data</button><button id="t2">Solar forecast correction</button><button id="t3">Wind forecast correction</button><button id="t4">DSM calculator</button><button id="t5">QCA DSM engine &amp; analysis</button><button id="t6">NRPC &amp; WRPC data (Khavda)</button><button id="t7">ISTS pooling stations map</button><button id="t8">India RE plants map</button></div>
 <div id="steps" class="note" style="margin:-6px 0 14px"><b>Workflow:</b> <button class="alt" data-go="t6" style="padding:4px 10px">1. Plant region and NRPC / WRPC data</button> → <button class="alt" data-go="t5-1" style="padding:4px 10px">2. QCA DSM engine</button> → <button class="alt" data-go="t5-3" style="padding:4px 10px">3. Deviation analysis &amp; RCA</button> → <button class="alt" data-go="t5-4" style="padding:4px 10px">4. Weather model comparison</button></div>
 <div id="p1">
@@ -2545,7 +2530,6 @@ async function anReport(){
   <h2>What to do next</h2>${F.filter(f=>f.a).map(f=>`<div class="f ${f.sev}"><b>${esc(f.t)}</b><div>${esc(f.x)}</div><div><b>What to do:</b> ${esc(f.a)}</div></div>`).join("")||"<p>Nothing urgent.</p>"}
   ${pubHtml}
   <p class="n" style="margin-top:28px">Made with the QCA DSM engine. A block counts as crossing the limit when its deviation is beyond ±${lim}% of AvC. Total charge = payable + DSM penalty for under-injection; receivable is for over-injection, using the band rates shown above.</p>
-  <script src="task-picker.js" defer></script>
 </body></html>`;
   if(w&&!w.closed){w.document.open();w.document.write(html);w.document.close();g("an_msg").textContent="Report opened in a new tab. Use Print / Save as PDF there."}
   else{dl(`Plant_report_${String(m.spv).replace(/[^\w-]+/g,"_")}_${period.replace(/ to /,"_to_")}.html`,html);g("an_msg").textContent="Pop-ups are blocked, so the report was downloaded. Open it and use Print / Save as PDF."}

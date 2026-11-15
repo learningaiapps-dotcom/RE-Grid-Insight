@@ -60,9 +60,6 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 .upd div{margin:3px 0}
 </style>
 <style>
-  .lite-header {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:18px}
-  .lite-header a, .desktop-tools a {color:var(--accent);display:inline-flex;align-items:center;min-height:44px}
-  .lite-header strong {font-size:18px}
   .wrap {max-width:680px}
   .chartbox {height:240px}
   input, select {min-width:0;font-size:16px}
@@ -73,30 +70,12 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
     .models {grid-template-columns:1fr}
   }
 </style>
+<link rel="stylesheet" href="task-home.css">
 </head>
-<body>
-<main class="wrap">
-  <header class="lite-header">
-    <strong>RE Grid Insight · Mobile Lite</strong>
-    <a href="index.html?view=full">Open full dashboard</a>
-  </header>
-<form id="task-picker" class="card">
-  <label for="dashboard-task"><strong>What would you like to do?</strong></label>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
-    <select id="dashboard-task" required style="max-width:100%">
-      <option value="">Choose a task</option>
-    <option value="weather">Check weather forecasts</option>
-    <option value="solar">Correct a solar forecast</option>
-    <option value="wind">Correct a wind forecast</option>
-    <option value="dsm">Calculate DSM for a time block</option>
-    <option value="qca">Run QCA DSM and deviation analysis</option>
-    <option value="imports">Import NRPC or WRPC files</option>
-    <option value="ists">Find ISTS pooling stations</option>
-    <option value="plants">Explore renewable energy plants</option>
-    </select>
-    <button type="submit">Open tool</button>
-  </div>
-</form>
+<body data-mobile-lite>
+<div id="task-home" hidden></div>
+<main id="task-workspace" class="wrap">
+  <p><a class="task-back" href="mobile.html">← All tools</a></p>
 <div id="p1">
 <h1>Weather in 96 time blocks</h1>
 <p class="sub">Type a place (the country is optional) and the coordinates fill in by themselves, or type latitude and longitude (or paste "lat, lon") and the place name fills in. Pick 1 to 3 weather models and compare 15-minute forecasts for one day or a date range (up to 93 days). Data: Open-Meteo.</p>
@@ -139,10 +118,6 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 </div>
 </div>
 
-  <aside class="card desktop-tools">
-    <strong>NRPC, WRPC and QCA DSM</strong>
-    <p class="note">Use the full dashboard for file imports, DSM calculations, forecast correction and maps.</p>
-  </aside>
 </main>
 <script src="weather.js"></script>
 <script src="task-picker.js" defer></script>
