@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: re-grid-forecast
+    runtime: static
+    buildCommand: node scripts/build-sites.cjs
+    staticPublishPath: ./dist/forecast
+  - type: web
+    name: re-grid-maps
+    runtime: static
+    buildCommand: node scripts/build-sites.cjs
+    staticPublishPath: ./dist/maps
+  - type: web
+    name: re-grid-dsm
+    runtime: static
+    buildCommand: node scripts/build-sites.cjs
+    staticPublishPath: ./dist/dsm
