@@ -249,9 +249,31 @@ applyModelFilter();
    ["Adani WD164-3300 – 3.3 MW",3300,163.95,3,25,139.73],
    ["Generic 2 MW",2000,100,3,25],["Generic 3 MW",3000,130,3,25],["Generic 4 MW",4000,150,3,25],["Custom (type the details below)",2500,120,3,25]];
   $("qm_t3").innerHTML=TURB.map((t,i)=>`<option value="${i}">${t[0]}</option>`).join("");
-  const fillT=()=>{const t=TURB[+$("qm_t3").value];$("qkw3").value=t[1];$("qrd3").value=t[2];$("qci3").value=t[3];$("qco3").value=t[4];if(t[5])$("qh3").value=t[5];capNote();drawCurve("3")};
+  const hubInput=$("qh3");
+  const defaultHubHeight=hubInput.value;
+  const machineDetails=$("qkw3").closest("details");
+  const hubLabel=hubInput.closest("label");
+  hubLabel.style.flex="";
+  hubInput.step="any";
+  $("qco3").closest(".row").appendChild(hubLabel);
+  const hubNote=document.createElement("p");
+  hubNote.className="note";
+  hubLabel.closest(".row").after(hubNote);
+  function fillT(){
+    const [,rated,rotor,cutIn,cutOut,hubHeight]=TURB[+$("qm_t3").value];
+    $("qkw3").value=rated;
+    $("qrd3").value=rotor;
+    $("qci3").value=cutIn;
+    $("qco3").value=cutOut;
+    hubInput.value=hubHeight??defaultHubHeight;
+    hubNote.textContent=hubHeight
+      ? "Hub height is the preset tower height. Edit it for your installation."
+      : "Hub height uses the app’s 90 m default. Edit it to match your installation.";
+    capNote();
+    drawCurve("3");
+  }
   const capNote=()=>{const mw=(+$("qn3").value||0)*(+$("qkw3").value||0)/1000;$("qcap3").textContent=mw>0?`Plant capacity: ${mw.toLocaleString("en-IN",{maximumFractionDigits:1})} MW`:""};
-  $("qm_t3").onchange=fillT;["qn3","qkw3"].forEach(i=>$(i).addEventListener("input",capNote));fillT();
+  $("qm_t3").onchange=()=>{fillT();machineDetails.open=true};["qn3","qkw3"].forEach(i=>$(i).addEventListener("input",capNote));fillT();
   for(const id of ["qkw3","qrd3","qci3","qco3"])$(id).addEventListener("input",()=>drawCurve("3"));
   for(const id of ["qc2","qp2"])$(id).addEventListener("input",()=>drawCurve("2"));
   drawCurve("2");
