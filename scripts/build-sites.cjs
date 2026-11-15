@@ -17,7 +17,21 @@ const sites = [
   {id:"maps", title:"Grid Maps", tabs:[7,8], url:"https://re-grid-maps.onrender.com"},
   {id:"dsm", title:"DSM & Data Processing", tabs:[4,5,6], url:"https://re-grid-dsm.onrender.com"},
 ];
-const tabMarkup = between(html, '<div class="tabs"><button id="t1"', '<div id="steps"');
+const introductions = {
+  forecast: "Check 15-minute weather forecasts or refine generation estimates with your plant data.",
+  maps: "Find transmission pooling stations and explore India's renewable energy plants.",
+  dsm: "Import regional generation data, calculate settlement, and investigate deviations.",
+};
+const tools = {
+  1: ["Weather data", "Compare solar and wind forecasts"],
+  2: ["Solar forecast correction", "Estimate and adjust solar generation"],
+  3: ["Wind forecast correction", "Estimate and adjust wind generation"],
+  4: ["DSM calculator", "Check settlement for a single block"],
+  5: ["QCA DSM & analysis", "Calculate settlement and investigate deviations"],
+  6: ["NRPC & WRPC imports", "Prepare regional files for QCA analysis"],
+  7: ["ISTS pooling stations", "Explore grid connection points"],
+  8: ["India renewable plants", "Browse solar and wind plants by region"],
+};
 const workflow = between(html, '<div id="steps"', '<div id="p1">');
 const forecast = between(html, '<div id="p1">', '<div id="p7"');
 const maps = between(html, '<div id="p7"', '<div id="p4"');
@@ -40,12 +54,17 @@ function siteUrl(site) {
   return escape(url.href);
 }
 
+function shellHeader(nav) {
+  return `<header class="site-header"><div class="site-header-inner">
+    <strong class="site-brand">RE Grid Insight</strong>
+    <nav class="site-nav" aria-label="RE Grid Insight sites">${nav}</nav>
+  </div></header>`;
+}
+
 for (const site of sites) {
   const out = path.join(root, "dist", site.id);
   rmSync(out, {recursive:true, force:true});
   mkdirSync(out, {recursive:true});
-  const tabs = tabMarkup.replace(/<button id="t([1-8])"[^>]*>.*?<\/button>/g,
-    (button, id) => site.tabs.includes(Number(id)) ? button : "");
   const nav = sites.map(other => other === site
     ? '<strong aria-current="page">' + escape(other.title) + '</strong>'
     : '<a href="' + siteUrl(other) + '">' + escape(other.title) + '</a>').join("");
@@ -82,7 +101,7 @@ for (const id of siteTabs) {
       between(html, '// ===== DSM calculator', '</script>\n<script>/* JSZip')) +
       between(html, '<script>/* JSZip', '<script type="text/plain" id="re_d_plants">');
   }
-  for (const asset of assets) {
+  for (const asset of ["site-ui.css", ...assets]) {
     const dest = path.join(out, asset);
     mkdirSync(path.dirname(dest), {recursive:true});
     copyFileSync(path.join(root, asset), dest);
@@ -90,6 +109,9 @@ for (const id of siteTabs) {
   if (site.id === "forecast") {
     const mobile = read("mobile.html")
       .replace('<script src="task-picker.js" defer></script>', '')
+      .replace('</head>', '<link rel="stylesheet" href="site-ui.css">\n</head>')
+      .replace('<body data-mobile-lite>', '<body class="grid-site" data-site="forecast" data-mobile-lite>')
+      .replace('<main id="task-workspace" class="wrap">', shellHeader(nav) + '<main id="task-workspace" class="wrap">')
       .replace('href="mobile.html"', 'href="index.html"')
       .replace('← All tools', '← All forecasting tools');
     writeFileSync(path.join(out, "mobile.html"), mobile);
@@ -100,22 +122,29 @@ const requestedTab = ${JSON.stringify(query)}[new URLSearchParams(location.searc
 document.getElementById("t" + (siteTabs.includes(requestedTab) ? requestedTab : siteTabs[0])).click();
 `);
   const mobileLink = site.id === "forecast" ? '<a href="mobile.html">Mobile Lite</a>' : "";
-  const siteTabsMarkup = tabs.replace(/<button id="t([1-8])"[^>]*>/g, (_, id) =>
-    '<button id="t' + id + '" aria-pressed="' + (Number(id) === site.tabs[0]) + '"' +
-    (Number(id) === site.tabs[0] ? ' class="on"' : '') + '>');
+  const siteTabsMarkup = site.tabs.map(id => {
+    const [name, detail] = tools[id];
+    return `<button type="button" id="t${id}" aria-controls="p${id}" aria-pressed="false">
+      <strong>${escape(name)}</strong><span>${escape(detail)}</span>
+    </button>`;
+  }).join("");
   writeFileSync(path.join(out, "index.html"), `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escape(site.title)} · RE Grid Insight</title>
 ${libraries}${head}
-<style>
-.site-nav{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 24px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:8px}
-.site-nav a{color:var(--accent)} .site-title{margin-bottom:14px}
-</style></head>
-<body><main class="wrap">
-<nav class="site-nav" aria-label="RE Grid Insight sites">${nav}${mobileLink}</nav>
-<h1 class="site-title">${escape(site.title)}</h1>
-${siteTabsMarkup}${panels}</main>
+<link rel="stylesheet" href="site-ui.css">
+</head>
+<body class="grid-site" data-site="${site.id}">
+${shellHeader(nav)}
+<main class="wrap">
+<header class="site-hero">
+  <h1>${escape(site.title)}</h1>
+  <p>${escape(introductions[site.id])}</p>
+  ${mobileLink}
+</header>
+<div class="site-tools" role="group" aria-label="Choose a tool">${siteTabsMarkup}</div>
+${panels}</main>
 <div id="tipbox"></div>
 ${tabCode}${scripts}${start}
 </body></html>`);
