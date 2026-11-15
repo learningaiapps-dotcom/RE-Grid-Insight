@@ -220,7 +220,23 @@ function render(){
   chart('c1',{type:'bar',data:{labels:days,datasets:[{label:'Net DSM (Rs lakh)',data:days.map(d=>+lakh(byDay[d])),backgroundColor:days.map(d=>byDay[d]>0?'rgba(194,65,12,.7)':'rgba(21,128,61,.7)')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{title:{display:true,text:'Rs lakh (positive = pays)'}}}}});
   // block chart
   const lab=rows.map(r=>r.date.slice(5)+' '+r.time);
-  chart('c2',{type:'bar',data:{labels:lab,datasets:[{label:'Schedule MWh',data:rows.map(r=>r.sch),type:'line',borderColor:'#2563eb',pointRadius:0,borderWidth:1.5,yAxisID:'y'},{label:'Actual MWh',data:rows.map(r=>r.act),type:'line',borderColor:'#d97706',pointRadius:0,borderWidth:1.5,yAxisID:'y'},{label:'Net DSM Rs (payable +, receivable −)',data:rows.map(r=>r.pay-r.rec),backgroundColor:rows.map(r=>r.pay-r.rec>0?'rgba(194,65,12,.5)':'rgba(21,128,61,.5)'),yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{maxTicksLimit:16}},y:{title:{display:true,text:'MWh / block'}},y2:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Rs'}}}}});
+  chart('c2',{
+    type:'bar',
+    data:{labels:lab,datasets:[
+      {label:'Schedule MWh',data:rows.map(r=>r.sch),type:'line',borderColor:'#2563eb',pointRadius:0,borderWidth:1.5,yAxisID:'y',order:0},
+      {label:'Actual MWh',data:rows.map(r=>r.act),type:'line',borderColor:'#d97706',pointRadius:0,borderWidth:1.5,yAxisID:'y',order:0},
+      {label:'Frequency (Hz)',data:rows.map(r=>r.f),type:'line',borderColor:'#a78bda',backgroundColor:'#a78bda',borderDash:[5,3],pointRadius:0,borderWidth:1.5,yAxisID:'frequency',order:0},
+      {label:'Reference rate (p/kWh)',data:rows.map(r=>r.rr),type:'line',borderColor:'#51aaa8',backgroundColor:'#51aaa8',borderDash:[2,3],pointRadius:0,borderWidth:1.5,yAxisID:'referenceRate',order:0},
+      {label:'Net DSM Rs (payable +, receivable −)',data:rows.map(r=>r.pay-r.rec),backgroundColor:rows.map(r=>r.pay-r.rec>0?'rgba(194,65,12,.5)':'rgba(21,128,61,.5)'),yAxisID:'y2',order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},scales:{
+      x:{ticks:{maxTicksLimit:16}},
+      y:{title:{display:true,text:'MWh / block'}},
+      y2:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Rs'}},
+      frequency:{position:'left',suggestedMin:49.9,suggestedMax:50.1,grid:{drawOnChartArea:false},ticks:{color:'#8765b7',maxTicksLimit:5},title:{display:true,text:'Hz',color:'#8765b7'}},
+      referenceRate:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{color:'#317d7b',maxTicksLimit:5},title:{display:true,text:'p/kWh',color:'#317d7b'}}
+    }}
+  });
   // top
   const top=[...rows].sort((a,b)=>b.pay-a.pay).slice(0,10);
   $('top').innerHTML=top.map(r=>`<tr><td>${escapeHTML(r.date)}</td><td>${escapeHTML(r.time)}</td><td>${r.f.toFixed(2)}</td><td>${r.sch.toFixed(3)}</td><td>${r.act.toFixed(3)}</td><td>${r.dev.toFixed(3)}</td><td>${r.sch?(r.dev/Math.abs(r.sch)*100).toFixed(1):'–'}</td><td>${r.rr.toFixed(2)}</td><td class="pay">${fmt(r.pay)}</td></tr>`).join('');
