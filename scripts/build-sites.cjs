@@ -26,7 +26,7 @@ const tools = {
   1: ["Weather data", "Compare solar and wind forecasts"],
   2: ["Solar forecast correction", "Estimate and adjust solar generation"],
   3: ["Wind forecast correction", "Estimate and adjust wind generation"],
-  4: ["DSM calculator", "Check settlement for a single block"],
+  4: ["DSM calculator", "Check settlement and study standalone BESS blocks"],
   5: ["QCA DSM & analysis", "Calculate settlement and investigate deviations"],
   6: ["NRPC & WRPC imports", "Prepare regional files for QCA analysis"],
   7: ["ISTS pooling stations", "Explore grid connection points"],
@@ -96,7 +96,7 @@ for (const id of siteTabs) {
   } else {
     panels = workflow + dsm;
     libraries = chartAndExcel;
-    assets = ["vendor/chart.umd.min.js","vendor/xlsx.full.min.js","samples/nrpc-sample.xlsx","samples/wrpc-sample.zip"];
+    assets = ["standalone-bess-dsm.html","vendor/chart.umd.min.js","vendor/xlsx.full.min.js","samples/nrpc-sample.xlsx","samples/wrpc-sample.zip"];
     scripts = inline(baseWeather + prelude + dsmTime + "\n" + sharedDsm +
       between(html, '// ===== DSM calculator', '</script>\n<script>/* JSZip')) +
       between(html, '<script>/* JSZip', '<script type="text/plain" id="re_d_plants">');
