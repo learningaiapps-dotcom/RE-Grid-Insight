@@ -2188,10 +2188,11 @@ function buildDays(res,m,agg){
 }
 function dSrcMode(on,src,name){
   const row=g("dsrcrow"),note=g("dsrcnote");if(!row)return;
-  ["dfile","dpfile"].forEach(id=>{const l=g(id).closest("label");l.style.display=on?"none":""});
+  ["dfile","dpfile","dppa","davc"].forEach(id=>{g(id).closest("label").style.display=on?"none":""});
+  g("dplant").style.display=on?"none":"";
   note.style.display=on?"":"none";
   if(on){
-    note.innerHTML=`Data source: <b>${src}</b> import for <b>${name}</b>. File upload is not needed. <a href="#" id="dsrcback">Use my own file instead</a>`;
+    note.innerHTML=`Data source: <b>${esc(src)}</b> import for <b>${esc(name)}</b>. <a href="#" id="dsrcback">Show manual inputs / use my own file</a>`;
     g("dsrcback").onclick=e=>{e.preventDefault();dSrcMode(false)};
     const kl=g("k_loc"),pl=g("dloc");
     if(kl&&kl.value.trim()&&pl&&!pl.value.trim()){pl.value=kl.value.trim();pl.dispatchEvent(new Event("input",{bubbles:true}))}
@@ -2208,7 +2209,7 @@ function dsmReceive(pl){
   dSrcMode(true,pl.source,sp.name);
   const hasAvc=pl.days.some(d=>d.rows.some(r=>r.v>0)),needAvc=!hasAvc&&!(+g("davc").value>0);
   const note=`${pl.source} data received for ${sp.name}: ${pl.days.length} day(s), ${pl.days[0].date} to ${pl.days[pl.days.length-1].date}.`+(pl.missS||pl.missA?` ${nf(pl.missS)} schedule and ${nf(pl.missA)} actual value(s) were blank and are treated as 0.`:"");
-  if(needAvc){dm(note+" Enter the available capacity (AvC) in MW, check the PPA rate and bands, then click Calculate DSM.",true);return}
+  if(needAvc){dm(note+" No available capacity (AvC) was supplied. Map an AvC column in the import, or select “Show manual inputs / use my own file” to enter AvC and calculate.",true);return}
   dm(note);dCalc();
   if(dCur)dm(note+" Calculated. Open 'Deviation analysis & RCA' to see where and why the limits were crossed.");
 }
