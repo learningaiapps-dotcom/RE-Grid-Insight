@@ -1,0 +1,342 @@
+Region,Station,State,District,Site,Owner,Type,Capacity MW,Reports via,Location confidence
+NR,ACME CHITTORGAH,Rajasthan,Chittorgarh,Chittorgarh,ACME Solar,Solar,250.0,EESPL QCA BHADLA-1,From name only
+NR,ADANI RERJL,Rajasthan,Not confirmed,,,Solar,200.0,EESPL QCA BHADLA-1,Assumed
+NR,ADANI SE JODHPUR 2,Rajasthan,Jodhpur,,,Solar,50.0,EESPL QCA BHADLA-1,Confirmed
+NR,ADANI SE4L,Rajasthan,Jodhpur,"Rawra, Bap",Adani Green,Solar,50.0,EESPL QCA BHADLA-1,Confirmed
+NR,ADANI SEJ5PL,Rajasthan,Jaisalmer,Jaisalmer,Adani Green,Solar,200.0,EESPL QCA BHADLA-1,From name only
+NR,ADANI SERJ1PL,Rajasthan,Not confirmed,,,Solar,300.0,EESPL QCA BHADLA-1,Assumed
+NR,ADANI SOLAR ENERGY RJ 2 PHALODI,Rajasthan,Jodhpur,Phalodi,,Solar,150.0,EESPL QCA BHADLA-1,Confirmed
+NR,AMBUJA CEMENTS ESSEL,Rajasthan,Jodhpur,Bhadla,,Solar,300.0,EESPL QCA BHADLA-1,Confirmed
+NR,AZURE FORTY ONE,Rajasthan,Not confirmed,,Azure Power,Solar,300.0,EESPL QCA BHADLA-1,State only
+NR,AZURE POWER MAPLE,Rajasthan,Jodhpur,,,Solar,160.0,EESPL QCA BHADLA-1,Confirmed
+NR,AZURE SOLAR,Rajasthan,Not confirmed,,,Solar,200.0,EESPL QCA BHADLA-1,Assumed
+NR,AZURE THIRTY FOUR,Rajasthan,Not confirmed,,,Solar,130.0,EESPL QCA BHADLA-1,Assumed
+NR,CLEAN SOLAR POWER,Rajasthan,Not confirmed,,,Solar,250.0,EESPL QCA BHADLA-1,Assumed
+NR,CLEAN SOLAR POWER BHADLA,Rajasthan,Jodhpur,Bhadla,,Solar,300.0,EESPL QCA BHADLA-1,Confirmed
+NR,MEGA SOLIS RENEWABLES,Rajasthan,Not confirmed,,,Solar,250.0,EESPL QCA BHADLA-1,Assumed
+NR,RENEW SOLAR,Rajasthan,Not confirmed,,,Solar,50.0,EESPL QCA BHADLA-1,Assumed
+NR,TATA POWER RE CHHAYAN,Rajasthan,Jaisalmer,"Chhayan, Pokaran",Tata Power,Solar,300.0,EESPL QCA BHADLA-1,Confirmed
+NR,ABC RENEWABLE ENERGY PRIVATE LIMITED,Rajasthan,Jaisalmer,,ABC Renewable,Solar,300.0,EESPL QCA BHADLA-2,Confirmed
+NR,ADANI GREEN ENERGY 25,Rajasthan,Jodhpur,Badi Sid,Adani Green,Solar,500.0,EESPL QCA BHADLA-2,Confirmed
+NR,Adani SEJ6L,Rajasthan,Jaisalmer,Jaisalmer,Adani Green,Solar,50.0,EESPL QCA BHADLA-2,From name only
+NR,AMP ENERGY GREEN FIVE,Rajasthan,Jodhpur,Badi Seed,,Solar,100.0,EESPL QCA BHADLA-2,Confirmed
+NR,AMP ENERGY GREEN FOUR,Rajasthan,Jodhpur,Badi Seer & Ranjeet Nagar,AMPIN,Solar,100.0,EESPL QCA BHADLA-2,Confirmed
+NR,AMP ENERGY GREEN SIX,Rajasthan,Not confirmed,,,Solar,100.0,EESPL QCA BHADLA-2,Assumed
+NR,AVAADA SUNRAYS,Rajasthan,Bikaner,"Nokhara, Kolayat",Avaada,Solar,320.0,EESPL QCA BHADLA-2,Confirmed
+NR,GORBEA SOLAR,Rajasthan,Jodhpur,Bari Seer,,Solar,300.0,EESPL QCA BHADLA-2,Confirmed
+NR,KOLYAT SOLAR BIKANER,Rajasthan,Bikaner,,,Solar,550.0,EESPL QCA BHADLA-2,Confirmed
+NR,MEGA SURYAURJA,Rajasthan,Jodhpur,,Mega Suryaurja,Solar,250.0,EESPL QCA BHADLA-2,State only
+NR,NOKHRA SOLAR,Rajasthan,Jaisalmer,Nokh,,Solar,300.0,EESPL QCA BHADLA-2,Confirmed
+NR,NTPC NOKH SOLAR,Rajasthan,Jaisalmer,Nokh,,Solar,735.0,EESPL QCA BHADLA-2,Confirmed
+NR,RISING SUN ENERGY,Rajasthan,Jaisalmer,Nokh Solar Park,Rising Sun Energy,Solar,190.0,EESPL QCA BHADLA-2,Confirmed
+NR,Renew Solar Shakti Eleven,Rajasthan,Not confirmed,,,Solar,150.0,EESPL QCA Bhadla-III,Assumed
+NR,Renew Solar Shakti One,Rajasthan,Not confirmed,,,Solar,150.0,EESPL QCA Bhadla-III,Assumed
+NR,Zorya Solar Energy,Rajasthan,Jodhpur,,Zorya Solar Energy,Solar,266.88,EESPL QCA Bhadla-III,Confirmed
+NR,ACME HEERGARH POWERTECH,Rajasthan,Not confirmed,Heergarh,ACME Solar,Solar,300.0,Manikaran QCA  Bhadla-II,From name only
+NR,EDEN RENEWABLE ALMA,Rajasthan,Jodhpur,Kan Singh ki Sid (Bhadla-II PS),Eden Renewables,Solar,300.0,Manikaran QCA  Bhadla-II,Confirmed
+NR,HRP Green Power Private Limited(HGPPL),Rajasthan,Jodhpur,Bhadla,HRP Green Power,Solar,296.0,,Confirmed
+NR,Project Eleven RE Power Pvt Ltd,Rajasthan,Jodhpur,Bhadla,Project Eleven RE Power,Solar,150.0,,Confirmed
+NR,ADANI SEJ2PL M,Rajasthan,Bikaner,,Adani Green,Solar,150.0,EESPL QCA BIKANER-1,Confirmed
+NR,ADANI SEJ2PL P,Rajasthan,Bikaner,,Adani Green,Solar,150.0,EESPL QCA BIKANER-1,Confirmed
+NR,AVAADA RJHN,Rajasthan,Bikaner,Noorsar,Avaada,Solar,240.0,EESPL QCA BIKANER-1,Confirmed
+NR,AVAADA SUNCE,Rajasthan,Bikaner,Noorsar,Avaada,Solar,350.0,EESPL QCA BIKANER-1,Confirmed
+NR,AVAADA SUSTAINABLE,Rajasthan,Bikaner,Noorsar,,Solar,300.0,EESPL QCA BIKANER-1,Confirmed
+NR,AYANA RENEWABLE ONE,Rajasthan,Bikaner,Khichiya,,Solar,300.0,EESPL QCA BIKANER-1,Confirmed
+NR,AYANA RENEWABLE THREE,Rajasthan,Bikaner,,,Solar,300.0,EESPL QCA BIKANER-1,Confirmed
+NR,AZURE FORTY THREE,Rajasthan,Bikaner,,,Solar,600.0,EESPL QCA BIKANER-1,Confirmed
+NR,RENEW POWER,Rajasthan,Not confirmed,,,Solar,250.0,EESPL QCA BIKANER-1,Assumed
+NR,RENEW SURYA RAVI,Rajasthan,Bikaner,Bikaner pooling station,ReNew,Solar,300.0,EESPL QCA BIKANER-1,Confirmed
+NR,TATA POWER GREEN ENERGY,Rajasthan,Not confirmed,,,Solar,225.0,EESPL QCA BIKANER-1,Assumed
+NR,THAR SURYA 1,Rajasthan,Bikaner,Jamsar,,Solar,300.0,EESPL QCA BIKANER-1,Confirmed
+NR,TP SAURYA,Rajasthan,Bikaner,,,Solar,110.0,EESPL QCA BIKANER-1,Confirmed
+NR,ADEPT RENEWABLE,Rajasthan,Not confirmed,,,Solar,110.0,EESPL QCA BIKANER-2,Assumed
+NR,AMPLUS AGES,Rajasthan,Not confirmed,,,Solar,100.0,EESPL QCA BIKANER-2,Assumed
+NR,GRIAN ENERGY,Rajasthan,Bikaner,Bikaner-II pooling station,Grian Energy,Solar,100.0,EESPL QCA BIKANER-2,Confirmed
+NR,JUNIPER GREEN COSMIC,Rajasthan,Bikaner,Bikaner-II pooling station,Juniper Green Energy,Solar,100.0,EESPL QCA BIKANER-2,Confirmed
+NR,JUNIPER NIRJARA ENERGY,Rajasthan,Bikaner,Bikaner-II pooling station,Juniper Green Energy,Solar,50.0,EESPL QCA BIKANER-2,Confirmed
+NR,KHIDRAT RENEWABLE,Rajasthan,Bikaner,Randheesar,Khidrat Renewable,Solar,300.0,EESPL QCA BIKANER-2,Confirmed
+NR,ONEVOLT ENERGY,Rajasthan,Not confirmed,,,Solar,100.0,EESPL QCA BIKANER-2,Assumed
+NR,RENEW DINKAR,Rajasthan,Jaisalmer,Fatehgarh,ReNew,Solar,200.0,EESPL QCA BIKANER-2,Confirmed
+NR,SERENTICA RENEWABLE 4,Rajasthan,Bikaner,Jaymalsar,Serentica,Solar,168.0,EESPL QCA BIKANER-2,Confirmed
+NR,SERENTICA RENEWABLES 5PL,Rajasthan,Bikaner,Jaymalsar,Serentica,Solar,232.0,EESPL QCA BIKANER-2,Confirmed
+NR,TPSL BANDERWALA,Rajasthan,Bikaner,Banderwala,,Solar,300.0,EESPL QCA BIKANER-2,Confirmed
+NR,TRANSITION ENERGY,Rajasthan,Bikaner,Kawni,Transition Energy,Solar,84.4,EESPL QCA BIKANER-2,Confirmed
+NR,TRANSITION GREEN ENERGY,Rajasthan,Not confirmed,,Transition Energy,Solar,100.0,EESPL QCA BIKANER-2,State only
+NR,TRANSITION SUSTAINABLE,Rajasthan,Bikaner,Kawni,Transition Energy,Solar,50.0,EESPL QCA BIKANER-2,Confirmed
+NR,TRANSITION SUSTAINABLE ONE,Rajasthan,Not confirmed,,Transition Energy,Solar,55.6,EESPL QCA BIKANER-2,State only
+NR,Kalasar Tata Power Renewable Energy Ltd,Rajasthan,Bikaner,Kalasar,,Solar,190.5,EESPL QCA BIKANER-III,Confirmed
+NR,Tata Power Vardhaman Surya,Rajasthan,Bikaner,Kalasar,,Solar,72.5,EESPL QCA BIKANER-III,Confirmed
+NR,ACME SIKAR SOLAR,Rajasthan,Bikaner,Near Bikaner-II substation,ACME Solar,Solar,300.0,,Confirmed
+NR,Clean Max Celestial Private Limited,Rajasthan,Bikaner,Bikaner Solar Park,CleanMax,Solar,250.0,,Confirmed
+NR,ADANI GREEN ENERGY 24 INF,Rajasthan,Not confirmed,,,Solar,500.0,AREH5 QCA FATEHGARH 2,Assumed
+NR,ADANI HYBRID,Rajasthan,Jaisalmer,Adani hybrid cluster,Adani Green,Hybrid (solar + wind),390.0,AREH5 QCA FATEHGARH 2,Confirmed
+NR,ADANI HYBRID THREE,Rajasthan,Jaisalmer,Adani hybrid cluster,Adani Green,Hybrid (solar + wind),300.0,AREH5 QCA FATEHGARH 2,Confirmed
+NR,ADANI HYBRID TWO,Rajasthan,Jaisalmer,Adani hybrid cluster,Adani Green,Hybrid (solar + wind),300.0,AREH5 QCA FATEHGARH 2,Confirmed
+NR,ADANI SE JAISALMER 1,Rajasthan,Jaisalmer,,,Hybrid (solar + wind),450.0,AREH5 QCA FATEHGARH 2,Confirmed
+NR,ASERJ2PL,Rajasthan,Jaisalmer,Devikot,Adani Green,Solar,180.0,AREH5 QCA FATEHGARH 2,Confirmed
+NR,AMPIN Energy Green Eight,Rajasthan,Barmer,Balai,AMPIN,Hybrid (solar + wind),130.0,EESPL_QCA_Fatehgarh 4,Confirmed
+NR,AMPIN Energy Green Ten,Rajasthan,Jodhpur,,AMPIN,Hybrid (solar + wind),120.0,EESPL_QCA_Fatehgarh 4,Confirmed
+NR,AMPIN Energy Green Three,Rajasthan,Barmer,Jodh Singh Ka Gaon (Fatehgarh-IV),AMPIN,Hybrid (solar + wind),50.0,EESPL_QCA_Fatehgarh 4,Confirmed
+NR,ACME DEOGARH,Rajasthan,Jaisalmer,"Sanwara (ACME 1,023 MW cluster)",ACME Solar,Solar,300.0,MAL_QCA_Fatehgarh1,Confirmed
+NR,ACME DHAULPUR,Rajasthan,Jaisalmer,Sanwara,ACME Solar,Solar,300.0,MAL_QCA_Fatehgarh1,Confirmed
+NR,ACME PHALODI,Rajasthan,Jaisalmer,"Sanwara (ACME 1,023 MW cluster)",ACME Solar,Solar,300.0,MAL_QCA_Fatehgarh1,Confirmed
+NR,ACME RAISAR,Rajasthan,Jaisalmer,Sanwara,ACME Solar,Solar,300.0,MAL_QCA_Fatehgarh1,Confirmed
+NR,ADANI HYBRID FOUR,Rajasthan,Jaisalmer,Adani hybrid cluster,Adani Green,Hybrid (solar + wind),700.0,MAL_QCA_Fatehgarh1,Confirmed
+NR,NIDAN SOLAR FATEHGARH,Rajasthan,Jaisalmer,Fatehgarh,,Solar,296.0,MAL_QCA_Fatehgarh1,Confirmed
+NR,DEVIKOT SOLAR,Rajasthan,Jaisalmer,Devikot,,Solar,240.0,MAL_QCA_Fatehgarh2,Confirmed
+NR,EDEN RENEWABLE,Rajasthan,Not confirmed,,,Solar,300.0,MAL_QCA_Fatehgarh2,Assumed
+NR,RENEW JHARKHAND,Rajasthan,Not confirmed,,,Solar,300.0,MAL_QCA_Fatehgarh2,State only
+NR,RENEW SOLAR URJA,Rajasthan,Jaisalmer,Mandhopura,,Solar,300.0,MAL_QCA_Fatehgarh2,Confirmed
+NR,RENEW SUN BRIGHT,Rajasthan,Not confirmed,,,Solar,300.0,MAL_QCA_Fatehgarh2,Assumed
+NR,SOLZEN URJA PVT LTD,Rajasthan,Not confirmed,,,Solar,300.0,MAL_QCA_Fatehgarh2,Assumed
+NR,ABC Renewable Energy RJ02,Rajasthan,Not confirmed,,,Solar,400.0,MAL_QCA_Fatehgarh3,Assumed
+NR,ABREL(RJ) Projects Limited,Rajasthan,Barmer,Nand village,Aditya Birla Renewables,Wind,107.1,MAL_QCA_Fatehgarh3,Confirmed
+NR,Adani Barmer One,Rajasthan,Barmer,,,Solar,251.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,Aditya Birla Renewables Subsidiary Ltd,Rajasthan,Barmer,Nand village,Aditya Birla Renewables,Wind,100.8,MAL_QCA_Fatehgarh3,Confirmed
+NR,ALTRA XERGI,Rajasthan,Jaisalmer,"Neemba, Fatehgarh",O2 Power (JSW),Solar,380.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,ENERGIZENT POWER,Rajasthan,Jaisalmer,"Harbha, Fatehgarh",Energizent Power,Solar,187.9,MAL_QCA_Fatehgarh3,Confirmed
+NR,IB Vogt Solar Seven,Rajasthan,Jaisalmer,Neemba,ReNew (IB Vogt),Solar,300.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,Khaba Renewable Energy Pvt Ltd,Rajasthan,Barmer,"Khodal, Sheo",ENGIE,Solar,200.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,RENEW Samir Shakti,Rajasthan,Barmer,,ReNew,Solar,300.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,Renew Solar Shakti Five,Rajasthan,Not confirmed,,,Solar,400.0,MAL_QCA_Fatehgarh3,Assumed
+NR,Renew Solar Shakti Three,Rajasthan,Not confirmed,,,Solar,300.0,MAL_QCA_Fatehgarh3,Assumed
+NR,RENEW SURYA AYAAN,Rajasthan,Jaisalmer,Neemba,,Solar,300.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,RENEW SURYA JYOTI,Rajasthan,Jaisalmer,,ReNew,Solar,210.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,RENEW SURYA NEEMBA,Rajasthan,Jaisalmer,"Neemba, Fatehgarh",ReNew,Solar,200.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,RENEW SURYA PRATAP,Rajasthan,Jaisalmer,"Neemba, Fatehgarh",ReNew,Solar,200.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,RENEW SURYA ROSHNI,Rajasthan,Jaisalmer,"Modha, Fatehgarh",ReNew,Solar,400.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,RENEW SURYA VIHAAN,Rajasthan,Jaisalmer,,,Solar,100.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,SERENTICA RENEWABLE 26PL,Rajasthan,Not confirmed,,Serentica,Solar,100.0,MAL_QCA_Fatehgarh3,State only
+NR,SERENTICA RENEWABLE 8PL,Rajasthan,Not confirmed,,Serentica,Solar,200.0,MAL_QCA_Fatehgarh3,State only
+NR,SERENTICA RENEWABLE 9,Rajasthan,Not confirmed,,Serentica,Solar,599.99,MAL_QCA_Fatehgarh3,State only
+NR,XL XERG,Rajasthan,Jaisalmer,Fatehgarh-III pooling station,XL Xergi Power,Solar,400.0,MAL_QCA_Fatehgarh3,Confirmed
+NR,Juniper Green Stellar,Rajasthan,Barmer,Fatehgarh-IV pooling station,Juniper Green Energy,Hybrid (solar + wind),417.05,,Confirmed
+NR,ACME RENEWTECH PRIVATE LIMITED,Rajasthan,Bikaner,"Kelan village, Chhatargarh",ACME Solar,Solar,66.68,,Confirmed
+NR,Adani Green Energy 25 B,Rajasthan,Not confirmed,,Adani Green,Solar,137.5,,State only
+NR,ANTA SOLAR,Rajasthan,Baran,Anta,NTPC,Solar,90.0,,Confirmed
+NR,AURAIYA SOLAR,Uttar Pradesh,Auraiya,Auraiya,NTPC,Solar,40.0,,Confirmed
+NR,BBMB Solar,Punjab,Not confirmed,,SJVN Green Energy (for BBMB),Solar,10.3,,State only
+NR,Bhiwani Solar BBMB,Haryana,Bhiwani,,,Solar,8.8,,Confirmed
+NR,Clean Max Enviro Energy Solutions Limited,Rajasthan,Bikaner,,CleanMax,Solar,100.0,,Confirmed
+NR,DADRI SOLAR,Uttar Pradesh,Gautam Buddh Nagar,Dadri,NTPC,Solar,5.0,,Confirmed
+NR,Hisar Solar BBMB,Haryana,Hisar,,,Solar,1.5,,Confirmed
+NR,JUNA RENEWABLE,Rajasthan,Bikaner,Kawani,ACCIONA,Solar,335.0,,Confirmed
+NR,NHPC KARNISAR SOLAR,Rajasthan,Bikaner,Karnisar,NHPC,Solar,300.0,,Confirmed
+NR,Project Sixteen RE Power Pvt Ltd,Rajasthan,Not confirmed,,NTPC Green Energy,Solar,250.0,,State only
+NR,SINGRAULI SOLAR,Uttar Pradesh,Sonbhadra,Singrauli (Shaktinagar),NTPC,Solar,15.0,,Confirmed
+NR,SJVN GREEN ENERGY,Rajasthan,Bikaner,Bandarwala,SJVN,Solar,888.0,,Confirmed
+NR,UNCHAHAR SOLAR,Uttar Pradesh,Raebareli,Unchahar,NTPC,Solar,10.0,,Confirmed
+WR,ACL_PSS3_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ACL_PSS4_KPS1_HS,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ACL_PSS4_KPS1_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE24AL_PSS3_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE24L_PSS4_KPS1_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE24L_PSS5_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE25AL_PSS2_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE25BL_PSS2_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE25BL_PSS9_KPS1_HS,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE25BL_PSS9_KPS1_HW,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE26AL_PSS3_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE26AL_PSS6_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE26BL_PSS2_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AHEJ5L_PSS4_KPS1_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AHEJ5L_PSS5_KPS1_HW,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AHEJ5L_PSS5_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,APSEZ_PSS3_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,APSEZ_PSS4_KPS1_HS,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,APSEZ_PSS4_KPS1_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ARE41L_PSS3_KPS1_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ARE41L_PSS4_KPS1_HS,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ARE41L_PSS4_KPS1_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ARE45L_PSS5_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ARE55L_PSS3_KPS1_HS,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ARE55L_PSS3_KPS1_HW,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ARE55L_PSS3_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ARE56L_PSS4_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ARE56L_PSS9_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,ARE8L_PSS4_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AREH4L_PSS1_KPS1_SF,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS1_QCA,From name (pooling station code)
+WR,AGE24L_PSS10_KPS3_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,AGE25CL_PSS11_KPS3_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,AGE25CL_PSS14_KPS3_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,AGE25CL_PSS8_KPS3_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,AGE26AL_PSS12_KPS3_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,AGE26BL_PSS10_KPS1_HS,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,AGE26BL_PSS10_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,AGE26BL_PSS10_KPS1_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,AHEJ5L_PSS8_KPS3_HS,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,AHEJ5L_PSS8_KPS3_HW,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,ARE3L_PSS8_KPS3_HS,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,ARE3L_PSS8_KPS3_HW,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,ARE41L_PSS13_KPS1_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,ARE41L_PSS8_KPS3_W,Gujarat,Kutch,Khavda RE Park,Adani group,Wind,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,ARE56L_PSS10_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,ARE57L_PSS13_KPS1_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,ASEJ6PL_PSS8_KPS3_HS,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,ASEJ6PL_PSS8_KPS3_HW,Gujarat,Kutch,Khavda RE Park,Adani group,Hybrid (solar + wind),,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,ASEJ6PL_PSS8_KPS3_S,Gujarat,Kutch,Khavda RE Park,Adani group,Solar,,AREH5L_KHAVDAPS3_QCA,From name (pooling station code)
+WR,KPIG_GSECLS_KPS2_S,Gujarat,Kutch,Khavda RE Park,KPI Green,Solar,,MANIKARAN_KHAVDAPS2_QCA,From name (pooling station code)
+WR,NTPCRE_GSECLS_KPS2_S,Gujarat,Kutch,Khavda RE Park,NTPC REL,Solar,64.8,MANIKARAN_KHAVDAPS2_QCA,From name (pooling station code)
+WR,NTPCREL_PSS2_KPS2_S,Gujarat,Kutch,Khavda RE Park,NTPC REL,Solar,,MANIKARAN_KHAVDAPS2_QCA,From name (pooling station code)
+WR,NTPCREL_PSS1_KPS3_S,Gujarat,Kutch,Khavda RE Park,NTPC REL,Solar,1200.0,NTPCREL_PSS1_KPS3_S,From name (pooling station code)
+WR,SAELP4_GSECLS_KPS2_S,Gujarat,Kutch,Khavda RE Park,SAEL,Solar,,SAELP4_GSECLS_KPS2_S,From name (pooling station code)
+WR,SAELP4D_GSECLS_KPS2_S,Gujarat,Kutch,Khavda RE Park,SAEL,Solar,,SAELP4_GSECLS_KPS2_S,From name (pooling station code)
+WR,SAELP5_GSECLS_KPS2_S,Gujarat,Kutch,Khavda RE Park,SAEL,Solar,,SAELP5_GSECLS_KPS2_S,From name (pooling station code)
+WR,SAELP5D_GSECS_KPS2_S,Gujarat,Kutch,Khavda RE Park,SAEL,Solar,,SAELP5_GSECLS_KPS2_S,From name (pooling station code)
+WR,CIL_GIPSS1_KPS2_S,Gujarat,Kutch,Khavda RE Park,Coal India,Solar,200.0,,From name (pooling station code)
+WR,ENREN2_GSECLN_KPS2_S,Gujarat,Kutch,Khavda RE Park,Enren,Solar,200.0,,From name (pooling station code)
+WR,GIPCL_PSS1_KPS2_S,Gujarat,Kutch,Khavda RE Park,GIPCL,Solar,600.0,,From name (pooling station code)
+WR,JSWRET_GSECLN_KPS2_S,Gujarat,Kutch,Khavda RE Park,JSW,Solar,300.0,,From name (pooling station code)
+WR,SAELP10_GIPSS1_KPS2_S,Gujarat,Kutch,Khavda RE Park,SAEL,Solar,100.0,,From name (pooling station code)
+WR,SAELP9_GIPSS1_KPS2_S,Gujarat,Kutch,Khavda RE Park,SAEL,Solar,100.0,,From name (pooling station code)
+WR,AVGJLAKA_RMPR_LKD_S,Gujarat,Kutch,Lakadia pooling station,Avaada,Solar,,AVGJLAKA_RMPR_LKD_S,From name (pooling station code)
+WR,AVGJSUST_RMPR_LKD_S,Gujarat,Kutch,Lakadia pooling station,Avaada,Solar,,AVGJLAKA_RMPR_LKD_S,From name (pooling station code)
+WR,AVINC_RMPR_LKD_S,Gujarat,Kutch,Lakadia pooling station,,Solar,,AVGJLAKA_RMPR_LKD_S,From name (pooling station code)
+WR,AyanaRP4_DVSR_BHJ_HS,Gujarat,Kutch,Bhuj pooling station,Ayana,Hybrid (solar + wind),,AyanaRP4_DVSR_BHJ_HW,From name (pooling station code)
+WR,AyanaRP4_DVSR_BHJ_HW,Gujarat,Kutch,Bhuj pooling station,Ayana,Hybrid (solar + wind),,AyanaRP4_DVSR_BHJ_HW,From name (pooling station code)
+WR,NTPCRE_DVSR_BHJ_W,Gujarat,Kutch,Bhuj pooling station,NTPC REL,Wind,,AyanaRP4_DVSR_BHJ_HW,From name (pooling station code)
+WR,AlfanarWind_SECI-III,Gujarat,Kutch,Bhuj pooling station,Alfanar,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,ASIPL_BARANDA,Gujarat,Kutch,Bhuj pooling station,,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,AWEK1L,Gujarat,Kutch,Bhuj pooling station,Adani group,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,AWEKFL,Gujarat,Kutch,Bhuj pooling station,Adani group,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,AWEKTL,Gujarat,Kutch,Bhuj pooling station,Adani group,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,GIWEL_SECI-II_RE,Gujarat,Kutch,Bhuj pooling station,,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,GIWEL_SECI-III_RE,Gujarat,Kutch,Bhuj pooling station,,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,RWE_AP2_SECI-III,Gujarat,Kutch,Bhuj pooling station,RWE,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,AWEK4L_DEDYA_BHUJ2_W,Gujarat,Kutch,Bhuj pooling station,Adani group,Wind,,MANIKARAN_BHUJ2_QCA,From name (pooling station code)
+WR,SITAC_CHUGGER_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,,Wind,,MANIKARAN_BHUJ2_QCA,From name (pooling station code)
+WR,APRAAVA_KHKRDA_JAM_W,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Apraava Energy,Wind,,MANIKARAN_JAM_KHAMBHALIYA_QCA,From name (pooling station code)
+WR,POWERICA,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Powerica,Wind,,MANIKARAN_JAM_KHAMBHALIYA_QCA,From reporting group
+WR,POWERICA2_MNJ_JAM_W,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Powerica,Wind,,MANIKARAN_JAM_KHAMBHALIYA_QCA,From name (pooling station code)
+WR,O2RE3PL_Wasi_klm_W,Maharashtra,Dharashiv,Kallam pooling station,,Wind,,MANIKARAN_KALLAM_QCA,From name (pooling station code)
+WR,RGMHP1_Patoda_klm_W,Maharashtra,Dharashiv,Kallam pooling station,ReNew,Wind,,MANIKARAN_KALLAM_QCA,From name (pooling station code)
+WR,RSRPL_GHTND_klm_W,Maharashtra,Dharashiv,Kallam pooling station,ReNew,Wind,,MANIKARAN_KALLAM_QCA,From name (pooling station code)
+WR,TeqGreen_Wasi_klm_HS,Maharashtra,Dharashiv,Kallam pooling station,TeqGreen,Hybrid (solar + wind),,MANIKARAN_KALLAM_QCA,From name (pooling station code)
+WR,TeqGreen_Wasi_klm_W,Maharashtra,Dharashiv,Kallam pooling station,TeqGreen,Wind,,MANIKARAN_KALLAM_QCA,From name (pooling station code)
+WR,AVAADA_AGAR_RUMS_S,Madhya Pradesh,Agar Malwa,Agar Solar Park,Avaada,Solar,,MANIKARAN_PACHORA_QCA,From name (pooling station code)
+WR,BEEMPOW_AGAR_RUMS_S,Madhya Pradesh,Agar Malwa,Agar Solar Park,,Solar,,MANIKARAN_PACHORA_QCA,From name (pooling station code)
+WR,BlueLeaf_CP_PCHR_HS,Madhya Pradesh,Not confirmed,Pachora pooling station,BlueLeaf,Hybrid (solar + wind),,MANIKARAN_PACHORA_QCA,From name (pooling station code)
+WR,BlueLeaf_CP_PCHR_HW,Madhya Pradesh,Not confirmed,Pachora pooling station,BlueLeaf,Hybrid (solar + wind),,MANIKARAN_PACHORA_QCA,From name (pooling station code)
+WR,BlueLeaf_CP_PCHR_S,Madhya Pradesh,Not confirmed,Pachora pooling station,BlueLeaf,Solar,,MANIKARAN_PACHORA_QCA,From name (pooling station code)
+WR,NTPC_REL_SJPR_RUMS_S,Madhya Pradesh,Shajapur,Shajapur Solar Park,NTPC REL,Solar,,MANIKARAN_PACHORA_QCA,From name (pooling station code)
+WR,NTPCREL1_SJPR_RUMS_S,Madhya Pradesh,Shajapur,Shajapur Solar Park,NTPC REL,Solar,,MANIKARAN_PACHORA_QCA,From name (pooling station code)
+WR,TALTUTAI_SJPR_RUMS_S,Madhya Pradesh,Shajapur,Shajapur Solar Park,,Solar,,MANIKARAN_PACHORA_QCA,From name (pooling station code)
+WR,ESPL_RSP,Gujarat,Banaskantha,Radhanesda Solar Park,,Solar,,MANIKARAN_RADHANESDA_QCA,From name (pooling station code)
+WR,TPREL_RSP,Gujarat,Banaskantha,Radhanesda Solar Park,Tata Power,Solar,,MANIKARAN_RADHANESDA_QCA,From name (pooling station code)
+WR,MRPL_TBHD_JAM_H,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,,Hybrid (solar + wind),,MRPL_TBHD_JAM_H,From name (pooling station code)
+WR,MRPL_TBHD_JAM_HS,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,,Hybrid (solar + wind),,MRPL_TBHD_JAM_H,From name (pooling station code)
+WR,MRPL_TBHD_JAM_HW,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,,Hybrid (solar + wind),,MRPL_TBHD_JAM_H,From name (pooling station code)
+WR,OEPL,Gujarat,Kutch,Bhachau,,Wind,,Manikaran_Bhachau_QCA,From reporting group
+WR,OKWPL_RE,Gujarat,Kutch,Bhachau,,Wind,,Manikaran_Bhachau_QCA,From reporting group
+WR,RPL_SECI-II_RE,Gujarat,Kutch,Bhachau,,Wind,,Manikaran_Bhachau_QCA,From reporting group
+WR,NTPCRE1_SMND_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,NTPC REL,Wind,,NTPCRE2_SMND_BHJ2_W,From name (pooling station code)
+WR,NTPCRE2_SMND_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,NTPC REL,Wind,,NTPCRE2_SMND_BHJ2_W,From name (pooling station code)
+WR,CPTTNPL,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From reporting group
+WR,NTPC_REL_DYPR_BHUJ_W,Gujarat,Kutch,Dayapar,NTPC REL,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,NVWEPL_DAYAPAR_BHJ_W,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,W1RL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,W2RPL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,W3RL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,W5RL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,WAREL_BADI_NMCH_S,Madhya Pradesh,Neemuch,Neemuch pooling station,,Solar,448.8,RECONNECT_NEEMUCH_QCA,From name (pooling station code)
+WR,RenewGreen_SLPR_HS,Maharashtra,Solapur,Solapur,ReNew,Hybrid (solar + wind),,RenewGreen_SLPR_HS,From name (pooling station code)
+WR,RenewGreenTN3_SLPR_S,Maharashtra,Solapur,Solapur,ReNew,Solar,,RenewGreen_SLPR_HS,From name (pooling station code)
+WR,RGMHS1_TLJPR_SLPR_HW,Maharashtra,Solapur,Solapur,ReNew,Hybrid (solar + wind),,RenewGreen_SLPR_HS,From name (pooling station code)
+WR,RGMHS3_PSS5_SLPR_S,Maharashtra,Solapur,Solapur,ReNew,Solar,,RenewGreen_SLPR_HS,From name (pooling station code)
+WR,CGERP_MORJAR_BHJ2_HS,Gujarat,Kutch,Bhuj pooling station,,Hybrid (solar + wind),,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
+WR,CGERP_MORJAR_BHJ2_HW,Gujarat,Kutch,Bhuj pooling station,,Hybrid (solar + wind),,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
+WR,SRIJAN_MORJAR_BHJ2_HW,Gujarat,Kutch,Bhuj pooling station,,Hybrid (solar + wind),,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
+WR,SRIJAN_MORJAR_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,,Wind,,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
+WR,SAUPL_HJRTPR_RJGR_W,Madhya Pradesh,Rajgarh,Rajgarh pooling station,,Wind,,SVVPL_HJRTPR_RJGR_W,From name (pooling station code)
+WR,SAUPLI_HJRTPR_RJGR_W,Madhya Pradesh,Rajgarh,Rajgarh pooling station,,Wind,,SVVPL_HJRTPR_RJGR_W,From name (pooling station code)
+WR,SVVPL_HJRTPR_RJGR_W,Madhya Pradesh,Rajgarh,Rajgarh pooling station,,Wind,,SVVPL_HJRTPR_RJGR_W,From name (pooling station code)
+WR,TPSOURY_BRVD_NMCH_S,Madhya Pradesh,Neemuch,Neemuch pooling station,Tata Power,Solar,,TPSOURY_KWAI_NMCH_S,From name (pooling station code)
+WR,TPSOURY_KWAI_NMCH_S,Madhya Pradesh,Neemuch,Neemuch pooling station,Tata Power,Solar,,TPSOURY_KWAI_NMCH_S,From name (pooling station code)
+WR,AWPL_SIDPUR_JAM_HS,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,,Hybrid (solar + wind),,Torrent_Sidpur_Jam_W,From name (pooling station code)
+WR,AWPL_SIDPUR_JAM_HW,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,,Hybrid (solar + wind),,Torrent_Sidpur_Jam_W,From name (pooling station code)
+WR,Torrent_Sidpur_Jam_W,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Torrent,Wind,,Torrent_Sidpur_Jam_W,From name (pooling station code)
+WR,Arinsun_RUMS,Madhya Pradesh,Rewa,Rewa Ultra Mega Solar Park,,Solar,,VEDANJAY_REWAPG_QCA,From name (pooling station code)
+WR,Athena_RUMS,Madhya Pradesh,Rewa,Rewa Ultra Mega Solar Park,,Solar,,VEDANJAY_REWAPG_QCA,From name (pooling station code)
+WR,MSRPL_REWA_RUMS_S,Madhya Pradesh,Rewa,Rewa Ultra Mega Solar Park,,Solar,,VEDANJAY_REWAPG_QCA,From name (pooling station code)
+WR,VJayinRPL_DHR_RJGR_HS,Madhya Pradesh,Rajgarh,Rajgarh pooling station,,Hybrid (solar + wind),,VJayinRPL_DHR_RJGR_HS,From name (pooling station code)
+WR,VJayinRPL_DHR_RJGR_HW,Madhya Pradesh,Rajgarh,Rajgarh pooling station,,Hybrid (solar + wind),,VJayinRPL_DHR_RJGR_HS,From name (pooling station code)
+WR,OGHOPL_AGAR_PCHR_HS,Madhya Pradesh,Agar Malwa,Agar Solar Park,,Hybrid (solar + wind),,VSUPL_AGAR_PCHR_W,From name (pooling station code)
+WR,VSUPL_AGAR_PCHR_W,Madhya Pradesh,Agar Malwa,Agar Solar Park,,Wind,,VSUPL_AGAR_PCHR_W,From name (pooling station code)
+WR,AVGJC_LLK_JAM_W,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Avaada,Wind,50.0,,From name (pooling station code)
+WR,AWEK3L_MNDN_TPMJ_W,Gujarat,Kutch,Mundra,Adani group,Wind,138.6,,From user
+WR,AWEMP1PL_PTNGR_IDR_W,Madhya Pradesh,Not confirmed,Pritamnagar,Adani group,Wind,324.4,,From user
+WR,AyanaRP4_ZURA_BHJ_S,Gujarat,Kutch,Bhuj pooling station,Ayana,Solar,150.0,,From name (pooling station code)
+WR,GANDHAR_SOLAR,Gujarat,Bharuch,Gandhar (NTPC gas station),NTPC,Solar,20.0,,From name (pooling station code)
+WR,GIPCL_RSP,Gujarat,Banaskantha,Radhanesda Solar Park,GIPCL,Solar,100.0,,From name (pooling station code)
+WR,GSECL_ph2_RSP_S,Gujarat,Banaskantha,Radhanesda Solar Park,GSECL,Solar,100.0,,From name (pooling station code)
+WR,GSECL_RSP,Gujarat,Banaskantha,Radhanesda Solar Park,GSECL,Solar,100.0,,From name (pooling station code)
+WR,JGEL_RAN_JAM_W,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Juniper,Wind,56.1,,From name (pooling station code)
+WR,KAWAS_SOLAR,Gujarat,Surat,Kawas (NTPC gas station),NTPC,Solar,56.0,,From name (pooling station code)
+WR,MASAYA_BWSPRA_KNDW_S,Madhya Pradesh,Khandwa,Khandwa,Masaya,Solar,300.0,,From name (pooling station code)
+WR,NTPCRE_JMJD_JAM_W,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,NTPC REL,Wind,50.4,,From name (pooling station code)
+WR,SGEL_RSP_S,Gujarat,Banaskantha,Radhanesda Solar Park,SJVN Green,Solar,100.0,,From name (pooling station code)
+WR,SHERISHA_RAIPUR_S,Chhattisgarh,Raipur,Raipur,,Solar,50.0,,From name (pooling station code)
+WR,Solapur_Solar,Maharashtra,Solapur,NTPC Solapur,NTPC,Solar,23.0,,From name (pooling station code)
+WR,SRI4PL_TDLWD_KLM_W,Maharashtra,Dharashiv,Kallam pooling station,,Wind,132.0,,From name (pooling station code)
+SR,adanika9_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,Adani Solar Energy KA Nine,Solar,200.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,adyah_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,Adyah Solar Energy,Solar,300.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,amplpvg_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,Amplus Pavagada Solar Energy Two,Solar,50.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,ampltumk_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,Amplus Tumkur Solar Energy One,Solar,50.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,avdsol_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,,Solar,150.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,avdsolr_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,,Solar,150.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,azpw_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,Azure Power Earth,Solar,100.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,frtmfin_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,Gentari (Fortum Finnsurya Energy),Solar,100.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,frtmsol_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,Fortum Solar,Solar,250.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,ircon_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,IRCON Renewable Power,Solar,400.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,jsw_renew_twenty_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,JSW Renew Twenty,Solar,300.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,kredl_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,KREDL,Solar,50.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,parm_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,Parampujya Solar Energy,Solar,150.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,ren_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,ReNew Wind Energy (TN2),Solar,50.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,tata_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,Tata Power,Solar,400.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,yar_pavagada,Karnataka,Tumakuru,Pavagada Solar Park,Yarrow Infrastructure,Solar,50.0,"RE Connect QCA, Pavagada",From name (SRLDC code)
+SR,jswneo_dharmapuram,Tamil Nadu,Karur,Karur,JSW Renew Energy Two,Wind,136.0,"Manikaran, Karur (Wind)",From name (SRLDC code)
+SR,jswrenew_karur,Tamil Nadu,Karur,Karur,JSW Renew Energy,Wind,240.0,"Manikaran, Karur (Wind)",From name (SRLDC code)
+SR,tpv_karur,Tamil Nadu,Karur,Karur,TP Vardhaman Surya (Tata Power),Wind,198.0,"Manikaran, Karur (Wind)",From name (SRLDC code)
+SR,arpspl_koppal,Karnataka,Koppal,Koppal,Ayana Renewable Power Six,Hybrid (solar + wind),285.0,"Manikaran, Koppal (Hybrid)",From name (SRLDC code)
+SR,kleio_koppal,Karnataka,Koppal,Koppal,Kleio Solar Power,Solar,153.6,"Manikaran, Koppal (Hybrid)",From name (SRLDC code)
+SR,rsopl_koppal,Karnataka,Koppal,Koppal,ReNew Surya Ojas,Hybrid (solar + wind),300.0,"Manikaran, Koppal (Hybrid)",From name (SRLDC code)
+SR,rsrpl_koppal,Karnataka,Koppal,Koppal,RSRPL (ReNew),Wind,286.0,"Manikaran, Koppal (Hybrid)",From name (SRLDC code)
+SR,serentica_koppal,Karnataka,Koppal,Koppal,Serentica Renewables India 1,Hybrid (solar + wind),191.4,"Manikaran, Koppal (Hybrid)",From name (SRLDC code)
+SR,tpsaurya_koppal,Karnataka,Koppal,Koppal,TP Saurya (Tata Power),Solar,292.3,"Manikaran, Koppal (Hybrid)",From name (SRLDC code)
+SR,adani7_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,Adani Solar Energy AP Seven,Solar,250.0,"Manikaran, NP Kunta (Solar)",From name (SRLDC code)
+SR,atb_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,,Solar,50.0,"Manikaran, NP Kunta (Solar)",From name (SRLDC code)
+SR,ath_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,,Solar,50.0,"Manikaran, NP Kunta (Solar)",From name (SRLDC code)
+SR,atk_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,,Solar,50.0,"Manikaran, NP Kunta (Solar)",From name (SRLDC code)
+SR,ayana_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,Ayana Renewable Power,Solar,250.0,"Manikaran, NP Kunta (Solar)",From name (SRLDC code)
+SR,igs1_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,Indigrid Solar I,Solar,50.0,"Manikaran, NP Kunta (Solar)",From name (SRLDC code)
+SR,igs2_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,Indigrid Solar II,Solar,50.0,"Manikaran, NP Kunta (Solar)",From name (SRLDC code)
+SR,ntpc_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,NTPC,Solar,250.0,"Manikaran, NP Kunta (Solar)",From name (SRLDC code)
+SR,sprng_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,Sprng Agnitra,Solar,250.0,"Manikaran, NP Kunta (Solar)",From name (SRLDC code)
+SR,tata_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,Tata Power Renewable Energy,Solar,100.0,"Manikaran, NP Kunta (Solar)",From name (SRLDC code)
+SR,grtjipl_tuticorin,Tamil Nadu,Thoothukudi,Thoothukudi,GRT,Solar,150.0,"Manikaran, Tuticorin (Solar)",From name (SRLDC code)
+SR,ntpc_ettayapuram_tuticorin,Tamil Nadu,Thoothukudi,Thoothukudi,NTPC,Solar,230.0,"Manikaran, Tuticorin (Solar)",From name (SRLDC code)
+SR,Betam_tuticorin,Tamil Nadu,Thoothukudi,Thoothukudi,,Wind,216.2,"Manikaran, Tuticorin (Wind)",From name (SRLDC code)
+SR,girel_tuticorin,Tamil Nadu,Thoothukudi,Thoothukudi,Green Infra Renewable Energy,Wind,249.9,"Manikaran, Tuticorin (Wind)",From name (SRLDC code)
+SR,jsw_renew2_tuticorin,Tamil Nadu,Thoothukudi,Thoothukudi,JSW Renew Energy Two,Wind,300.0,"Manikaran, Tuticorin (Wind)",From name (SRLDC code)
+SR,jsw_savlaperi,Tamil Nadu,Thoothukudi,Savalaperi,JSW Renew Energy,Wind,520.0,"Manikaran, Tuticorin (Wind)",From name (SRLDC code)
+SR,mytrah_tuticorin,Tamil Nadu,Thoothukudi,Thoothukudi,Mytrah Vayu (Sabarmati),Wind,244.8,"Manikaran, Tuticorin (Wind)",From name (SRLDC code)
+SR,orange_tuticorin,Tamil Nadu,Thoothukudi,Thoothukudi,,Wind,194.0,"Manikaran, Tuticorin (Wind)",From name (SRLDC code)
+SR,rstps_fsp,Telangana,Peddapalli,Ramagundam (NTPC),NTPC,Solar,100.0,"RE Connect QCA, Ramagundam",From name (SRLDC code)
+SR,amgreen_kurnool,Andhra Pradesh,Kurnool,Kurnool,AM Green (AMGPL),Hybrid (solar + wind),868.0,,From name (SRLDC code)
+SR,azu_npkunta,Andhra Pradesh,Sri Sathya Sai,NP Kunta Solar Park,Azure Power Thirty Six,Solar,50.0,,From name (SRLDC code)
+SR,greeninfra_gadag,Karnataka,Gadag,Gadag,Sembcorp Green Infra,Wind,98.7,,From name (SRLDC code)
+SR,greenko_kurnool_s,Andhra Pradesh,Kurnool,Kurnool,Greenko,Solar,900.0,,From name (SRLDC code)
+SR,ntpc_ramagundam_fsp,Telangana,Peddapalli,Ramagundam (NTPC),NTPC,Solar,176.0,,From name (SRLDC code)
+SR,ostro_hiriyur,Karnataka,Chitradurga,Hiriyur,Ostro (ReNew),Wind,300.0,,From name (SRLDC code)
+SR,renew_vyoman_ananthapuram_hybrid,Andhra Pradesh,Anantapur,Anantapur,ReNew Vyoman,Hybrid (solar + wind),191.4,,From name (SRLDC code)
+SR,rsrpl_gadag,Karnataka,Gadag,Gadag,RSRPL (ReNew),Wind,262.0,,From name (SRLDC code)
+SR,sael1_kurnool,Andhra Pradesh,Kurnool,Kurnool,SAEL,Solar,300.0,,From name (SRLDC code)
+SR,sael2_kurnool,Andhra Pradesh,Kurnool,Kurnool,SAEL,Solar,300.0,,From name (SRLDC code)
+SR,saupl_pglr,Tamil Nadu,Karur,Pugalur,Sprng Akshaya Urja,Wind,52.8,,From name (SRLDC code)
+SR,seci_ramagiri,Andhra Pradesh,Sri Sathya Sai,Ramagiri,SECI,Solar,300.0,,From name (SRLDC code)
+SR,serentica3_gadag,Karnataka,Gadag,Gadag,Serentica Renewables,Hybrid (solar + wind),285.0,,From name (SRLDC code)
+SR,simhadri_fsp,Andhra Pradesh,Anakapalli,Simhadri (NTPC),NTPC,Solar,25.0,,From name (SRLDC code)
+SR,spring_pugalur,Tamil Nadu,Karur,Pugalur,Sprng Energy,Wind,300.0,,From name (SRLDC code)
+SR,vena_gadag_hybrid,Karnataka,Gadag,Gadag,Vena Energy Vidyuth,Hybrid (solar + wind),160.0,,From name (SRLDC code)
+SR,zrepl_hiriyur_hybrid,Karnataka,Chitradurga,Hiriyur,Zentaris Renewable Energy,Hybrid (solar + wind),200.1,,From name (SRLDC code)
+SR,Sprng Solar India (Pavagada),Karnataka,Tumakuru,Pavagada Solar Park,Sprng Solar India,Solar,,,From SRLDC list

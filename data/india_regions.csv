@@ -1,0 +1,4 @@
+Region,Region name,Data week,Source file,Plants,Capacity MW
+NR,Northern,21–27 Sep 2026,NRPC Supporting_files.xlsx,127,29954
+WR,Western,19–25 Oct 2026,WRPC DSM data zip (sum26.3),152,27218
+SR,Southern,26 Oct–1 Nov 2026,SRLDC commercial data zip (021126),62,13115
