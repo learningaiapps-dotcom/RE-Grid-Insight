@@ -212,13 +212,18 @@ applyModelFilter();
   const solarOutput=(irradiance,capacity,ratio)=>Math.min(capacity,capacity*irradiance/1000*ratio);
   const turbineParameters=()=>[+$("qkw3").value,+$("qrd3").value||100,+$("qci3").value||3,+$("qco3").value||25];
   for(const k of ["2","3"]){
+    const wind=k==="3";
+    const heading=wind
+      ? '<details id="wind-curve-details" class="card" style="margin-top:10px;padding:8px 12px"><summary style="font-weight:600">Turbine power curve</summary>'
+      : '<section class="card" style="margin-top:12px"><h2 style="margin:0;font-size:16px">Solar plant power response</h2>';
     $("qg"+k).parentElement.insertAdjacentHTML("beforebegin",
-      `<section class="card" style="margin-top:12px"><h2 style="margin:0;font-size:16px">${k==="3"?"Turbine power curve":"Solar plant power response"}</h2>
-      <p id="curve-note${k}" class="note"></p><div style="height:220px" id="curve-box${k}" class="hide"><canvas id="curve${k}" role="img" aria-label="${k==="3"?"Estimated power versus wind speed":"Estimated power versus solar irradiance"}"></canvas></div></section>`);
+      `${heading}<p id="curve-note${k}" class="note"></p><div style="height:${wind?150:220}px;${wind?"max-width:520px;":""}" id="curve-box${k}" class="hide"><canvas id="curve${k}" role="img" aria-label="${wind?"Estimated power versus wind speed":"Estimated power versus solar irradiance"}"></canvas></div>${wind?"</details>":"</section>"}`);
   }
+  const windCurveDetails=$("wind-curve-details");
   const curves={};
   function drawCurve(k){
     const wind=k==="3",params=turbineParameters(),capacity=+$("qc2").value;
+    if(wind&&!windCurveDetails.open)return;
     const valid=wind?params[0]>0&&params[3]>params[2]:capacity>0;
     $("curve-box"+k).classList.toggle("hide",!valid||typeof Chart==="undefined");
     $("curve-note"+k).textContent=valid
@@ -232,7 +237,11 @@ applyModelFilter();
     xs.sort((a,b)=>a-b);
     const data=xs.map(x=>({x,y:wind?windOutput(x,...params)/1000:solarOutput(x,capacity,+$("qp2").value||0.8)}));
     curves[k]=new Chart($("curve"+k),{type:"line",data:{datasets:[{data,borderColor:COLORS[wind?0:1],pointRadius:0}]},
-      options:{maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{
+      options:{maintainAspectRatio:false,animation:false,interaction:{mode:"nearest",axis:"x",intersect:false},
+        plugins:{legend:{display:false},tooltip:{callbacks:{
+          title:([item])=>`${item.parsed.x.toFixed(wind?2:0)} ${wind?"m/s":"W/m²"}`,
+          label:item=>`${item.parsed.y.toFixed(3)} MW${wind?" per turbine":""}`
+        }}},scales:{
         x:{type:"linear",title:{display:true,text:wind?"Wind speed (m/s)":"Solar irradiance (W/m²)"}},
         y:{beginAtZero:true,title:{display:true,text:"Power (MW)"}}
       }}});
@@ -255,10 +264,18 @@ applyModelFilter();
   const hubLabel=hubInput.closest("label");
   hubLabel.style.flex="";
   hubInput.step="any";
-  $("qco3").closest(".row").appendChild(hubLabel);
+  const machineRow=$("qco3").closest(".row");
+  machineRow.appendChild(hubLabel);
+  Object.assign(machineRow.style,{display:"grid",gridTemplateColumns:"repeat(5, minmax(94px, 1fr))",
+    gap:"8px",overflowX:"auto",padding:"2px 2px 5px",maxWidth:"680px"});
+  const labels=["Rated power (kW)","Rotor dia. (m)","Cut-in (m/s)","Cut-out (m/s)","Hub height (m)"];
+  Array.from(machineRow.querySelectorAll("label")).forEach((label,i)=>{
+    label.firstChild.textContent=labels[i];
+    label.querySelector("input").style.width="100%";
+  });
   const hubNote=document.createElement("p");
   hubNote.className="note";
-  hubLabel.closest(".row").after(hubNote);
+  machineRow.after(hubNote);
   function fillT(){
     const [,rated,rotor,cutIn,cutOut,hubHeight]=TURB[+$("qm_t3").value];
     $("qkw3").value=rated;
@@ -277,6 +294,7 @@ applyModelFilter();
   for(const id of ["qkw3","qrd3","qci3","qco3"])$(id).addEventListener("input",()=>drawCurve("3"));
   for(const id of ["qc2","qp2"])$(id).addEventListener("input",()=>drawCurve("2"));
   drawCurve("2");
+  windCurveDetails.addEventListener("toggle",()=>drawCurve("3"));
   $("qy3").value=$("cty").value;$("cty").addEventListener("input",()=>{if(!$("qy3").dataset.t)$("qy3").value=$("cty").value});$("qy3").addEventListener("input",()=>{$("qy3").dataset.t=1});
   async function place(k){
     const t=$("ql"+k).value.trim();
