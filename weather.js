@@ -211,38 +211,65 @@ applyModelFilter();
   }
   const solarOutput=(irradiance,capacity,ratio)=>Math.min(capacity,capacity*irradiance/1000*ratio);
   const turbineParameters=()=>[+$("qkw3").value,+$("qrd3").value||100,+$("qci3").value||3,+$("qco3").value||25];
-  for(const k of ["2","3"]){
-    const wind=k==="3";
-    const heading=wind
-      ? '<details id="wind-curve-details" class="card" style="margin-top:10px;padding:8px 12px"><summary style="font-weight:600">Turbine power curve</summary>'
-      : '<section class="card" style="margin-top:12px"><h2 style="margin:0;font-size:16px">Solar plant power response</h2>';
-    $("qg"+k).parentElement.insertAdjacentHTML("beforebegin",
-      `${heading}<p id="curve-note${k}" class="note"></p><div style="height:${wind?150:220}px;${wind?"max-width:520px;":""}" id="curve-box${k}" class="hide"><canvas id="curve${k}" role="img" aria-label="${wind?"Estimated power versus wind speed":"Estimated power versus solar irradiance"}"></canvas></div>${wind?"</details>":"</section>"}`);
+  $("qg2").parentElement.insertAdjacentHTML("beforebegin", `
+    <div class="row" style="margin-top:10px">
+      <label class="f">Solar mounting<select id="solar-mount">
+        <option value="fixed">Fixed tilt</option><option value="seasonal">Seasonal tilt</option><option value="tracker">Tracker system</option>
+      </select></label>
+      <label class="f" id="fixed-tilt-label">Panel tilt (°)<input id="fixed-tilt" type="number" min="0" max="90" step="any" value="20"></label>
+      <label class="f hide" id="summer-tilt-label">Apr–Sep tilt (°)<input id="summer-tilt" type="number" min="0" max="90" step="any" value="10"></label>
+      <label class="f hide" id="winter-tilt-label">Oct–Mar tilt (°)<input id="winter-tilt" type="number" min="0" max="90" step="any" value="30"></label>
+      <label class="f" id="solar-azimuth-label">Panel azimuth (°)<input id="solar-azimuth" type="number" min="-180" max="180" step="any" value="0"></label>
+    </div>
+    <p class="note" id="solar-mount-note">Azimuth is 0° south, −90° east, 90° west, and ±180° north.</p>`);
+  $("solar-mount").onchange=()=>{
+    const mode=$("solar-mount").value;
+    $("fixed-tilt-label").classList.toggle("hide",mode!=="fixed");
+    for(const season of ["summer","winter"])$(season+"-tilt-label").classList.toggle("hide",mode!=="seasonal");
+    $("solar-azimuth-label").classList.toggle("hide",mode==="tracker");
+    $("solar-mount-note").textContent=mode==="tracker"
+      ?"The estimate uses ideal dual-axis tracking."
+      :"Azimuth is 0° south, −90° east, 90° west, and ±180° north.";
+  };
+  function solarMount(day){
+    const mode=$("solar-mount").value;
+    if(mode==="tracker")return {tilt:"nan",azimuth:"nan",label:"Ideal dual-axis tracker"};
+    const month=Number(day.slice(5,7));
+    const tiltField=mode==="fixed"?"fixed-tilt":month>=4&&month<=9?"summer-tilt":"winter-tilt";
+    const tilt=$(tiltField),azimuth=$("solar-azimuth");
+    if(!tilt.value||!tilt.validity.valid||!azimuth.value||!azimuth.validity.valid){
+      throw new Error("Enter a tilt from 0° to 90° and azimuth from −180° to 180°.");
+    }
+    return {tilt:tilt.value,azimuth:azimuth.value,
+      label:`${mode==="fixed"?"Fixed tilt":"Seasonal tilt"} ${tilt.value}°, azimuth ${azimuth.value}°`};
   }
+  $("qg3").parentElement.insertAdjacentHTML("beforebegin",
+    '<details id="wind-curve-details" class="card" style="margin-top:10px;padding:8px 12px"><summary style="font-weight:600">Turbine power curve</summary><p id="curve-note3" class="note"></p><div style="height:150px;max-width:520px" id="curve-box3" class="hide"><canvas id="curve3" role="img" aria-label="Estimated power versus wind speed"></canvas></div></details>');
   const windCurveDetails=$("wind-curve-details");
-  const curves={};
-  function drawCurve(k){
-    const wind=k==="3",params=turbineParameters(),capacity=+$("qc2").value;
-    if(wind&&!windCurveDetails.open)return;
-    const valid=wind?params[0]>0&&params[3]>params[2]:capacity>0;
-    $("curve-box"+k).classList.toggle("hide",!valid||typeof Chart==="undefined");
-    $("curve-note"+k).textContent=valid
-      ?wind?"Estimated output per turbine, including the estimator’s 10% loss assumption.":"Estimated plant output using your capacity and performance ratio."
-      :wind?"Enter a positive turbine rating and a cut-out speed above cut-in.":"Enter plant capacity to see estimated output by irradiance.";
-    if(curves[k]){curves[k].destroy();delete curves[k]}
+  let windCurve;
+  function drawWindCurve(){
+    if(!windCurveDetails.open)return;
+    const params=turbineParameters();
+    const valid=params[0]>0&&params[3]>params[2];
+    $("curve-box3").classList.toggle("hide",!valid||typeof Chart==="undefined");
+    $("curve-note3").textContent=valid
+      ?"Estimated output per turbine, including the estimator’s 10% loss assumption."
+      :"Enter a positive turbine rating and a cut-out speed above cut-in.";
+    windCurve?.destroy();
+    windCurve=undefined;
     if(!valid||typeof Chart==="undefined")return;
-    const limit=wind?Math.max(30,params[3]+2):1200;
+    const limit=Math.max(30,params[3]+2);
     const xs=Array.from({length:61},(_,i)=>i*limit/60);
-    if(wind)xs.push(params[2],Math.max(0,params[3]-0.001),params[3]);
+    xs.push(params[2],Math.max(0,params[3]-0.001),params[3]);
     xs.sort((a,b)=>a-b);
-    const data=xs.map(x=>({x,y:wind?windOutput(x,...params)/1000:solarOutput(x,capacity,+$("qp2").value||0.8)}));
-    curves[k]=new Chart($("curve"+k),{type:"line",data:{datasets:[{data,borderColor:COLORS[wind?0:1],pointRadius:0}]},
+    const data=xs.map(x=>({x,y:windOutput(x,...params)/1000}));
+    windCurve=new Chart($("curve3"),{type:"line",data:{datasets:[{data,borderColor:COLORS[0],pointRadius:0}]},
       options:{maintainAspectRatio:false,animation:false,interaction:{mode:"nearest",axis:"x",intersect:false},
         plugins:{legend:{display:false},tooltip:{callbacks:{
-          title:([item])=>`${item.parsed.x.toFixed(wind?2:0)} ${wind?"m/s":"W/m²"}`,
-          label:item=>`${item.parsed.y.toFixed(3)} MW${wind?" per turbine":""}`
+          title:([item])=>`${item.parsed.x.toFixed(2)} m/s`,
+          label:item=>`${item.parsed.y.toFixed(3)} MW per turbine`
         }}},scales:{
-        x:{type:"linear",title:{display:true,text:wind?"Wind speed (m/s)":"Solar irradiance (W/m²)"}},
+        x:{type:"linear",title:{display:true,text:"Wind speed (m/s)"}},
         y:{beginAtZero:true,title:{display:true,text:"Power (MW)"}}
       }}});
   }
@@ -287,14 +314,12 @@ applyModelFilter();
       ? "Hub height is the preset tower height. Edit it for your installation."
       : "Hub height uses the app’s 90 m default. Edit it to match your installation.";
     capNote();
-    drawCurve("3");
+    drawWindCurve();
   }
   const capNote=()=>{const mw=(+$("qn3").value||0)*(+$("qkw3").value||0)/1000;$("qcap3").textContent=mw>0?`Plant capacity: ${mw.toLocaleString("en-IN",{maximumFractionDigits:1})} MW`:""};
   $("qm_t3").onchange=()=>{fillT();machineDetails.open=true};["qn3","qkw3"].forEach(i=>$(i).addEventListener("input",capNote));fillT();
-  for(const id of ["qkw3","qrd3","qci3","qco3"])$(id).addEventListener("input",()=>drawCurve("3"));
-  for(const id of ["qc2","qp2"])$(id).addEventListener("input",()=>drawCurve("2"));
-  drawCurve("2");
-  windCurveDetails.addEventListener("toggle",()=>drawCurve("3"));
+  for(const id of ["qkw3","qrd3","qci3","qco3"])$(id).addEventListener("input",()=>drawWindCurve());
+  windCurveDetails.addEventListener("toggle",()=>drawWindCurve());
   $("qy3").value=$("cty").value;$("cty").addEventListener("input",()=>{if(!$("qy3").dataset.t)$("qy3").value=$("cty").value});$("qy3").addEventListener("input",()=>{$("qy3").dataset.t=1});
   async function place(k){
     const t=$("ql"+k).value.trim();
@@ -311,9 +336,10 @@ applyModelFilter();
     m.textContent="Getting the weather forecast…";
     try{
       const pl=await place(k),wind=k==="3",hub=wind?(+$("qh3").value||90):0,pr=wind?0:(+$("qp2").value||0.8);
+      const mounting=wind?null:solarMount(day);
       const url=wind
        ?`https://api.open-meteo.com/v1/forecast?latitude=${pl.lat}&longitude=${pl.lon}&hourly=wind_speed_80m,wind_speed_120m&wind_speed_unit=ms&timezone=auto&start_date=${day}&end_date=${day}`
-       :`https://api.open-meteo.com/v1/forecast?latitude=${pl.lat}&longitude=${pl.lon}&minutely_15=shortwave_radiation&timezone=auto&start_date=${day}&end_date=${day}`;
+       :`https://api.open-meteo.com/v1/forecast?latitude=${pl.lat}&longitude=${pl.lon}&minutely_15=global_tilted_irradiance&tilt=${mounting.tilt}&azimuth=${mounting.azimuth}&timezone=auto&start_date=${day}&end_date=${day}`;
       const j=await (await fetch(url)).json();
       if(j.error)throw new Error(j.reason||"The weather service refused this date (it allows about 3 months back and 16 days ahead).");
       let mw,ws=null;
@@ -324,17 +350,20 @@ applyModelFilter();
         const params=turbineParameters();
         mw=ws.map(v=>Math.min(cap,windOutput(v,...params)*(+$("qn3").value||0)/1000));
       }else{
-        const g=j.minutely_15;if(!g||!g.shortwave_radiation)throw new Error("No sunshine data for this place and day.");
-        mw=Array.from({length:96},(_,i)=>solarOutput(g.shortwave_radiation[i]||0,cap,pr));
+        const irradiance=j.minutely_15?.global_tilted_irradiance;
+        if(irradiance?.length!==96||!irradiance.every(Number.isFinite)){
+          throw new Error("Complete 15-minute tilted irradiance data is unavailable for this place and day.");
+        }
+        mw=irradiance.map(value=>solarOutput(Math.max(0,value),cap,pr));
       }
       const mwh=mw.map(x=>x*0.25),tot=mwh.reduce((a,b)=>a+b,0),pk=Math.max(...mw),cuf=100*tot/(cap*24);
       m.textContent="";
       const rows=mw.map((x,i)=>`<tr><td>${i+1}</td><td>${hh(i)}</td>${wind?`<td>${ws[i].toFixed(1)}</td>`:""}<td>${x.toFixed(2)}</td><td>${(x*0.25).toFixed(3)}</td></tr>`).join("");
       o.innerHTML=`<div class="sum" style="margin-top:12px"><div><b>${tot.toLocaleString("en-IN",{maximumFractionDigits:0})} MWh</b><br><span class="note">tentative generation for ${day}</span></div><div><b>${pk.toFixed(1)} MW</b><br><span class="note">peak</span></div><div><b>${cuf.toFixed(1)} %</b><br><span class="note">capacity factor</span></div></div>
-       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`performance ratio ${pr}`} · MW per 15-minute block</p>${svg(mw,cap,"MW")}
+       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block</p>${wind?svg(mw,cap,"MW"):""}
        <div class="tools"><button class="alt" id="qcsv${k}">Download CSV</button></div>
        <details><summary>Show all 96 blocks</summary><div class="scroll"><table><thead><tr><th>Block</th><th>Time</th>${wind?`<th>Wind at ${hub} m (m/s)</th>`:""}<th>MW</th><th>MWh</th></tr></thead><tbody>${rows}</tbody></table></div></details>
-       <p class="note" style="margin-top:8px">${wind?"Estimated from the forecast wind speed with the power curve of the chosen turbine (calculated from its rated power and rotor size) and 10% losses. The wind speed is adjusted from the model heights (80 m and 120 m) to your hub height.":"Estimated as capacity × sunshine ÷ 1000 × performance ratio."} It is a tentative figure from the weather forecast only. For a better result use the advanced section with your own past data.</p>`;
+       <p class="note" style="margin-top:8px">${wind?"Estimated from the forecast wind speed with the power curve of the chosen turbine (calculated from its rated power and rotor size) and 10% losses. The wind speed is adjusted from the model heights (80 m and 120 m) to your hub height.":"Estimated using irradiance on the panels, plant capacity and performance ratio, capped at plant capacity."} It is a tentative figure from the weather forecast only. For a better result use the advanced section with your own past data.</p>`;
       $("qcsv"+k).onclick=()=>{const csv="block,time,"+(wind?"wind_ms,":"")+"mw,mwh\n"+mw.map((x,i)=>`${i+1},${hh(i)},${wind?ws[i].toFixed(2)+",":""}${x.toFixed(3)},${(x*0.25).toFixed(4)}`).join("\n");
         const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=(wind?"wind":"solar")+"-tentative-"+day+".csv";a.click()};
     }catch(e){m.className="note err";m.textContent=e.message&&!/fetch/i.test(e.message)?e.message:"Could not reach the weather service. Check your internet connection."}
