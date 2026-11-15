@@ -205,7 +205,15 @@ const updateMeteogramResults=(()=>{
       <p id="imd-csv-status" class="note" role="status"></p>
       <p id="imd-status" class="note" role="status"></p>
       <div id="imd-review" hidden>
+       <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px">
+        <div style="flex:1 1 440px;min-width:0">
         <img id="imd-preview" alt="Uploaded IMD meteogram" style="display:block;max-width:100%;max-height:540px">
+        </div>
+        <section class="card" style="flex:1 1 280px;min-width:0;margin:0">
+        <h2 style="margin:0;font-size:16px">What the meteogram suggests</h2>
+        <p class="note">This IMD GFS chart shows 3-hour forecasts of cloud, humidity, instability, rain and near-surface wind for the location printed on the image.</p>
+        <p><strong>Solar generation</strong><br><span id="imd-solar-impact"></span></p>
+        <p><strong>Wind generation</strong><br><span id="imd-wind-impact"></span></p>
         <p class="note">Select only cues visible in the forecast window you’re investigating. Check the issue time, time zone and location.</p>
         <fieldset>
           <legend>Visible forecast cues</legend>
@@ -213,9 +221,14 @@ const updateMeteogramResults=(()=>{
           <label><input type="checkbox" id="imd-moisture"> Higher humidity aloft</label>
           <label><input type="checkbox" id="imd-cape"> Elevated CAPE</label>
           <label><input type="checkbox" id="imd-rain"> Rain signal</label>
+          <label class="f" style="margin-top:8px">10 m wind in the period
+            <select id="imd-wind-cue"><option value="">Select if visible</option><option value="rising">Wind speed rises</option><option value="falling">Wind speed falls</option><option value="gusty">Wind or gusts vary sharply</option></select>
+          </label>
         </fieldset>
         <p id="imd-interpretation" role="status"></p>
         <button id="imd-remove" class="alt" type="button">Remove image</button>
+        </section>
+       </div>
       </div>
     </details>`);
   const imdCues=["cloud","moisture","cape","rain"].map(key=>$("imd-"+key));
@@ -234,10 +247,25 @@ const updateMeteogramResults=(()=>{
   }
   function renderMeteogram(){
     const summary=imdImage?meteogramSummary():"";
-    $("imd-interpretation").textContent=summary;
+    const [cloud,moisture,cape,rain]=imdCues.map(input=>input.checked);
+    const windCue=$("imd-wind-cue").value;
+    $("imd-interpretation").textContent=summary&&imdCues.some(input=>input.checked)?summary:"";
+    $("imd-solar-impact").textContent=cloud
+      ?"Increasing daytime cloud cover can reduce sunlight reaching the panels and lower solar output."
+      :rain||moisture&&cape
+        ?"These cues suggest possible cloud development. Check the cloud panel before expecting a drop in solar output."
+        :"Look for increasing cloud cover during daylight. The amount of generation lost depends on irradiance at the plant.";
+    const windImpacts={
+      rising:"Rising near-surface wind may support higher output if wind at hub height also rises within the turbine’s operating range.",
+      falling:"Falling near-surface wind may reduce output if the slowdown also reaches hub height.",
+      gusty:"Variable winds or gusts may indicate less steady output. Check hub-height wind and turbine operating limits."
+    };
+    const windImpact=windImpacts[windCue]||"Use the 10 m wind and gust panel to spot changes. Check hub-height wind and the turbine power curve to estimate generation.";
+    $("imd-wind-impact").textContent=windImpact;
     for(const result of document.querySelectorAll("[data-imd-result]")){
       result.hidden=!imdImage;
-      result.textContent=summary?" · IMD meteogram: "+summary:"";
+      result.textContent=summary?" · IMD meteogram: "+
+        (result.dataset.imdResult==="wind"?windImpact:summary):"";
     }
   }
   function clearMeteogram(){
@@ -246,6 +274,7 @@ const updateMeteogramResults=(()=>{
     imdPreview.removeAttribute("src");
     $("imd-review").hidden=true;
     imdCues.forEach(input=>{input.checked=false});
+    $("imd-wind-cue").value="";
     renderMeteogram();
   }
   function attachMeteogram(file){
@@ -280,6 +309,7 @@ const updateMeteogramResults=(()=>{
     $("imd-status").textContent="Image removed.";
   };
   imdCues.forEach(input=>input.addEventListener("change",renderMeteogram));
+  $("imd-wind-cue").addEventListener("change",renderMeteogram);
   return renderMeteogram;
 })();
 
@@ -648,7 +678,7 @@ function imdValues(key,times,coords=weatherLocation?.coords){
       m.textContent=failedModels.length?"No complete tilted irradiance forecast from: "+failedModels.join(", "):"";
       const rows=mw.map((x,i)=>`<tr><td>${i+1}</td><td>${hh(i)}</td>${wind?`<td>${ws[i].toFixed(1)}</td>`:""}<td>${x.toFixed(2)}</td><td>${(x*0.25).toFixed(3)}</td></tr>`).join("");
       o.innerHTML=`<div class="sum" style="margin-top:12px"><div><b>${tot.toLocaleString("en-IN",{maximumFractionDigits:0})} MWh</b><br><span class="note">tentative generation for ${day}</span></div><div><b>${pk.toFixed(1)} MW</b><br><span class="note">peak</span></div><div><b>${cuf.toFixed(1)} %</b><br><span class="note">capacity factor</span></div></div>
-       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block<span data-imd-result hidden></span></p>${wind?"":'<h2 style="font-size:16px;margin:12px 0 0">Solar generation by 15-minute block (MW)</h2>'}${wind?svg(mw,cap,"MW"):`<div style="position:relative;height:260px"><canvas id="solar-generation-plot" role="img" aria-label="Solar generation by forecast model"></canvas></div><p class="note">Summary, table and CSV use ${esc(solarModels[0].name)}.</p><p class="note" id="solar-imd-series-status"></p>`}
+       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block<span data-imd-result="${wind?"wind":"solar"}" hidden></span></p>${wind?"":'<h2 style="font-size:16px;margin:12px 0 0">Solar generation by 15-minute block (MW)</h2>'}${wind?svg(mw,cap,"MW"):`<div style="position:relative;height:260px"><canvas id="solar-generation-plot" role="img" aria-label="Solar generation by forecast model"></canvas></div><p class="note">Summary, table and CSV use ${esc(solarModels[0].name)}.</p><p class="note" id="solar-imd-series-status"></p>`}
        <div class="tools"><button class="alt" id="qcsv${k}">Download CSV</button></div>
        <details><summary>Show all 96 blocks</summary><div class="scroll"><table><thead><tr><th>Block</th><th>Time</th>${wind?`<th>Wind at ${hub} m (m/s)</th>`:""}<th>MW</th><th>MWh</th></tr></thead><tbody>${rows}</tbody></table></div></details>
        <p class="note" style="margin-top:8px">${wind?"Estimated from the forecast wind speed with the power curve of the chosen turbine (calculated from its rated power and rotor size) and 10% losses. The wind speed is adjusted from the model heights (80 m and 120 m) to your hub height.":"Estimated using irradiance on the panels, plant capacity and performance ratio, capped at plant capacity."} It is a tentative figure from the weather forecast only. For a better result use the advanced section with your own past data.</p>`;
