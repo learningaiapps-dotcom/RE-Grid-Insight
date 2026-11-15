@@ -80,6 +80,23 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
     <strong>RE Grid Insight · Mobile Lite</strong>
     <a href="index.html?view=full">Open full dashboard</a>
   </header>
+<form id="task-picker" class="card">
+  <label for="dashboard-task"><strong>What would you like to do?</strong></label>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+    <select id="dashboard-task" required style="max-width:100%">
+      <option value="">Choose a task</option>
+    <option value="weather">Check weather forecasts</option>
+    <option value="solar">Correct a solar forecast</option>
+    <option value="wind">Correct a wind forecast</option>
+    <option value="dsm">Calculate DSM for a time block</option>
+    <option value="qca">Run QCA DSM and deviation analysis</option>
+    <option value="imports">Import NRPC or WRPC files</option>
+    <option value="ists">Find ISTS pooling stations</option>
+    <option value="plants">Explore renewable energy plants</option>
+    </select>
+    <button type="submit">Open tool</button>
+  </div>
+</form>
 <div id="p1">
 <h1>Weather in 96 time blocks</h1>
 <p class="sub">Type a place (the country is optional) and the coordinates fill in by themselves, or type latitude and longitude (or paste "lat, lon") and the place name fills in. Pick 1 to 3 weather models and compare 15-minute forecasts for one day or a date range (up to 93 days). Data: Open-Meteo.</p>
@@ -128,5 +145,6 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   </aside>
 </main>
 <script src="weather.js"></script>
+<script src="task-picker.js" defer></script>
 </body>
 </html>
