@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSM of stand alone BESS</title>
+<script src="vendor/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--mute:#5b6b7a;--line:#d9e0e6;--accent:#0f766e;--pay:#c2410c;--rec:#15803d}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1720;--card:#17222d;--ink:#e8eef3;--mute:#93a4b3;--line:#2a3a48;--accent:#2dd4bf;--pay:#fb923c;--rec:#4ade80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif;padding:20px}
+.wrap{max-width:1150px;margin:0 auto}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:17px;margin:0 0 8px}
+p.sub{color:var(--mute);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+label.f{display:flex;flex-direction:column;font-size:13px;color:var(--mute);gap:4px;flex:1 1 160px}
+input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+button{font:inherit;padding:9px 18px;border:0;border-radius:6px;background:var(--accent);color:#fff;cursor:pointer;font-weight:600}
+@media (prefers-color-scheme:dark){button{color:#08201d}}
+button.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.tabs button{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.tabs button.on{background:var(--accent);color:#fff}
+@media (prefers-color-scheme:dark){.tabs button.on{color:#08201d}}
+.hide{display:none}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;margin-bottom:12px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}.kpi b{display:block;font-size:19px}.kpi span{font-size:12px;color:var(--mute)}
+.chartbox{height:340px;position:relative}
+.scroll{overflow:auto;max-height:460px;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:5px 9px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th{position:sticky;top:0;background:var(--card);line-height:1.25}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--bg)}
+.pay{color:var(--pay);font-weight:600}.rec{color:var(--rec);font-weight:600}
+.note{font-size:13px;color:var(--mute)}
+.err{color:#c2410c}
+.box{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:14px;margin-top:10px}
+.box p{margin:4px 0}
+.drop{border:2px dashed var(--line);border-radius:8px;padding:22px;text-align:center;color:var(--mute)}
+.drop.on{border-color:var(--accent)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+ul.rules{padding-left:18px;font-size:14px}ul.rules li{margin:4px 0}
+.badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;background:var(--bg);border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>DSM of stand alone BESS</h1>
+<p class="sub">Upload the Grid-India / RLDC 15-minute DSM CSV of a battery storage unit. The tool recomputes every block from the CERC DSM Regulations 2024 (Reg. 8(1) read with 8(5) for energy storage), compares with the settled amounts, and shows where the money went. Also includes a single-block calculator for "what-if" questions.</p>
+
+<div class="tabs"><button id="t1" class="on">Block-wise impact</button><button id="t2">Single block calculator</button><button id="t3">Rules used</button></div>
+
+<!-- ============ TAB 1 ============ -->
+<div id="p1">
+<div class="card">
+  <div class="drop" id="drop">Drop one or more DSM CSV files here, or <label style="color:var(--accent);cursor:pointer;text-decoration:underline">choose files<input type="file" id="file" accept=".csv,text/csv" multiple style="display:none"></label><br><span class="note">Expected columns: Date, Time, Block, Freq(Hz), Constituents, Actual (MWH), Schedule (MWH), SRAS, Deviation, Deviation %, DSM Payable, DSM Receivable, Normal Rate, Wt. Avg. Hybrid Rate, …</span></div>
+  <div class="tools"><label class="note">Unit: <select id="unit"></select></label><label class="note">Date: <select id="date"><option value="">All dates</option></select></label><button class="alt" id="dl">Download annotated CSV</button></div>
+  <div id="msg" class="note"></div>
+</div>
+
+<div id="out" class="hide">
+<div class="card">
+  <h2>Summary</h2>
+  <div class="kpis" id="kpis"></div>
+  <div class="note" id="fit"></div>
+</div>
+<div class="card">
+  <h2>Where the money went</h2>
+  <div class="scroll" style="max-height:300px"><table><thead><tr><th>Category</th><th>Meaning</th><th>Blocks</th><th>Deviation MWh</th><th>Payable Rs</th><th>Receivable Rs</th><th>Net Rs</th></tr></thead><tbody id="cat"></tbody></table></div>
+</div>
+<div class="card">
+  <h2>Net DSM per day (Rs lakh; positive = unit pays)</h2>
+  <div class="chartbox"><canvas id="c1"></canvas></div>
+</div>
+<div class="card">
+  <h2>Deviation and amount per block</h2>
+  <div class="chartbox"><canvas id="c2"></canvas></div>
+</div>
+<div class="card">
+  <h2>Costliest blocks</h2>
+  <div class="scroll" style="max-height:300px"><table><thead><tr><th>Date</th><th>Time</th><th>Freq</th><th>Schedule</th><th>Actual</th><th>Deviation</th><th>Dev %</th><th>Rate p/kWh</th><th>Payable Rs</th></tr></thead><tbody id="top"></tbody></table></div>
+</div>
+<div class="card">
+  <h2>All blocks <span class="note">(click a row to see how the amount is built up)</span></h2>
+  <div class="tools"><label class="note"><input type="checkbox" id="onlydev"> Only blocks with a schedule</label><label class="note"><input type="checkbox" id="onlybad"> Only blocks where file and formula differ by &gt;1%</label></div>
+  <div class="scroll"><table><thead><tr><th>Date</th><th>Time</th><th>Freq</th><th>Sched MWh</th><th>Actual MWh</th><th>Dev MWh</th><th>Dev %</th><th>Cat</th><th>RR p/kWh</th><th>File payable</th><th>File receivable</th><th>Formula net</th><th>Diff</th></tr></thead><tbody id="all"></tbody></table></div>
+  <div class="box hide" id="explain"></div>
+</div>
+</div>
+</div>
+
+<!-- ============ TAB 2 ============ -->
+<div id="p2" class="hide">
+<div class="card">
+  <h2>Single block calculator</h2>
+  <p class="note">Enter a 15-minute block. Discharging = positive MWh, charging = negative MWh (25 MWh in a block = 100 MW). The rate is the unit's contract / reference rate for that block in paise per kWh (e.g. 2000 = Rs 20 HP-DAM, 1000 = Rs 10 DAM; when charging use the exchange purchase price).</p>
+  <div class="row">
+    <label class="f">Schedule (MWh)<input id="s_sch" type="number" step="0.001" value="34.125"></label>
+    <label class="f">Actual (MWh)<input id="s_act" type="number" step="0.001" value="-0.70"></label>
+    <label class="f">Frequency (Hz)<input id="s_f" type="number" step="0.01" value="49.95"></label>
+    <label class="f">Rate RR (p/kWh)<input id="s_rr" type="number" step="0.01" value="2000"></label>
+    <label class="f">Volume limit cap (MW)<input id="s_cap" type="number" step="1" value="100"></label>
+    <button id="s_go">Calculate</button>
+  </div>
+  <div class="box" id="s_out"></div>
+  <h2 style="margin-top:16px">Frequency sensitivity for this block</h2>
+  <div class="chartbox"><canvas id="c3"></canvas></div>
+</div>
+</div>
+
+<!-- ============ TAB 3 ============ -->
+<div id="p3" class="hide">
+<div class="card">
+  <h2>Rules used (CERC DSM Regulations 2024, Reg. 8(1) with 8(5) for standalone ESS)</h2>
+  <ul class="rules">
+    <li><b>Deviation</b> = Actual − Schedule (MWh per 15-min block). Deviation % = Deviation ÷ |Schedule| × 100.</li>
+    <li><b>Volume limit (VL)</b> = 10% of the schedule or 100 MW (25 MWh/block), whichever is less. Deviation inside the limit and beyond it are charged differently.</li>
+    <li><b>Under-injection (payable)</b> — also used for a charging unit that draws MORE than scheduled:
+      <ul><li>Inside VL: 100% of RR at 49.97–50.03 Hz; +7.15% of RR for each 0.01 Hz below 49.97, reaching 150% at 49.90 Hz and flat below; −7.5% for each 0.01 Hz above 50.03, reaching 85% at 50.05 Hz and flat above.</li>
+      <li>Beyond VL: 100% of RR when f ≥ 50.00; 150% when 49.90 ≤ f &lt; 50.00; 200% when f &lt; 49.90.</li></ul></li>
+    <li><b>Over-injection (receivable)</b> — also used for a charging unit that draws LESS than scheduled:
+      <ul><li>Inside VL: 100% of RR at 49.97–50.03 Hz; +2.15% per 0.01 Hz below 49.97, reaching 115% at 49.90 and flat below; −25% per 0.01 Hz above 50.03, reaching 50% at 50.05; zero between 50.05 and 50.10; the seller pays 10% of RR at or above 50.10.</li>
+      <li>Beyond VL: nothing is paid (seller pays 10% of RR at or above 50.10 Hz).</li></ul></li>
+    <li><b>Rate (RR)</b>: when discharging, the unit's weighted-average contract rate for the block (the "Wt. Avg. Hybrid Rate" column). When charging or idle, the exchange purchase price; this tool uses the "Normal Rate" column as the best available proxy, so small differences from the file are expected in those blocks.</li>
+    <li><b>Amount (Rs)</b> = MWh × 1000 × rate (p/kWh) ÷ 100 × multiplier.</li>
+  </ul>
+  <p class="note">Sources: CERC (Deviation Settlement Mechanism and Related Matters) Regulations, 2024 — notification 192-Noti.pdf and Statement of Objects &amp; Reasons SOR192.pdf on cercind.gov.in. Check the gazette text before relying on any figure.</p>
+</div>
+</div>
+</div>
+
+<script>
+// ---------- regulation multipliers ----------
+function step(f,from){return Math.round(Math.abs(f-from)*100)}
+function mUnderIn(f){ if(f>=50.05)return .85; if(f>50.03)return 1-step(f,50.03)*.075; if(f>=49.97)return 1; if(f>=49.90)return 1+step(f,49.97)*(0.5/7); return 1.5 }
+function mUnderBeyond(f){ if(f>=50)return 1; if(f>=49.90)return 1.5; return 2 }
+function mOverIn(f){ if(f>=50.10)return -.10; if(f>50.05)return 0; if(f>50.03)return 1-step(f,50.03)*.25; if(f>=49.97)return 1; if(f>=49.90)return 1+step(f,49.97)*.0215; return 1.15 }
+function mOverBeyond(f){ return f>=50.10?-.10:0 }
+const toRs=(mwh,rr)=>mwh*1000*rr/100;
+
+// compute one block. returns {pay,rec,net,steps[],cat}
+function calc(sch,act,f,rr,capMW){
+  const dev=act-sch, vl=Math.min(0.10*Math.abs(sch),(capMW||100)/4), steps=[];
+  let pay=0,rec=0,cat;
+  if(sch>0) cat=dev<0?'A':'B'; else if(sch<0) cat=dev<0?'C':'D'; else cat=dev<0?'E':'F';
+  if(dev<0){ // under-injection OR charging over-drawal -> payable
+    const inside=Math.min(-dev,vl), beyond=Math.max(-dev-vl,0);
+    const m1=mUnderIn(f), m2=mUnderBeyond(f);
+    const a=toRs(inside,rr)*m1, b=toRs(beyond,rr)*m2; pay=a+b;
+    if(inside>0)steps.push(`Inside 10% limit: ${inside.toFixed(4)} MWh × Rs ${(rr/100).toFixed(2)}/kWh × ${(m1*100).toFixed(1)}% = Rs ${fmt(a)}`);
+    if(beyond>0)steps.push(`Beyond 10% limit: ${beyond.toFixed(4)} MWh × Rs ${(rr/100).toFixed(2)}/kWh × ${(m2*100).toFixed(0)}% = Rs ${fmt(b)}`);
+  } else if(dev>0){ // over-injection OR charging under-drawal -> receivable
+    const inside=Math.min(dev,vl), beyond=Math.max(dev-vl,0);
+    const m1=mOverIn(f), m2=mOverBeyond(f);
+    const a=toRs(inside,rr)*m1, b=toRs(beyond,rr)*m2; rec=a+b;
+    if(inside>0)steps.push(`Inside 10% limit: ${inside.toFixed(4)} MWh × Rs ${(rr/100).toFixed(2)}/kWh × ${(m1*100).toFixed(1)}% = Rs ${fmt(a)} ${a<0?'(payable)':'receivable'}`);
+    if(beyond>0)steps.push(`Beyond 10% limit: ${beyond.toFixed(4)} MWh × ${(m2*100).toFixed(0)}% = Rs ${fmt(b)} (over-delivery beyond the limit earns nothing)`);
+    if(rec<0){pay=-rec;rec=0}
+  } else steps.push('No deviation.');
+  return {pay,rec,net:pay-rec,steps,cat,vl,dev};
+}
+const CATS={A:'Discharging: delivered LESS than schedule (payable)',B:'Discharging: delivered MORE than schedule (receivable, max 10%)',C:'Charging: drew MORE than schedule (payable)',D:'Charging: drew LESS than schedule (receivable, max 10%)',E:'No schedule: drawing power / auxiliary (payable)',F:'No schedule: injecting (receivable)'};
+function fmt(n){return (Math.round(n*100)/100).toLocaleString('en-IN',{maximumFractionDigits:2})}
+function lakh(n){return (n/1e5).toFixed(2)}
+
+// ---------- CSV parsing ----------
+function parseCSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim()); if(!lines.length)throw new Error('Empty CSV'); const hdr=splitLine(lines[0]).map(h=>h.trim().toLowerCase());
+  const col=(...names)=>{for(const n of names){const i=hdr.findIndex(h=>h.includes(n));if(i>=0)return i}return -1};
+  const ix={date:col('date'),time:col('time'),block:col('block'),f:col('freq'),unit:col('constituent'),act:col('actual'),sch:col('schedule'),dev:col('deviation(mwh)','deviation (mwh)'),pay:col('payable'),rec:col('receivable'),nr:col('normal rate'),hyb:col('hybrid'),hpn:col('hpdam normal')};
+  if([ix.date,ix.time,ix.act,ix.sch,ix.f].some(i=>i<0)) throw new Error('Expected Date, Time, Actual, Schedule and Frequency columns');
+  const rows=[];
+  for(let i=1;i<lines.length;i++){const c=splitLine(lines[i]); if(c.length<8)continue;
+    const r={date:c[ix.date],time:c[ix.time],block:+c[ix.block],f:+c[ix.f],unit:ix.unit>=0?c[ix.unit]:'unit',act:+c[ix.act],sch:+c[ix.sch],pay:ix.pay>=0?+c[ix.pay]:0,rec:ix.rec>=0?+c[ix.rec]:0,nr:ix.nr>=0?+c[ix.nr]:0,hyb:ix.hyb>=0?+c[ix.hyb]:0};
+    if(![r.act,r.sch,r.f,r.pay,r.rec,r.nr,r.hyb].every(Number.isFinite)||!c[ix.f]?.trim()||!c[ix.act]?.trim()||!c[ix.sch]?.trim())continue; r.dev=r.act-r.sch; rows.push(r)}
+  if(!rows.length)throw new Error('No valid DSM blocks found');
+  return rows;
+}
+function splitLine(l){const out=[];let cur='',q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===','&&!q){out.push(cur);cur=''}else cur+=ch}out.push(cur);return out}
+
+// ---------- state ----------
+let ALL=[],charts={};
+const escapeHTML=value=>String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+const $=id=>document.getElementById(id);
+function load(files){
+  const reads=[...files].map(async f=>{try{return {rows:parseCSV(await f.text())}}catch(e){return {rows:[],error:f.name+': '+e.message}}});
+  Promise.all(reads).then(res=>{
+    ALL=ALL.concat(res.flatMap(result=>result.rows));
+    ALL.forEach(r=>{ r.rr=r.hyb>0?r.hyb:r.nr; const m=calc(r.sch,r.act,r.f,r.rr,100); Object.assign(r,{m}); r.cat=m.cat; r.diff=(r.pay-r.rec)-m.net; });
+    const units=[...new Set(ALL.map(r=>r.unit))]; $('unit').innerHTML=units.map(u=>`<option>${escapeHTML(u)}</option>`).join('');
+    const dates=[...new Set(ALL.map(r=>r.date))].sort(); $('date').innerHTML='<option value="">All dates</option>'+dates.map(d=>`<option>${escapeHTML(d)}</option>`).join('');
+    $('msg').textContent=`${ALL.length} blocks loaded for ${units.length} unit(s), ${dates.length} day(s). ${res.map(result=>result.error).filter(Boolean).join(" ")}`;
+    render();
+  });
+}
+function view(){const u=$('unit').value,d=$('date').value;return ALL.filter(r=>r.unit===u&&(!d||r.date===d))}
+function render(){
+  const rows=view(); $('explain').classList.add('hide'); $('out').classList.toggle('hide',!rows.length); if(!rows.length)return;
+  const sum=(k)=>rows.reduce((a,r)=>a+(r[k]||0),0);
+  const pay=sum('pay'),rec=sum('rec'),net=pay-rec;
+  const schD=rows.filter(r=>r.sch>0).reduce((a,r)=>a+r.sch,0), delD=rows.filter(r=>r.sch>0).reduce((a,r)=>a+r.act,0);
+  const zero=rows.filter(r=>r.sch>0&&r.act<0.5);
+  $('kpis').innerHTML=[
+    [`Rs ${lakh(pay)} L`,'Total payable (file)'],[`Rs ${lakh(rec)} L`,'Total receivable (file)'],[`<span class="${net>0?'pay':'rec'}">Rs ${lakh(net)} L</span>`,net>0?'Net: unit PAYS':'Net: unit RECEIVES'],
+    [`${schD.toFixed(0)} / ${delD.toFixed(0)} MWh`,'Scheduled vs delivered in discharge blocks'],[`${zero.length} blocks`,`Scheduled discharge but delivered ~nothing: Rs ${lakh(zero.reduce((a,r)=>a+r.pay,0))} L`],
+    [`${rows.filter(r=>r.sch>0).length} / ${rows.filter(r=>r.sch<0).length} / ${rows.filter(r=>r.sch===0).length}`,'Blocks discharging / charging / idle']
+  ].map(([b,s])=>`<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join('');
+  const dis=rows.filter(r=>r.sch>0), ok=dis.filter(r=>Math.abs(r.diff)<=0.01*Math.max(1,r.pay+r.rec)).length;
+  const modelNet=rows.reduce((a,r)=>a+r.m.net,0);
+  $('fit').innerHTML=`Formula check: ${ok} of ${dis.length} discharge blocks reproduced within 1% (contract rate known). Formula net for all blocks Rs ${lakh(modelNet)} L vs file Rs ${lakh(net)} L; the gap is mainly charging/idle blocks where the purchase price is not in the file.`;
+  // categories
+  const cats={}; rows.forEach(r=>{const c=cats[r.cat]||(cats[r.cat]={n:0,dev:0,pay:0,rec:0});c.n++;c.dev+=r.dev;c.pay+=r.pay;c.rec+=r.rec});
+  $('cat').innerHTML=Object.keys(CATS).map(k=>{const c=cats[k]||{n:0,dev:0,pay:0,rec:0};const n=c.pay-c.rec;return `<tr><td>${k}</td><td>${CATS[k]}</td><td>${c.n}</td><td>${c.dev.toFixed(1)}</td><td>${fmt(c.pay)}</td><td>${fmt(c.rec)}</td><td class="${n>0?'pay':'rec'}">${fmt(n)}</td></tr>`}).join('');
+  // daily chart
+  const byDay=Object.create(null); rows.forEach(r=>{byDay[r.date]=(byDay[r.date]||0)+r.pay-r.rec});
+  const days=Object.keys(byDay).sort();
+  chart('c1',{type:'bar',data:{labels:days,datasets:[{label:'Net DSM (Rs lakh)',data:days.map(d=>+lakh(byDay[d])),backgroundColor:days.map(d=>byDay[d]>0?'rgba(194,65,12,.7)':'rgba(21,128,61,.7)')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{title:{display:true,text:'Rs lakh (positive = pays)'}}}}});
+  // block chart
+  const lab=rows.map(r=>r.date.slice(5)+' '+r.time);
+  chart('c2',{type:'bar',data:{labels:lab,datasets:[{label:'Schedule MWh',data:rows.map(r=>r.sch),type:'line',borderColor:'#2563eb',pointRadius:0,borderWidth:1.5,yAxisID:'y'},{label:'Actual MWh',data:rows.map(r=>r.act),type:'line',borderColor:'#d97706',pointRadius:0,borderWidth:1.5,yAxisID:'y'},{label:'Net DSM Rs (payable +, receivable −)',data:rows.map(r=>r.pay-r.rec),backgroundColor:rows.map(r=>r.pay-r.rec>0?'rgba(194,65,12,.5)':'rgba(21,128,61,.5)'),yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{maxTicksLimit:16}},y:{title:{display:true,text:'MWh / block'}},y2:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Rs'}}}}});
+  // top
+  const top=[...rows].sort((a,b)=>b.pay-a.pay).slice(0,10);
+  $('top').innerHTML=top.map(r=>`<tr><td>${escapeHTML(r.date)}</td><td>${escapeHTML(r.time)}</td><td>${r.f.toFixed(2)}</td><td>${r.sch.toFixed(3)}</td><td>${r.act.toFixed(3)}</td><td>${r.dev.toFixed(3)}</td><td>${r.sch?(r.dev/Math.abs(r.sch)*100).toFixed(1):'–'}</td><td>${r.rr.toFixed(2)}</td><td class="pay">${fmt(r.pay)}</td></tr>`).join('');
+  renderAll();
+}
+function renderAll(){
+  let rows=view(); if($('onlydev').checked)rows=rows.filter(r=>r.dev!==0); if($('onlybad').checked)rows=rows.filter(r=>Math.abs(r.diff)>0.01*Math.max(1,r.pay+r.rec));
+  $('all').innerHTML=rows.map((r,i)=>`<tr class="click" data-i="${ALL.indexOf(r)}"><td>${escapeHTML(r.date)}</td><td>${escapeHTML(r.time)}</td><td>${r.f.toFixed(2)}</td><td>${r.sch.toFixed(3)}</td><td>${r.act.toFixed(3)}</td><td>${r.dev.toFixed(3)}</td><td>${r.sch?(r.dev/Math.abs(r.sch)*100).toFixed(1):'–'}</td><td><span class="badge">${r.cat}</span></td><td>${r.rr.toFixed(2)}</td><td class="pay">${r.pay?fmt(r.pay):''}</td><td class="rec">${r.rec?fmt(r.rec):''}</td><td>${fmt(r.m.net)}</td><td>${fmt(r.diff)}</td></tr>`).join('');
+}
+function explain(r){
+  const e=$('explain'); e.classList.remove('hide');
+  const mult=r.dev<0?`inside-limit multiplier ${(mUnderIn(r.f)*100).toFixed(1)}%, beyond-limit ${(mUnderBeyond(r.f)*100).toFixed(0)}%`:`inside-limit multiplier ${(mOverIn(r.f)*100).toFixed(1)}%, beyond-limit ${(mOverBeyond(r.f)*100).toFixed(0)}%`;
+  e.innerHTML=`<p><b>${escapeHTML(r.date)} ${escapeHTML(r.time)}</b> — ${CATS[r.cat]}</p><p>Schedule ${r.sch.toFixed(4)} MWh, actual ${r.act.toFixed(4)} MWh → deviation <b>${r.dev.toFixed(4)} MWh</b>${r.sch?` (${(r.dev/Math.abs(r.sch)*100).toFixed(2)}%)`:''}. Volume limit = ${r.m.vl.toFixed(4)} MWh. Frequency ${r.f.toFixed(2)} Hz → ${mult}. Rate used Rs ${(r.rr/100).toFixed(2)}/kWh${r.hyb>0?' (contract rate from file)':' (Normal Rate used as proxy for purchase price)'}.</p>${r.m.steps.map(s=>`<p>• ${s}</p>`).join('')}<p><b>Formula: payable Rs ${fmt(r.m.pay)}, receivable Rs ${fmt(r.m.rec)}</b> — file: payable Rs ${fmt(r.pay)}, receivable Rs ${fmt(r.rec)} (difference Rs ${fmt(r.diff)}).</p>`;
+  e.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function chart(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)}
+
+// ---------- single block ----------
+function single(){
+  const sch=+$('s_sch').value,act=+$('s_act').value,f=+$('s_f').value,rr=+$('s_rr').value,cap=+$('s_cap').value;
+  const m=calc(sch,act,f,rr,cap);
+  $('s_out').innerHTML=`<p><b>${CATS[m.cat]}</b></p><p>Deviation = ${act} − (${sch}) = <b>${m.dev.toFixed(4)} MWh</b>${sch?` (${(m.dev/Math.abs(sch)*100).toFixed(2)}% of schedule)`:''}; volume limit = ${m.vl.toFixed(4)} MWh.</p>${m.steps.map(s=>`<p>• ${s}</p>`).join('')}<p style="font-size:16px"><b>${m.pay>0?`Payable Rs ${fmt(m.pay)}`:m.rec>0?`Receivable Rs ${fmt(m.rec)}`:'Nothing payable or receivable'}</b>${m.dev<0&&sch>0?` — that is ${(m.pay/Math.max(1,toRs(-m.dev,rr))*100).toFixed(0)}% of the sale value of the energy not delivered.`:''}</p>`;
+  const fs=[];for(let x=49.80;x<=50.12;x+=0.01)fs.push(+x.toFixed(2));
+  chart('c3',{type:'line',data:{labels:fs,datasets:[{label:'Net Rs at this frequency (payable +, receivable −)',data:fs.map(x=>calc(sch,act,x,rr,cap).net),borderColor:'#0f766e',pointRadius:2,stepped:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{title:{display:true,text:'Hz'}},y:{title:{display:true,text:'Rs'}}}}});
+}
+
+// ---------- wiring ----------
+$('file').addEventListener('change',e=>load(e.target.files));
+const dz=$('drop');['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('on')}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('on')}));
+dz.addEventListener('drop',e=>load(e.dataTransfer.files));
+$('unit').addEventListener('change',render);$('date').addEventListener('change',render);
+$('onlydev').addEventListener('change',renderAll);$('onlybad').addEventListener('change',renderAll);
+$('all').addEventListener('click',e=>{const tr=e.target.closest('tr[data-i]');if(tr)explain(ALL[+tr.dataset.i])});
+$('dl').addEventListener('click',()=>{const rows=view();if(!rows.length)return;const h='Date,Time,Freq,Unit,Schedule_MWh,Actual_MWh,Deviation_MWh,Deviation_pct,Category,Rate_p_kWh,File_payable,File_receivable,Formula_payable,Formula_receivable,Diff\n';
+  const b=rows.map(r=>[r.date,r.time,r.f,r.unit,r.sch,r.act,r.dev.toFixed(6),r.sch?(r.dev/Math.abs(r.sch)*100).toFixed(2):'',r.cat,r.rr,r.pay,r.rec,r.m.pay.toFixed(2),r.m.rec.toFixed(2),r.diff.toFixed(2)].join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h+b],{type:'text/csv'}));a.download='DSM_annotated_'+$('unit').value+'.csv';a.click()});
+$('s_go').addEventListener('click',single);
+[['t1','p1'],['t2','p2'],['t3','p3']].forEach(([t,p])=>$(t).addEventListener('click',()=>{['p1','p2','p3'].forEach(x=>$(x).classList.toggle('hide',x!==p));['t1','t2','t3'].forEach(x=>$(x).classList.toggle('on',x===t));if(p==='p2')single()}));
+single();
+</script>
+</body>
+</html>
