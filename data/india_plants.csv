@@ -200,14 +200,14 @@ WR,ASIPL_BARANDA,Gujarat,Kutch,Bhuj pooling station,,Wind,,MANIKARAN_BHUJ1_QCA,F
 WR,AWEK1L,Gujarat,Kutch,Bhuj pooling station,Adani group,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
 WR,AWEKFL,Gujarat,Kutch,Bhuj pooling station,Adani group,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
 WR,AWEKTL,Gujarat,Kutch,Bhuj pooling station,Adani group,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
-WR,GIWEL_SECI-II_RE,Gujarat,Kutch,Bhuj pooling station,,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
-WR,GIWEL_SECI-III_RE,Gujarat,Kutch,Bhuj pooling station,,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
-WR,RWE_AP2_SECI-III,Gujarat,Kutch,Bhuj pooling station,RWE,Wind,,MANIKARAN_BHUJ1_QCA,From reporting group
-WR,AWEK4L_DEDYA_BHUJ2_W,Gujarat,Kutch,Bhuj pooling station,Adani group,Wind,,MANIKARAN_BHUJ2_QCA,From name (pooling station code)
-WR,SITAC_CHUGGER_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,,Wind,,MANIKARAN_BHUJ2_QCA,From name (pooling station code)
-WR,APRAAVA_KHKRDA_JAM_W,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Apraava Energy,Wind,,MANIKARAN_JAM_KHAMBHALIYA_QCA,From name (pooling station code)
-WR,POWERICA,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Powerica,Wind,,MANIKARAN_JAM_KHAMBHALIYA_QCA,From reporting group
-WR,POWERICA2_MNJ_JAM_W,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Powerica,Wind,,MANIKARAN_JAM_KHAMBHALIYA_QCA,From name (pooling station code)
+WR,GIWEL_SECI-II_RE,Gujarat,Kutch,Bhuj pooling station,,Wind,250.00,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,GIWEL_SECI-III_RE,Gujarat,Kutch,Bhuj pooling station,,Wind,300.00,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,RWE_AP2_SECI-III,Gujarat,Kutch,Bhuj pooling station,RWE,Wind,300.00,MANIKARAN_BHUJ1_QCA,From reporting group
+WR,AWEK4L_DEDYA_BHUJ2_W,Gujarat,Kutch,Bhuj pooling station,Adani group,Wind,300.00,MANIKARAN_BHUJ2_QCA,From name (pooling station code)
+WR,SITAC_CHUGGER_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,,Wind,300.00,MANIKARAN_BHUJ2_QCA,From name (pooling station code)
+WR,APRAAVA_KHKRDA_JAM_W,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Apraava Energy,Wind,250.00,MANIKARAN_JAM_KHAMBHALIYA_QCA,From name (pooling station code)
+WR,POWERICA,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Powerica,Wind,50.60,MANIKARAN_JAM_KHAMBHALIYA_QCA,From reporting group
+WR,POWERICA2_MNJ_JAM_W,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,Powerica,Wind,50.00,MANIKARAN_JAM_KHAMBHALIYA_QCA,From name (pooling station code)
 WR,O2RE3PL_Wasi_klm_W,Maharashtra,Dharashiv,Kallam pooling station,,Wind,,MANIKARAN_KALLAM_QCA,From name (pooling station code)
 WR,RGMHP1_Patoda_klm_W,Maharashtra,Dharashiv,Kallam pooling station,ReNew,Wind,,MANIKARAN_KALLAM_QCA,From name (pooling station code)
 WR,RSRPL_GHTND_klm_W,Maharashtra,Dharashiv,Kallam pooling station,ReNew,Wind,,MANIKARAN_KALLAM_QCA,From name (pooling station code)
@@ -221,32 +221,32 @@ WR,BlueLeaf_CP_PCHR_S,Madhya Pradesh,Not confirmed,Pachora pooling station,BlueL
 WR,NTPC_REL_SJPR_RUMS_S,Madhya Pradesh,Shajapur,Shajapur Solar Park,NTPC REL,Solar,,MANIKARAN_PACHORA_QCA,From name (pooling station code)
 WR,NTPCREL1_SJPR_RUMS_S,Madhya Pradesh,Shajapur,Shajapur Solar Park,NTPC REL,Solar,,MANIKARAN_PACHORA_QCA,From name (pooling station code)
 WR,TALTUTAI_SJPR_RUMS_S,Madhya Pradesh,Shajapur,Shajapur Solar Park,,Solar,,MANIKARAN_PACHORA_QCA,From name (pooling station code)
-WR,ESPL_RSP,Gujarat,Banaskantha,Radhanesda Solar Park,,Solar,,MANIKARAN_RADHANESDA_QCA,From name (pooling station code)
-WR,TPREL_RSP,Gujarat,Banaskantha,Radhanesda Solar Park,Tata Power,Solar,,MANIKARAN_RADHANESDA_QCA,From name (pooling station code)
+WR,ESPL_RSP,Gujarat,Banaskantha,Radhanesda Solar Park,,Solar,200.00,MANIKARAN_RADHANESDA_QCA,From name (pooling station code)
+WR,TPREL_RSP,Gujarat,Banaskantha,Radhanesda Solar Park,Tata Power,Solar,100.00,MANIKARAN_RADHANESDA_QCA,From name (pooling station code)
 WR,MRPL_TBHD_JAM_H,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,,Hybrid (solar + wind),,MRPL_TBHD_JAM_H,From name (pooling station code)
 WR,MRPL_TBHD_JAM_HS,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,,Hybrid (solar + wind),,MRPL_TBHD_JAM_H,From name (pooling station code)
-WR,MRPL_TBHD_JAM_HW,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,,Hybrid (solar + wind),,MRPL_TBHD_JAM_H,From name (pooling station code)
-WR,OEPL,Gujarat,Kutch,Bhachau,,Wind,,Manikaran_Bhachau_QCA,From reporting group
-WR,OKWPL_RE,Gujarat,Kutch,Bhachau,,Wind,,Manikaran_Bhachau_QCA,From reporting group
-WR,RPL_SECI-II_RE,Gujarat,Kutch,Bhachau,,Wind,,Manikaran_Bhachau_QCA,From reporting group
-WR,NTPCRE1_SMND_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,NTPC REL,Wind,,NTPCRE2_SMND_BHJ2_W,From name (pooling station code)
+WR,MRPL_TBHD_JAM_HW,Gujarat,Devbhumi Dwarka,Jam Khambhaliya pooling station,,Hybrid (solar + wind),115.50,MRPL_TBHD_JAM_H,From name (pooling station code)
+WR,OEPL,Gujarat,Kutch,Bhachau,,Wind,50.00,Manikaran_Bhachau_QCA,From reporting group
+WR,OKWPL_RE,Gujarat,Kutch,Bhachau,,Wind,250.00,Manikaran_Bhachau_QCA,From reporting group
+WR,RPL_SECI-II_RE,Gujarat,Kutch,Bhachau,,Wind,230.10,Manikaran_Bhachau_QCA,From reporting group
+WR,NTPCRE1_SMND_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,NTPC REL,Wind,50.00,NTPCRE2_SMND_BHJ2_W,From name (pooling station code)
 WR,NTPCRE2_SMND_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,NTPC REL,Wind,,NTPCRE2_SMND_BHJ2_W,From name (pooling station code)
-WR,CPTTNPL,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From reporting group
-WR,NTPC_REL_DYPR_BHUJ_W,Gujarat,Kutch,Dayapar,NTPC REL,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
-WR,NVWEPL_DAYAPAR_BHJ_W,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
-WR,W1RL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
-WR,W2RPL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
-WR,W3RL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
-WR,W5RL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,CPTTNPL,Gujarat,Kutch,Dayapar,,Wind,126.00,NVWEPL_DAYAPAR_BHJ_W,From reporting group
+WR,NTPC_REL_DYPR_BHUJ_W,Gujarat,Kutch,Dayapar,NTPC REL,Wind,50.00,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,NVWEPL_DAYAPAR_BHJ_W,Gujarat,Kutch,Dayapar,,Wind,50.00,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,W1RL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,50.00,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,W2RPL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,50.00,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,W3RL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,50.00,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
+WR,W5RL_DAYAPAR_BHUJ_W,Gujarat,Kutch,Dayapar,,Wind,50.00,NVWEPL_DAYAPAR_BHJ_W,From name (pooling station code)
 WR,WAREL_BADI_NMCH_S,Madhya Pradesh,Neemuch,Neemuch pooling station,,Solar,448.8,RECONNECT_NEEMUCH_QCA,From name (pooling station code)
 WR,RenewGreen_SLPR_HS,Maharashtra,Solapur,Solapur,ReNew,Hybrid (solar + wind),,RenewGreen_SLPR_HS,From name (pooling station code)
 WR,RenewGreenTN3_SLPR_S,Maharashtra,Solapur,Solapur,ReNew,Solar,,RenewGreen_SLPR_HS,From name (pooling station code)
 WR,RGMHS1_TLJPR_SLPR_HW,Maharashtra,Solapur,Solapur,ReNew,Hybrid (solar + wind),,RenewGreen_SLPR_HS,From name (pooling station code)
 WR,RGMHS3_PSS5_SLPR_S,Maharashtra,Solapur,Solapur,ReNew,Solar,,RenewGreen_SLPR_HS,From name (pooling station code)
-WR,CGERP_MORJAR_BHJ2_HS,Gujarat,Kutch,Bhuj pooling station,,Hybrid (solar + wind),,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
-WR,CGERP_MORJAR_BHJ2_HW,Gujarat,Kutch,Bhuj pooling station,,Hybrid (solar + wind),,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
+WR,CGERP_MORJAR_BHJ2_HS,Gujarat,Kutch,Bhuj pooling station,,Hybrid (solar + wind),30.80,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
+WR,CGERP_MORJAR_BHJ2_HW,Gujarat,Kutch,Bhuj pooling station,,Hybrid (solar + wind),29.70,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
 WR,SRIJAN_MORJAR_BHJ2_HW,Gujarat,Kutch,Bhuj pooling station,,Hybrid (solar + wind),,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
-WR,SRIJAN_MORJAR_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,,Wind,,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
+WR,SRIJAN_MORJAR_BHJ2_W,Gujarat,Kutch,Bhuj pooling station,,Wind,148.50,SRIJAN_MORJAR_BHJ2_HW,From name (pooling station code)
 WR,SAUPL_HJRTPR_RJGR_W,Madhya Pradesh,Rajgarh,Rajgarh pooling station,,Wind,,SVVPL_HJRTPR_RJGR_W,From name (pooling station code)
 WR,SAUPLI_HJRTPR_RJGR_W,Madhya Pradesh,Rajgarh,Rajgarh pooling station,,Wind,,SVVPL_HJRTPR_RJGR_W,From name (pooling station code)
 WR,SVVPL_HJRTPR_RJGR_W,Madhya Pradesh,Rajgarh,Rajgarh pooling station,,Wind,,SVVPL_HJRTPR_RJGR_W,From name (pooling station code)
