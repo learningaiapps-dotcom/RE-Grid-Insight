@@ -189,6 +189,95 @@ applyModelFilter();
   $("mfilter").addEventListener("change",()=>{last=""});$("cty").addEventListener("input",()=>{last=""});
 })();
 
+const updateMeteogramResults=(()=>{
+  $("p1").insertAdjacentHTML("beforeend", `
+    <details class="card" style="margin-top:12px">
+      <summary><strong>IMD meteogram analysis</strong></summary>
+      <p><a href="https://nwp.imd.gov.in/gfs_meteograms_mausam.php" target="_blank" rel="noopener noreferrer">Open IMD GFS meteograms ↗</a></p>
+      <div class="row">
+        <label class="f">Upload meteogram image<input id="imd-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+        <label class="f">Paste screenshot<textarea id="imd-paste" rows="2" placeholder="Click here and press Ctrl+V or Cmd+V"></textarea></label>
+      </div>
+      <p id="imd-status" class="note" role="status"></p>
+      <div id="imd-review" hidden>
+        <img id="imd-preview" alt="Uploaded IMD meteogram" style="display:block;max-width:100%;max-height:540px">
+        <p class="note">Select only cues visible in the forecast window you’re investigating. Check the issue time, time zone and location.</p>
+        <fieldset>
+          <legend>Visible forecast cues</legend>
+          <label><input type="checkbox" id="imd-cloud"> Cloud cover increases</label>
+          <label><input type="checkbox" id="imd-moisture"> Higher humidity aloft</label>
+          <label><input type="checkbox" id="imd-cape"> Elevated CAPE</label>
+          <label><input type="checkbox" id="imd-rain"> Rain signal</label>
+        </fieldset>
+        <p id="imd-interpretation" role="status"></p>
+        <button id="imd-remove" class="alt" type="button">Remove image</button>
+      </div>
+    </details>`);
+  const imdCues=["cloud","moisture","cape","rain"].map(key=>$("imd-"+key));
+  const imdPreview=$("imd-preview");
+  let imdImage;
+  function meteogramSummary(){
+    const [cloud,moisture,cape,rain]=imdCues.map(input=>input.checked);
+    const hints=[];
+    if(cloud)hints.push("Increasing forecast cloud cover suggests a risk of lower solar irradiance.");
+    if(moisture&&cape)hints.push("Moisture aloft and elevated CAPE suggest conditions that could support cloud development.");
+    else if(moisture)hints.push("Higher humidity aloft suggests moisture is present.");
+    else if(cape)hints.push("Elevated CAPE suggests potential for convection if forecast conditions support it.");
+    if(rain)hints.push("The rain signal adds context for possible cloud cover.");
+    if(!hints.length)return "Image attached. Select the cues you can read to generate a short interpretation.";
+    return hints.join(" ")+" This 3-hourly forecast gives regional context. Compare satellite imagery and plant readings to check a specific 15-minute drop.";
+  }
+  function renderMeteogram(){
+    const summary=imdImage?meteogramSummary():"";
+    $("imd-interpretation").textContent=summary;
+    for(const result of document.querySelectorAll("[data-imd-result]")){
+      result.hidden=!imdImage;
+      result.textContent=summary?"IMD meteogram (operator review): "+summary:"";
+    }
+  }
+  function clearMeteogram(){
+    if(imdImage)URL.revokeObjectURL(imdImage);
+    imdImage=undefined;
+    imdPreview.removeAttribute("src");
+    $("imd-review").hidden=true;
+    imdCues.forEach(input=>{input.checked=false});
+    renderMeteogram();
+  }
+  function attachMeteogram(file){
+    if(!file)return;
+    if(!/^image\/(png|jpeg|webp|gif)$/.test(file.type)||file.size>10*1024*1024){
+      $("imd-status").textContent="Choose a PNG, JPEG, WebP or GIF image up to 10 MB.";
+      return;
+    }
+    clearMeteogram();
+    imdImage=URL.createObjectURL(file);
+    imdPreview.src=imdImage;
+    $("imd-review").hidden=false;
+    $("imd-status").textContent="Image attached in this browser. Select the cues it shows.";
+    renderMeteogram();
+  }
+  imdPreview.onerror=()=>{
+    clearMeteogram();
+    $("imd-status").textContent="This image could not be opened. Try another screenshot.";
+  };
+  $("imd-file").onchange=event=>{
+    attachMeteogram(event.target.files[0]);
+    event.target.value="";
+  };
+  $("imd-paste").addEventListener("paste",event=>{
+    event.preventDefault();
+    const image=[...event.clipboardData.items].find(item=>item.type.startsWith("image/"));
+    if(image)attachMeteogram(image.getAsFile());
+    else $("imd-status").textContent="Copy an image or screenshot, then paste it here.";
+  });
+  $("imd-remove").onclick=()=>{
+    clearMeteogram();
+    $("imd-status").textContent="Image removed.";
+  };
+  imdCues.forEach(input=>input.addEventListener("change",renderMeteogram));
+  return renderMeteogram;
+})();
+
 /* ===== quick estimate: capacity + location -> tentative 96-block generation ===== */
 (function(){
   if (!$("qg2") || !$("qg3")) return;
@@ -235,92 +324,6 @@ applyModelFilter();
       <p class="note">CSV columns: date (YYYY-MM-DD), block (1–96) or time (HH:MM), and actual_mw. Use plant local time.</p>
       <p class="note" id="scada-status" role="status"></p>
     </details>`);
-  $("qo2").insertAdjacentHTML("beforebegin", `
-    <details class="card" style="margin-top:12px">
-      <summary><strong>IMD meteogram analysis</strong></summary>
-      <p><a href="https://nwp.imd.gov.in/gfs_meteograms_mausam.php" target="_blank" rel="noopener noreferrer">Open IMD GFS meteograms ↗</a></p>
-      <div class="row">
-        <label class="f">Upload meteogram image<input id="imd-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
-        <label class="f">Paste screenshot<textarea id="imd-paste" rows="2" placeholder="Click here and press Ctrl+V or Cmd+V"></textarea></label>
-      </div>
-      <p id="imd-status" class="note" role="status"></p>
-      <div id="imd-review" hidden>
-        <img id="imd-preview" alt="Uploaded IMD meteogram" style="display:block;max-width:100%;max-height:540px">
-        <p class="note">Select only cues visible in the forecast window you’re investigating. Check the issue time, time zone and location.</p>
-        <fieldset>
-          <legend>Visible forecast cues</legend>
-          <label><input type="checkbox" id="imd-cloud"> Cloud cover increases</label>
-          <label><input type="checkbox" id="imd-moisture"> Higher humidity aloft</label>
-          <label><input type="checkbox" id="imd-cape"> Elevated CAPE</label>
-          <label><input type="checkbox" id="imd-rain"> Rain signal</label>
-        </fieldset>
-        <p id="imd-interpretation" role="status"></p>
-        <button id="imd-remove" class="alt" type="button">Remove image</button>
-      </div>
-    </details>`);
-  const imdCues=["cloud","moisture","cape","rain"].map(key=>$("imd-"+key));
-  const imdPreview=$("imd-preview");
-  let imdImage;
-  function meteogramSummary(){
-    const [cloud,moisture,cape,rain]=imdCues.map(input=>input.checked);
-    const hints=[];
-    if(cloud)hints.push("Increasing forecast cloud cover suggests a risk of lower solar irradiance.");
-    if(moisture&&cape)hints.push("Moisture aloft and elevated CAPE suggest conditions that could support cloud development.");
-    else if(moisture)hints.push("Higher humidity aloft suggests moisture is present.");
-    else if(cape)hints.push("Elevated CAPE suggests potential for convection if forecast conditions support it.");
-    if(rain)hints.push("The rain signal adds context for possible cloud cover.");
-    if(!hints.length)return "Image attached. Select the cues you can read to generate a short interpretation.";
-    return hints.join(" ")+" This 3-hourly forecast gives regional context. Compare satellite imagery and plant readings to check a specific 15-minute drop.";
-  }
-  function renderMeteogram(){
-    const summary=imdImage?meteogramSummary():"";
-    $("imd-interpretation").textContent=summary;
-    const result=$("imd-result");
-    if(result){
-      result.hidden=!imdImage;
-      result.textContent=summary?"IMD meteogram (operator review): "+summary:"";
-    }
-  }
-  function clearMeteogram(){
-    if(imdImage)URL.revokeObjectURL(imdImage);
-    imdImage=undefined;
-    imdPreview.removeAttribute("src");
-    $("imd-review").hidden=true;
-    imdCues.forEach(input=>{input.checked=false});
-    renderMeteogram();
-  }
-  function attachMeteogram(file){
-    if(!file)return;
-    if(!/^image\/(png|jpeg|webp|gif)$/.test(file.type)||file.size>10*1024*1024){
-      $("imd-status").textContent="Choose a PNG, JPEG, WebP or GIF image up to 10 MB.";
-      return;
-    }
-    clearMeteogram();
-    imdImage=URL.createObjectURL(file);
-    imdPreview.src=imdImage;
-    $("imd-review").hidden=false;
-    $("imd-status").textContent="Image attached in this browser. Select the cues it shows.";
-    renderMeteogram();
-  }
-  imdPreview.onerror=()=>{
-    clearMeteogram();
-    $("imd-status").textContent="This image could not be opened. Try another screenshot.";
-  };
-  $("imd-file").onchange=event=>{
-    attachMeteogram(event.target.files[0]);
-    event.target.value="";
-  };
-  $("imd-paste").addEventListener("paste",event=>{
-    event.preventDefault();
-    const image=[...event.clipboardData.items].find(item=>item.type.startsWith("image/"));
-    if(image)attachMeteogram(image.getAsFile());
-    else $("imd-status").textContent="Copy an image or screenshot, then paste it here.";
-  });
-  $("imd-remove").onclick=()=>{
-    clearMeteogram();
-    $("imd-status").textContent="Image removed.";
-  };
-  imdCues.forEach(input=>input.addEventListener("change",renderMeteogram));
   const scadaUrl=$("scada-url"),scadaStatus=$("scada-status");
   const storageKey="re-grid-scada-portal";
   try{scadaUrl.value=localStorage.getItem(storageKey)||""}catch{}
@@ -531,15 +534,15 @@ applyModelFilter();
       m.textContent="";
       const rows=mw.map((x,i)=>`<tr><td>${i+1}</td><td>${hh(i)}</td>${wind?`<td>${ws[i].toFixed(1)}</td>`:""}<td>${x.toFixed(2)}</td><td>${(x*0.25).toFixed(3)}</td></tr>`).join("");
       o.innerHTML=`<div class="sum" style="margin-top:12px"><div><b>${tot.toLocaleString("en-IN",{maximumFractionDigits:0})} MWh</b><br><span class="note">tentative generation for ${day}</span></div><div><b>${pk.toFixed(1)} MW</b><br><span class="note">peak</span></div><div><b>${cuf.toFixed(1)} %</b><br><span class="note">capacity factor</span></div></div>
-       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block</p>${wind?"":'<h2 style="font-size:16px;margin:12px 0 0">Solar generation by 15-minute block (MW)</h2>'}${wind?svg(mw,cap,"MW"):'<div id="solar-generation-plot"></div><p id="imd-result" class="note" hidden></p>'}
+       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block</p>${wind?"":'<h2 style="font-size:16px;margin:12px 0 0">Solar generation by 15-minute block (MW)</h2>'}${wind?svg(mw,cap,"MW"):'<div id="solar-generation-plot"></div>'}<p data-imd-result class="note" hidden></p>
        <div class="tools"><button class="alt" id="qcsv${k}">Download CSV</button></div>
        <details><summary>Show all 96 blocks</summary><div class="scroll"><table><thead><tr><th>Block</th><th>Time</th>${wind?`<th>Wind at ${hub} m (m/s)</th>`:""}<th>MW</th><th>MWh</th></tr></thead><tbody>${rows}</tbody></table></div></details>
        <p class="note" style="margin-top:8px">${wind?"Estimated from the forecast wind speed with the power curve of the chosen turbine (calculated from its rated power and rotor size) and 10% losses. The wind speed is adjusted from the model heights (80 m and 120 m) to your hub height.":"Estimated using irradiance on the panels, plant capacity and performance ratio, capped at plant capacity."} It is a tentative figure from the weather forecast only. For a better result use the advanced section with your own past data.</p>`;
       if(!wind){
         solarEstimate={day,mw,cap};
         renderScada();
-        renderMeteogram();
       }
+      updateMeteogramResults();
       $("qcsv"+k).onclick=()=>{const csv="block,time,"+(wind?"wind_ms,":"")+"mw,mwh\n"+mw.map((x,i)=>`${i+1},${hh(i)},${wind?ws[i].toFixed(2)+",":""}${x.toFixed(3)},${(x*0.25).toFixed(4)}`).join("\n");
         const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=(wind?"wind":"solar")+"-tentative-"+day+".csv";a.click()};
     }catch(e){m.className="note err";m.textContent=e.message&&!/fetch/i.test(e.message)?e.message:"Could not reach the weather service. Check your internet connection."}
