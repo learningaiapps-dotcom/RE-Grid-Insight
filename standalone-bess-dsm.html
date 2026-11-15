@@ -139,6 +139,17 @@ ul.rules{padding-left:18px;font-size:14px}ul.rules li{margin:4px 0}
 <tr><td>Above 50.05 to below 50.10</td><td>Receives 0%</td><td>Receives 0%</td></tr>
 <tr><td>50.10 and above</td><td>Pays 10%</td><td>Pays 10%</td></tr>
 </tbody></table></div>
+  <h3>Reference Rate (RR) and Normal Rate (NR)</h3>
+  <div class="scroll">
+    <table>
+      <thead><tr><th scope="col">Comparison</th><th scope="col">Reference Rate (RR)</th><th scope="col">Normal Rate (NR)</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">What sets it?</th><td>The applicable tariff or transaction price. When multiple rates apply, a weighted average may be used.</td><td>Under CERC’s 2024 Regulation 7(1), take the highest of the weighted day-ahead price, the weighted real-time price, and the average of those two prices and the ancillary service charge.</td></tr>
+        <tr><th scope="row">Simple example</th><td>If your weighted transaction rate is ₹8/kWh, the RR is ₹8/kWh.</td><td>If day-ahead, real-time, and ancillary service rates are ₹5, ₹7, and ₹9/kWh, their average is ₹7/kWh. The highest of ₹5, ₹7, and ₹7 is ₹7/kWh, so that is the NR.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>In CSV analysis, the calculator uses a positive <b>Wt. Avg. Hybrid Rate</b> as its base rate and falls back to <b>Normal Rate</b> otherwise. Grid frequency determines the multiplier applied to the base rate.</p>
   <p class="note">Sources: CERC (Deviation Settlement Mechanism and Related Matters) Regulations, 2024 — notification 192-Noti.pdf and Statement of Objects &amp; Reasons SOR192.pdf on cercind.gov.in. Check the gazette text before relying on any figure.</p>
 </div>
 </div>
