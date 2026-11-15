@@ -178,6 +178,8 @@ applyModelFilter();
 
 /* ===== quick estimate: capacity + location -> tentative 96-block generation ===== */
 (function(){
+  if (!$("qg2") || !$("qg3")) return;
+  const esc=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const hh=i=>String(Math.floor(i/4)).padStart(2,"0")+":"+String(i%4*15).padStart(2,"0");
   const tom=new Date(Date.now()+864e5).toISOString().slice(0,10);
   ["2","3"].forEach(k=>$("qd"+k).value=tom);
