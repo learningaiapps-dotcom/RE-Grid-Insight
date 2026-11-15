@@ -3570,6 +3570,19 @@ let poolLoaded=false;document.getElementById("t7").addEventListener("click",()=>
   function load(){
     if(D)return;
     D={plants:csv(txt("re_d_plants")),capacity:csv(txt("re_d_capacity")),regions:csv(txt("re_d_regions")),profile:csv(txt("re_d_profile")),map:JSON.parse(txt("re_d_map"))};
+    // Single-plant capacity records can use the latest district in the plant table.
+    const plantKey=(row,name)=>JSON.stringify([row.Region,row.State,name]);
+    const districts=new Map();
+    for(const plant of D.plants){
+      const key=plantKey(plant,plant.Station);
+      if(districts.has(key)) districts.set(key,null);
+      else districts.set(key,plant.District);
+    }
+    for(const unit of D.capacity){
+      if(Number(unit.Plants)!==1) continue;
+      const district=districts.get(plantKey(unit,unit.Unit));
+      if(district&&district!=="Not confirmed") unit.District=district;
+    }
     const m=new Map(),get=s=>{if(!m.has(s))m.set(s,{State:s,cap:0,n:0,qca:0});return m.get(s)};
     D.capacity.forEach(u=>{const e=get(u.State);e.cap+=capOf(u);if(u.Kind==="QCA pool")e.qca+=capOf(u)});
     D.plants.forEach(p=>get(p.State).n++);
