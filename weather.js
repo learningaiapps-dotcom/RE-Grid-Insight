@@ -39,14 +39,21 @@ document.getElementById("models").addEventListener("change",e=>{
 $("cnt").textContent=picked().length;
 function msg(t,err){$("msg").textContent=t;$("msg").className=err?"err":""}
 
-async function geocode(name,country){
+async function geocode(name,country,state=""){
   let hint=(country||"").trim().toLowerCase();
   if(name.includes(",")){const pr=name.split(",");name=pr[0].trim();if(!hint)hint=pr.slice(1).join(" ").trim().toLowerCase()}
-  const j=await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=20&language=en`)).json();
+  const query=new URLSearchParams({name,count:state?"100":"20",language:"en"});
+  if(/^[a-z]{2}$/.test(hint))query.set("countryCode",hint.toUpperCase());
+  if(hint==="india")query.set("countryCode","IN");
+  const j=await (await fetch("https://geocoding-api.open-meteo.com/v1/search?"+query)).json();
   const list=j.results||[];
   if(!list.length)return null;
+  const m=x=>(x||"").trim().toLowerCase();
+  if(state){
+    const region=m(state);
+    return list.find(p=>(!hint||[p.country,p.country_code].some(v=>m(v)===hint))&&m(p.admin1)===region)||null;
+  }
   if(!hint)return list[0];
-  const m=x=>(x||"").toLowerCase();
   return list.find(p=>m(p.country)===hint||m(p.country_code)===hint)||list.find(p=>m(p.country).includes(hint)||m(p.admin1).includes(hint))||null;
 }
 const addDays=(d,n)=>{const t=new Date(d+"T00:00:00Z");t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10)};
@@ -75,17 +82,21 @@ async function reverse(lat,lon){
 }
 function llOK(){const la=parseFloat($("lat").value),lo=parseFloat($("lon").value);return (!isNaN(la)&&!isNaN(lo)&&Math.abs(la)<=90&&Math.abs(lo)<=180)?[la,lo]:null}
 const gs=(t,e)=>{$("geost").textContent=t;$("geost").className="note"+(e?" err":"")};
+$("cty").parentElement.insertAdjacentHTML("afterend", '<label class="f">State / province<input id="geo-state" placeholder="optional, e.g. Gujarat"></label>');
+$("geost").setAttribute("role","status");
+const stateField=$("geo-state");
 let geoTok=0;
 async function fillCoords(){
   const loc=$("loc").value.trim(),cty=$("cty").value.trim();
   if(!loc)return null;
   const tok=++geoTok;gs("Finding coordinates…");
   try{
-    const p=await geocode(loc,cty);
+    const state=stateField.value.trim(),p=await geocode(loc,cty,state);
     if(tok!==geoTok)return null;
-    if(!p){gs(cty?`Could not find "${loc}" in "${cty}". Check the spelling or the country, or type latitude and longitude.`:`Could not find "${loc}". Check the spelling or add the country.`,true);return null}
+    if(!p){gs(state?`Could not find "${loc}" in "${state}". Check the state and country, or enter coordinates.`:cty?`Could not find "${loc}" in "${cty}". Check the spelling or the country, or type latitude and longitude.`:`Could not find "${loc}". Check the spelling or add the country.`,true);return null}
     $("lat").value=p.latitude.toFixed(4);$("lon").value=p.longitude.toFixed(4);
     if(!cty)$("cty").value=p.country||"";
+    stateField.value=p.admin1||"";
     if(loc.includes(","))$("loc").value=p.name;
     gs(`Found: ${p.name}${p.admin1?", "+p.admin1:""}, ${p.country} → ${p.latitude.toFixed(4)}, ${p.longitude.toFixed(4)}${cty?"":" (first match; add the country to choose another place)"}`);
     return p;
@@ -96,18 +107,20 @@ async function fillName(){
   const tok=++geoTok;gs("Finding place name…");
   try{
     const n=await reverse(c[0],c[1]);if(tok!==geoTok)return;
-    $("loc").value=n.name;$("cty").value=n.country;
+    $("loc").value=n.name;$("cty").value=n.country;stateField.value=n.area;
     gs(n.name||n.country?`Found: ${[n.name,n.area&&n.area!==n.name?n.area:"",n.country].filter(Boolean).join(", ")} (${c[0].toFixed(4)}, ${c[1].toFixed(4)})`:"No place name found for these coordinates (maybe open sea). They will still be used.");
   }catch(e){if(tok===geoTok)gs("Could not look up the place name. The coordinates will still be used.",true)}
 }
 const deb=(f,ms)=>{let t;return()=>{clearTimeout(t);t=setTimeout(f,ms)}};
 const byName=deb(()=>{if($("loc").value.trim())fillCoords()},700);
 const byCoord=deb(()=>{if(llOK())fillName()},700);
-["loc","cty"].forEach(i=>$(i).addEventListener("input",()=>{$("lat").value="";$("lon").value="";if(!$("loc").value.trim())gs("");byName()}));
+["loc","cty","geo-state"].forEach(i=>$(i).addEventListener("input",()=>{geoTok++;$("lat").value="";$("lon").value="";if(!$("loc").value.trim())gs("");byName()}));
 ["lat","lon"].forEach(i=>$(i).addEventListener("input",()=>{
+  geoTok++;
   const m=$(i).value.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
   if(m){$("lat").value=m[1];$("lon").value=m[2]}
-  if(llOK()){$("loc").value="";$("cty").value=""}
+  $("loc").value="";$("cty").value="";stateField.value="";
+  if(!llOK())gs("");
   byCoord();
 }));
 
@@ -191,6 +204,39 @@ applyModelFilter();
     for(let k=0;k<=4;k++){const y=(H-pb)*(1-k/4);ax+=`<text x="${pl-4}" y="${y+3}" font-size="10" fill="#888" text-anchor="end">${(max*k/4).toFixed(0)}</text><line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#8884" stroke-width="0.5"/>`}
     return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;display:block;margin:10px 0">${ax}${b}</svg>`};
 
+  function windOutput(speed,kw,rotor,cutIn,cutOut){
+    if(speed<cutIn||speed>=cutOut)return 0;
+    const area=Math.PI*(rotor/2)**2;
+    return Math.min(kw,0.5*1.225*area*0.33*speed**3/1000)*0.9;
+  }
+  const solarOutput=(irradiance,capacity,ratio)=>Math.min(capacity,capacity*irradiance/1000*ratio);
+  const turbineParameters=()=>[+$("qkw3").value,+$("qrd3").value||100,+$("qci3").value||3,+$("qco3").value||25];
+  for(const k of ["2","3"]){
+    $("qg"+k).parentElement.insertAdjacentHTML("beforebegin",
+      `<section class="card" style="margin-top:12px"><h2 style="margin:0;font-size:16px">${k==="3"?"Turbine power curve":"Solar plant power response"}</h2>
+      <p id="curve-note${k}" class="note"></p><div style="height:220px" id="curve-box${k}" class="hide"><canvas id="curve${k}" role="img" aria-label="${k==="3"?"Estimated power versus wind speed":"Estimated power versus solar irradiance"}"></canvas></div></section>`);
+  }
+  const curves={};
+  function drawCurve(k){
+    const wind=k==="3",params=turbineParameters(),capacity=+$("qc2").value;
+    const valid=wind?params[0]>0&&params[3]>params[2]:capacity>0;
+    $("curve-box"+k).classList.toggle("hide",!valid||typeof Chart==="undefined");
+    $("curve-note"+k).textContent=valid
+      ?wind?"Estimated output per turbine, including the estimator’s 10% loss assumption.":"Estimated plant output using your capacity and performance ratio."
+      :wind?"Enter a positive turbine rating and a cut-out speed above cut-in.":"Enter plant capacity to see estimated output by irradiance.";
+    if(curves[k]){curves[k].destroy();delete curves[k]}
+    if(!valid||typeof Chart==="undefined")return;
+    const limit=wind?Math.max(30,params[3]+2):1200;
+    const xs=Array.from({length:61},(_,i)=>i*limit/60);
+    if(wind)xs.push(params[2],Math.max(0,params[3]-0.001),params[3]);
+    xs.sort((a,b)=>a-b);
+    const data=xs.map(x=>({x,y:wind?windOutput(x,...params)/1000:solarOutput(x,capacity,+$("qp2").value||0.8)}));
+    curves[k]=new Chart($("curve"+k),{type:"line",data:{datasets:[{data,borderColor:COLORS[wind?0:1],pointRadius:0}]},
+      options:{maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{
+        x:{type:"linear",title:{display:true,text:wind?"Wind speed (m/s)":"Solar irradiance (W/m²)"}},
+        y:{beginAtZero:true,title:{display:true,text:"Power (MW)"}}
+      }}});
+  }
   const TURB=[ // name, rated kW, rotor m, cut-in, cut-out, optional hub m (editable defaults)
    ["Suzlon S97 - 2.1 MW",2100,97,3,25],["Suzlon S120 - 2.1 MW",2100,120,3,25],["Suzlon S144 - 3.15 MW",3150,144,3,25],
    ["Vestas V120 - 2.2 MW",2200,120,3,22],["Vestas V150 - 4.2 MW",4200,150,3,22.5],
@@ -203,9 +249,12 @@ applyModelFilter();
    ["Adani WD164-3300 – 3.3 MW",3300,163.95,3,25,139.73],
    ["Generic 2 MW",2000,100,3,25],["Generic 3 MW",3000,130,3,25],["Generic 4 MW",4000,150,3,25],["Custom (type the details below)",2500,120,3,25]];
   $("qm_t3").innerHTML=TURB.map((t,i)=>`<option value="${i}">${t[0]}</option>`).join("");
-  const fillT=()=>{const t=TURB[+$("qm_t3").value];$("qkw3").value=t[1];$("qrd3").value=t[2];$("qci3").value=t[3];$("qco3").value=t[4];if(t[5])$("qh3").value=t[5];capNote()};
+  const fillT=()=>{const t=TURB[+$("qm_t3").value];$("qkw3").value=t[1];$("qrd3").value=t[2];$("qci3").value=t[3];$("qco3").value=t[4];if(t[5])$("qh3").value=t[5];capNote();drawCurve("3")};
   const capNote=()=>{const mw=(+$("qn3").value||0)*(+$("qkw3").value||0)/1000;$("qcap3").textContent=mw>0?`Plant capacity: ${mw.toLocaleString("en-IN",{maximumFractionDigits:1})} MW`:""};
   $("qm_t3").onchange=fillT;["qn3","qkw3"].forEach(i=>$(i).addEventListener("input",capNote));fillT();
+  for(const id of ["qkw3","qrd3","qci3","qco3"])$(id).addEventListener("input",()=>drawCurve("3"));
+  for(const id of ["qc2","qp2"])$(id).addEventListener("input",()=>drawCurve("2"));
+  drawCurve("2");
   $("qy3").value=$("cty").value;$("cty").addEventListener("input",()=>{if(!$("qy3").dataset.t)$("qy3").value=$("cty").value});$("qy3").addEventListener("input",()=>{$("qy3").dataset.t=1});
   async function place(k){
     const t=$("ql"+k).value.trim();
@@ -232,12 +281,11 @@ applyModelFilter();
         const h=j.hourly;if(!h||!h.wind_speed_80m)throw new Error("No wind data for this place and day.");
         const v80=interp(h.wind_speed_80m),v120=interp(h.wind_speed_120m||h.wind_speed_80m);
         ws=v80.map((a,i)=>{let al=a>0.3&&v120[i]>0?Math.log(v120[i]/a)/Math.log(120/80):0.14;al=Math.min(0.6,Math.max(0,al));return a*Math.pow(hub/80,al)});
-        const ci=+$("qci3").value||3,co=+$("qco3").value||25,A=Math.PI*Math.pow((+$("qrd3").value||100)/2,2),pr1=0.5*1.225*A*0.33/1000; // kW per (m/s)^3
-        const frac=v=>v<ci||v>=co?0:Math.min(1,pr1*v*v*v/kw);
-        mw=ws.map(v=>Math.min(cap,cap*frac(v)*0.90)); // 10% for wake, availability and electrical losses
+        const params=turbineParameters();
+        mw=ws.map(v=>Math.min(cap,windOutput(v,...params)*(+$("qn3").value||0)/1000));
       }else{
         const g=j.minutely_15;if(!g||!g.shortwave_radiation)throw new Error("No sunshine data for this place and day.");
-        mw=Array.from({length:96},(_,i)=>Math.min(cap,cap*(g.shortwave_radiation[i]||0)/1000*pr));
+        mw=Array.from({length:96},(_,i)=>solarOutput(g.shortwave_radiation[i]||0,cap,pr));
       }
       const mwh=mw.map(x=>x*0.25),tot=mwh.reduce((a,b)=>a+b,0),pk=Math.max(...mw),cuf=100*tot/(cap*24);
       m.textContent="";
