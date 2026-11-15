@@ -114,19 +114,31 @@ ul.rules{padding-left:18px;font-size:14px}ul.rules li{margin:4px 0}
 <!-- ============ TAB 3 ============ -->
 <div id="p3" class="hide">
 <div class="card">
-  <h2>Rules used (CERC DSM Regulations 2024, Reg. 8(1) with 8(5) for standalone ESS)</h2>
-  <ul class="rules">
-    <li><b>Deviation</b> = Actual − Schedule (MWh per 15-min block). Deviation % = Deviation ÷ |Schedule| × 100.</li>
-    <li><b>Volume limit (VL)</b> = 10% of the schedule or 100 MW (25 MWh/block), whichever is less. Deviation inside the limit and beyond it are charged differently.</li>
-    <li><b>Under-injection (payable)</b> — also used for a charging unit that draws MORE than scheduled:
-      <ul><li>Inside VL: 100% of RR at 49.97–50.03 Hz; +7.15% of RR for each 0.01 Hz below 49.97, reaching 150% at 49.90 Hz and flat below; −7.5% for each 0.01 Hz above 50.03, reaching 85% at 50.05 Hz and flat above.</li>
-      <li>Beyond VL: 100% of RR when f ≥ 50.00; 150% when 49.90 ≤ f &lt; 50.00; 200% when f &lt; 49.90.</li></ul></li>
-    <li><b>Over-injection (receivable)</b> — also used for a charging unit that draws LESS than scheduled:
-      <ul><li>Inside VL: 100% of RR at 49.97–50.03 Hz; +2.15% per 0.01 Hz below 49.97, reaching 115% at 49.90 and flat below; −25% per 0.01 Hz above 50.03, reaching 50% at 50.05; zero between 50.05 and 50.10; the seller pays 10% of RR at or above 50.10.</li>
-      <li>Beyond VL: nothing is paid (seller pays 10% of RR at or above 50.10 Hz).</li></ul></li>
-    <li><b>Rate (RR)</b>: when discharging, the unit's weighted-average contract rate for the block (the "Wt. Avg. Hybrid Rate" column). When charging or idle, the exchange purchase price; this tool uses the "Normal Rate" column as the best available proxy, so small differences from the file are expected in those blocks.</li>
-    <li><b>Amount (Rs)</b> = MWh × 1000 × rate (p/kWh) ÷ 100 × multiplier.</li>
-  </ul>
+  <h2>How standalone BESS DSM is calculated</h2>
+  <p>DSM settles the difference between what the battery was scheduled to do and what it actually did in each 15-minute block. Discharging is positive MWh and charging is negative MWh.</p>
+  <p><b>Deviation</b> is actual minus scheduled MWh. If they match, the DSM amount is zero.</p>
+  <p><b>Volume limit</b> is 10% of the scheduled energy, capped at 25 MWh per block by default (equivalent to 100 MW for 15 minutes). The single-block calculator lets you change that cap. For example, if the schedule is 40 MWh and the battery delivers 34 MWh, the shortfall is 6 MWh. The first 4 MWh uses the inside-limit rate and the remaining 2 MWh uses the beyond-limit rate.</p>
+  <p><b>RR</b> means reference rate. In CSV analysis, the calculator uses the Wt. Avg. Hybrid Rate when it is positive and falls back to Normal Rate. The file may use a different rate, especially for charging blocks.</p>
+  <p>The tables show the percentage of RR applied to each portion of the deviation. For example, at an RR of ₹10/kWh, 150% equals ₹15/kWh for that portion.</p>
+  <h3>Under-injection</h3>
+  <p>The battery delivers less than scheduled or draws more power to charge than scheduled.</p>
+<div class="scroll"><table><thead><tr><th scope="col">Grid frequency (Hz)</th><th scope="col">Inside volume limit</th><th scope="col">Beyond volume limit</th></tr></thead><tbody>
+<tr><td>Below 49.90</td><td>Pays 150%</td><td>Pays 200%</td></tr>
+<tr><td>49.90 to below 49.97</td><td>Pays 150% at 49.90, falling by about 7.14 percentage points per 0.01 Hz toward 100%</td><td>Pays 150%</td></tr>
+<tr><td>49.97 to below 50.00</td><td>Pays 100%</td><td>Pays 150%</td></tr>
+<tr><td>50.00 to 50.03</td><td>Pays 100%</td><td>Pays 100%</td></tr>
+<tr><td>Above 50.03 to below 50.05</td><td>Pays 92.5% at 50.04</td><td>Pays 100%</td></tr>
+<tr><td>50.05 and above</td><td>Pays 85%</td><td>Pays 100%</td></tr>
+</tbody></table></div>  <h3>Over-injection</h3>
+  <p>The battery delivers more than scheduled or draws less power to charge than scheduled.</p>
+<div class="scroll"><table><thead><tr><th scope="col">Grid frequency (Hz)</th><th scope="col">Inside volume limit</th><th scope="col">Beyond volume limit</th></tr></thead><tbody>
+<tr><td>Below 49.90</td><td>Receives 115%</td><td>Receives 0%</td></tr>
+<tr><td>49.90 to below 49.97</td><td>Receives about 115% at 49.90, falling by 2.15 percentage points per 0.01 Hz toward 100%</td><td>Receives 0%</td></tr>
+<tr><td>49.97 to 50.03</td><td>Receives 100%</td><td>Receives 0%</td></tr>
+<tr><td>Above 50.03 to 50.05</td><td>Receives 75% at 50.04 and 50% at 50.05</td><td>Receives 0%</td></tr>
+<tr><td>Above 50.05 to below 50.10</td><td>Receives 0%</td><td>Receives 0%</td></tr>
+<tr><td>50.10 and above</td><td>Pays 10%</td><td>Pays 10%</td></tr>
+</tbody></table></div>
   <p class="note">Sources: CERC (Deviation Settlement Mechanism and Related Matters) Regulations, 2024 — notification 192-Noti.pdf and Statement of Objects &amp; Reasons SOR192.pdf on cercind.gov.in. Check the gazette text before relying on any figure.</p>
 </div>
 </div>
