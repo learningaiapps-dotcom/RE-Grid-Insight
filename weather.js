@@ -201,7 +201,7 @@ const updateMeteogramResults=(()=>{
       <label class="f" style="margin-top:10px">IMD numerical forecast CSV (optional)
         <input id="imd-forecast-csv" type="file" accept=".csv,text/csv">
       </label>
-      <p class="note">Set the weather location first. Use plant-local timestamps and headers <code>time,ghi,wind_10m,wind_80m</code>. Include only the measurement columns available. GHI is in W/m² and wind speed is in m/s.</p>
+      <p class="note">Set the weather location first. Use plant-local timestamps and headers <code>time,ghi,wind_10m,wind_80m</code>. Include only the measurement columns available. For the solar generation chart, add <code>gti</code> (W/m² on the selected panel orientation) or <code>solar_mw</code> (plant generation forecast in MW).</p>
       <p id="imd-csv-status" class="note" role="status"></p>
       <p id="imd-status" class="note" role="status"></p>
       <div id="imd-review" hidden>
@@ -284,7 +284,7 @@ const updateMeteogramResults=(()=>{
 })();
 
 let imdSeries,imdImportId=0;
-const imdColumns={ghi:"ghi",w10:"wind_10m",w80:"wind_80m"};
+const imdColumns={ghi:"ghi",w10:"wind_10m",w80:"wind_80m",gti:"gti",solarMw:"solar_mw"};
 function parseImdForecast(csv){
   const [header,...lines]=csv.replace(/^\uFEFF/,"").trim().split(/\r?\n/);
   const fields=line=>line.split(",").map(cell=>cell.trim().replace(/^"|"$/g,""));
@@ -311,6 +311,7 @@ $("imd-forecast-csv").onchange=async event=>{
   const id=++imdImportId,file=event.target.files[0],coords=llOK(),status=$("imd-csv-status");
   imdSeries=undefined;
   if(results.length)show();
+  document.dispatchEvent(new Event("imd-forecast-change"));
   status.textContent="";
   if(!file)return;
   try{
@@ -321,14 +322,15 @@ $("imd-forecast-csv").onchange=async event=>{
     imdSeries={coords,data};
     status.textContent=`Loaded ${data.size} IMD timestamps for ${coords.join(", ")}. The chart plots only matching timestamps.`;
     if(results.length)show();
+    document.dispatchEvent(new Event("imd-forecast-change"));
   }catch(error){
     if(id!==imdImportId)return;
     status.textContent=error.message;
     event.target.value="";
   }
 };
-function imdValues(key,times){
-  if(!imdSeries||!weatherLocation||imdSeries.coords.some((value,i)=>value!==weatherLocation.coords[i]))return null;
+function imdValues(key,times,coords=weatherLocation?.coords){
+  if(!imdSeries||!coords||imdSeries.coords.some((value,i)=>Math.abs(value-coords[i])>0.00005))return null;
   const values=times.map(time=>imdSeries.data.get(time.slice(0,16))?.[key]??null);
   return values.some(value=>value!==null)?values:null;
 }
@@ -418,13 +420,32 @@ function imdValues(key,times){
     if(!days.size)throw new Error("The CSV has no valid generation rows.");
     return {days,skipped};
   }
-  let scada,solarEstimate,uploadId=0;
+  let scada,solarEstimate,solarChart,uploadId=0;
   function renderScada(){
-    const chart=$("solar-generation-plot");
-    if(chart&&solarEstimate){
-      const {day,mw,cap}=solarEstimate,actual=scada?.days.get(day);
-      chart.innerHTML=svg(mw,cap,"MW",actual)+
-        (actual?'<p class="note">Blue bars show forecast. Orange dots show SCADA actuals.</p>':"");
+    const canvas=$("solar-generation-plot");
+    if(canvas&&solarEstimate){
+      const {day,cap,pr,mounting,coords,models}=solarEstimate;
+      const labels=Array.from({length:96},(_,i)=>hh(i));
+      const timestamps=labels.map(time=>day+"T"+time);
+      const imdMw=imdValues("solarMw",timestamps,coords);
+      const imdGti=imdValues("gti",timestamps,coords)||
+        (Number(mounting.tilt)===0?imdValues("ghi",timestamps,coords):null);
+      const imd=imdMw||imdGti?.map(value=>value==null?null:solarOutput(value,cap,pr));
+      const datasets=models.map(({name,mw},i)=>({label:name,data:mw,borderColor:COLORS[i],
+        borderWidth:2,pointRadius:0}));
+      if(imd)datasets.push({label:"IMD forecast",data:imd,borderColor:"#7c3aed",borderDash:[6,4],pointRadius:2,spanGaps:true});
+      const actual=scada?.days.get(day);
+      if(actual)datasets.push({label:"SCADA actual",data:labels.map((_,i)=>actual.get(i)??null),
+        borderColor:"#c2410c",backgroundColor:"#c2410c",pointRadius:3,showLine:false});
+      $("solar-imd-series-status").textContent=imd?"":"For an IMD line, upload matching solar_mw or panel-plane gti values in Weather Data. A screenshot provides the interpretation above.";
+      if(typeof Chart!=="undefined"){
+        solarChart?.destroy();
+        solarChart=new Chart(canvas,{type:"line",data:{labels,datasets},options:{
+          maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+          scales:{x:{ticks:{maxTicksLimit:9},title:{display:true,text:"Plant local time"}},
+            y:{beginAtZero:true,title:{display:true,text:"Generation (MW)"}}}
+        }});
+      }
     }
     if(!scada)return;
     const day=solarEstimate?.day||$("qd2").value;
@@ -432,7 +453,10 @@ function imdValues(key,times){
     scadaStatus.textContent=(count?`${count} actual blocks loaded for ${day}.`:`No actual readings in this CSV for ${day}.`)+
       (scada.skipped?` Skipped ${scada.skipped} invalid rows.`:"");
   }
+  document.addEventListener("imd-forecast-change",renderScada);
   $("qd2").addEventListener("change",()=>{
+    solarChart?.destroy();
+    solarChart=undefined;
     solarEstimate=null;
     $("qo2").innerHTML="";
     renderScada();
@@ -581,6 +605,7 @@ function imdValues(key,times){
   async function go(k){
     const m=$("qm"+k),o=$("qo"+k),day=$("qd"+k).value;
     const kw=+$("qkw3").value,cap=k==="3"?(+$("qn3").value||0)*kw/1000:+$("qc"+k).value;
+    if(k==="2"){solarChart?.destroy();solarChart=undefined;solarEstimate=null}
     m.className="note";o.innerHTML="";
     if(!(cap>0)){m.className="note err";return m.textContent=k==="3"?"Enter the number of turbines.":"Enter the plant capacity in MW."}
     if(!day){m.className="note err";return m.textContent="Pick a day."}
@@ -591,32 +616,44 @@ function imdValues(key,times){
       const url=wind
        ?`https://api.open-meteo.com/v1/forecast?latitude=${pl.lat}&longitude=${pl.lon}&hourly=wind_speed_80m,wind_speed_120m&wind_speed_unit=ms&timezone=auto&start_date=${day}&end_date=${day}`
        :`https://api.open-meteo.com/v1/forecast?latitude=${pl.lat}&longitude=${pl.lon}&minutely_15=global_tilted_irradiance&tilt=${mounting.tilt}&azimuth=${mounting.azimuth}&timezone=auto&start_date=${day}&end_date=${day}`;
-      const j=await (await fetch(url)).json();
-      if(j.error)throw new Error(j.reason||"The weather service refused this date (it allows about 3 months back and 16 days ahead).");
-      let mw,ws=null;
+      let mw,ws=null,solarModels=[],failedModels=[];
       if(wind){
+        const j=await (await fetch(url)).json();
+        if(j.error)throw new Error(j.reason||"The weather service refused this date.");
         const h=j.hourly;if(!h||!h.wind_speed_80m)throw new Error("No wind data for this place and day.");
         const v80=interp(h.wind_speed_80m),v120=interp(h.wind_speed_120m||h.wind_speed_80m);
         ws=v80.map((a,i)=>{let al=a>0.3&&v120[i]>0?Math.log(v120[i]/a)/Math.log(120/80):0.14;al=Math.min(0.6,Math.max(0,al));return a*Math.pow(hub/80,al)});
         const params=turbineParameters();
         mw=ws.map(v=>Math.min(cap,windOutput(v,...params)*(+$("qn3").value||0)/1000));
       }else{
-        const irradiance=j.minutely_15?.global_tilted_irradiance;
-        if(irradiance?.length!==96||!irradiance.every(Number.isFinite)){
-          throw new Error("Complete 15-minute tilted irradiance data is unavailable for this place and day.");
-        }
-        mw=irradiance.map(value=>solarOutput(Math.max(0,value),cap,pr));
+        const indices=picked();
+        if(!indices.length)throw new Error("Select at least one model in Weather Data.");
+        const selections=indices.map(i=>MODELS[i]);
+        const forecasts=await Promise.allSettled(selections.map(async ([name,id])=>{
+          const response=await fetch(url+"&models="+encodeURIComponent(id));
+          const j=await response.json(),irradiance=j.minutely_15?.global_tilted_irradiance;
+          if(j.error||irradiance?.length!==96||!irradiance.every(Number.isFinite)){
+            throw new Error("Incomplete tilted irradiance data");
+          }
+          return {name,mw:irradiance.map(value=>solarOutput(Math.max(0,value),cap,pr))};
+        }));
+        forecasts.forEach((result,i)=>{
+          if(result.status==="fulfilled")solarModels.push(result.value);
+          else failedModels.push(selections[i][0]);
+        });
+        if(!solarModels.length)throw new Error("No selected model returned 96 tilted irradiance blocks. Try another model or date.");
+        mw=solarModels[0].mw;
       }
       const mwh=mw.map(x=>x*0.25),tot=mwh.reduce((a,b)=>a+b,0),pk=Math.max(...mw),cuf=100*tot/(cap*24);
-      m.textContent="";
+      m.textContent=failedModels.length?"No complete tilted irradiance forecast from: "+failedModels.join(", "):"";
       const rows=mw.map((x,i)=>`<tr><td>${i+1}</td><td>${hh(i)}</td>${wind?`<td>${ws[i].toFixed(1)}</td>`:""}<td>${x.toFixed(2)}</td><td>${(x*0.25).toFixed(3)}</td></tr>`).join("");
       o.innerHTML=`<div class="sum" style="margin-top:12px"><div><b>${tot.toLocaleString("en-IN",{maximumFractionDigits:0})} MWh</b><br><span class="note">tentative generation for ${day}</span></div><div><b>${pk.toFixed(1)} MW</b><br><span class="note">peak</span></div><div><b>${cuf.toFixed(1)} %</b><br><span class="note">capacity factor</span></div></div>
-       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block<span data-imd-result hidden></span></p>${wind?"":'<h2 style="font-size:16px;margin:12px 0 0">Solar generation by 15-minute block (MW)</h2>'}${wind?svg(mw,cap,"MW"):'<div id="solar-generation-plot"></div>'}
+       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block<span data-imd-result hidden></span></p>${wind?"":'<h2 style="font-size:16px;margin:12px 0 0">Solar generation by 15-minute block (MW)</h2>'}${wind?svg(mw,cap,"MW"):`<div style="position:relative;height:260px"><canvas id="solar-generation-plot" role="img" aria-label="Solar generation by forecast model"></canvas></div><p class="note">Summary, table and CSV use ${esc(solarModels[0].name)}.</p><p class="note" id="solar-imd-series-status"></p>`}
        <div class="tools"><button class="alt" id="qcsv${k}">Download CSV</button></div>
        <details><summary>Show all 96 blocks</summary><div class="scroll"><table><thead><tr><th>Block</th><th>Time</th>${wind?`<th>Wind at ${hub} m (m/s)</th>`:""}<th>MW</th><th>MWh</th></tr></thead><tbody>${rows}</tbody></table></div></details>
        <p class="note" style="margin-top:8px">${wind?"Estimated from the forecast wind speed with the power curve of the chosen turbine (calculated from its rated power and rotor size) and 10% losses. The wind speed is adjusted from the model heights (80 m and 120 m) to your hub height.":"Estimated using irradiance on the panels, plant capacity and performance ratio, capped at plant capacity."} It is a tentative figure from the weather forecast only. For a better result use the advanced section with your own past data.</p>`;
       if(!wind){
-        solarEstimate={day,mw,cap};
+        solarEstimate={day,cap,pr,mounting,coords:[pl.lat,pl.lon],models:solarModels};
         renderScada();
       }
       updateMeteogramResults();
