@@ -27,7 +27,7 @@ cma_grapes_global:["6 hours","10 days","cma_grapes_global"],knmi_seamless:["hour
 italia_meteo_arpae_icon_2i:["12 hours","3 days","italia_meteo_arpae_icon_2i"],geosphere_seamless:["3 hours","2.5 days","geosphere_arome_austria"],chmi_aladin:["6 hours","3 days",null]};
 const COLORS=["#2563eb","#ea580c","#16a34a"];
 const $=id=>document.getElementById(id);
-let results=[],chart=null,label="";
+let results=[],chart=null,label="",weatherLocation=null;
 
 $("dt").value=new Date().toISOString().slice(0,10);
 $("models").innerHTML=MODELS.map((m,i)=>`<label><input type="checkbox" value="${i}" ${i<2?"checked":""}><span>${m[0]}<small>${m[2]} · updates every ${INFO[m[1]][0]}</small></span></label>`).join("");
@@ -198,6 +198,11 @@ const updateMeteogramResults=(()=>{
         <label class="f">Upload meteogram image<input id="imd-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
         <label class="f">Paste screenshot<textarea id="imd-paste" rows="2" placeholder="Click here and press Ctrl+V or Cmd+V"></textarea></label>
       </div>
+      <label class="f" style="margin-top:10px">IMD numerical forecast CSV (optional)
+        <input id="imd-forecast-csv" type="file" accept=".csv,text/csv">
+      </label>
+      <p class="note">Set the weather location first. Use plant-local timestamps and headers <code>time,ghi,wind_10m,wind_80m</code>. Include only the measurement columns available. GHI is in W/m² and wind speed is in m/s.</p>
+      <p id="imd-csv-status" class="note" role="status"></p>
       <p id="imd-status" class="note" role="status"></p>
       <div id="imd-review" hidden>
         <img id="imd-preview" alt="Uploaded IMD meteogram" style="display:block;max-width:100%;max-height:540px">
@@ -225,14 +230,14 @@ const updateMeteogramResults=(()=>{
     else if(cape)hints.push("Elevated CAPE suggests potential for convection if forecast conditions support it.");
     if(rain)hints.push("The rain signal adds context for possible cloud cover.");
     if(!hints.length)return "Image attached. Select the cues you can read to generate a short interpretation.";
-    return hints.join(" ")+" This 3-hourly forecast gives regional context. Compare satellite imagery and plant readings to check a specific 15-minute drop.";
+    return hints.join(" ");
   }
   function renderMeteogram(){
     const summary=imdImage?meteogramSummary():"";
     $("imd-interpretation").textContent=summary;
     for(const result of document.querySelectorAll("[data-imd-result]")){
       result.hidden=!imdImage;
-      result.textContent=summary?"IMD meteogram (operator review): "+summary:"";
+      result.textContent=summary?" · IMD meteogram: "+summary:"";
     }
   }
   function clearMeteogram(){
@@ -277,6 +282,56 @@ const updateMeteogramResults=(()=>{
   imdCues.forEach(input=>input.addEventListener("change",renderMeteogram));
   return renderMeteogram;
 })();
+
+let imdSeries,imdImportId=0;
+const imdColumns={ghi:"ghi",w10:"wind_10m",w80:"wind_80m"};
+function parseImdForecast(csv){
+  const [header,...lines]=csv.replace(/^\uFEFF/,"").trim().split(/\r?\n/);
+  const fields=line=>line.split(",").map(cell=>cell.trim().replace(/^"|"$/g,""));
+  const names=fields(header).map(name=>name.toLowerCase());
+  const time=names.indexOf("time");
+  const measurements=Object.entries(imdColumns).map(([key,name])=>[key,names.indexOf(name)]).filter(([,index])=>index>=0);
+  if(time<0||!measurements.length)throw new Error("Use a time column and at least one GHI or wind measurement column.");
+  const data=new Map();
+  for(const line of lines){
+    const row=fields(line);
+    const stamp=row[time]?.replace(" ","T").replace(/(T\d{2}:\d{2}):00$/,"$1");
+    if(!/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/.test(stamp))continue;
+    const values={};
+    for(const [key,index] of measurements){
+      const raw=row[index],value=Number(raw);
+      if(raw&&Number.isFinite(value)&&value>=0)values[key]=value;
+    }
+    if(Object.keys(values).length)data.set(stamp,values);
+  }
+  if(!data.size)throw new Error("No usable IMD rows. Use timestamps such as 2026-11-15 16:00.");
+  return data;
+}
+$("imd-forecast-csv").onchange=async event=>{
+  const id=++imdImportId,file=event.target.files[0],coords=llOK(),status=$("imd-csv-status");
+  imdSeries=undefined;
+  if(results.length)show();
+  status.textContent="";
+  if(!file)return;
+  try{
+    if(!coords)throw new Error("Set the Weather Data coordinates before uploading this forecast.");
+    const csv=await file.text();
+    if(id!==imdImportId)return;
+    const data=parseImdForecast(csv);
+    imdSeries={coords,data};
+    status.textContent=`Loaded ${data.size} IMD timestamps for ${coords.join(", ")}. The chart plots only matching timestamps.`;
+    if(results.length)show();
+  }catch(error){
+    if(id!==imdImportId)return;
+    status.textContent=error.message;
+    event.target.value="";
+  }
+};
+function imdValues(key,times){
+  if(!imdSeries||!weatherLocation||imdSeries.coords.some((value,i)=>value!==weatherLocation.coords[i]))return null;
+  const values=times.map(time=>imdSeries.data.get(time.slice(0,16))?.[key]??null);
+  return values.some(value=>value!==null)?values:null;
+}
 
 /* ===== quick estimate: capacity + location -> tentative 96-block generation ===== */
 (function(){
@@ -495,7 +550,29 @@ const updateMeteogramResults=(()=>{
   for(const id of ["qkw3","qrd3","qci3","qco3"])$(id).addEventListener("input",()=>drawWindCurve());
   windCurveDetails.addEventListener("toggle",()=>drawWindCurve());
   $("qy3").value=$("cty").value;$("cty").addEventListener("input",()=>{if(!$("qy3").dataset.t)$("qy3").value=$("cty").value});$("qy3").addEventListener("input",()=>{$("qy3").dataset.t=1});
+  const transferredLocations={};
+  for(const [k,button] of [["2","wxs"],["3","wxw"]]){
+    const locationInput=$("ql"+k);
+    const fields=[locationInput.closest("label"),...(k==="3"?[$("qy3").closest("label")]:[])];
+    locationInput.closest(".row").insertAdjacentHTML("afterend", `<p id="weather-location-${k}" class="note" hidden><span></span> <button type="button" class="alt">Change location</button></p>`);
+    const note=$("weather-location-"+k);
+    $(button)?.addEventListener("click",()=>{
+      if(!results.length||!weatherLocation)return;
+      transferredLocations[k]=weatherLocation;
+      for(const field of fields)field.classList.add("hide");
+      note.querySelector("span").textContent="Using Weather Data location · "+weatherLocation.name;
+      note.hidden=false;
+    });
+    note.querySelector("button").onclick=()=>{
+      delete transferredLocations[k];
+      for(const field of fields)field.classList.remove("hide");
+      note.hidden=true;
+      locationInput.focus();
+    };
+  }
   async function place(k){
+    const transfer=transferredLocations[k];
+    if(transfer)return {lat:transfer.coords[0],lon:transfer.coords[1],name:transfer.name};
     const t=$("ql"+k).value.trim();
     if(t){const q=await geocode(t,k==="3"?$("qy3").value.trim():"");if(!q)throw new Error(`Could not find "${t}". Check the spelling or add the country, e.g. "Khavda, India".`);return {lat:q.latitude,lon:q.longitude,name:`${q.name}${q.admin1?", "+q.admin1:""}, ${q.country}`}}
     const c=llOK();if(!c)throw new Error("Enter a location here, or set one in the Weather data tab.");
@@ -534,7 +611,7 @@ const updateMeteogramResults=(()=>{
       m.textContent="";
       const rows=mw.map((x,i)=>`<tr><td>${i+1}</td><td>${hh(i)}</td>${wind?`<td>${ws[i].toFixed(1)}</td>`:""}<td>${x.toFixed(2)}</td><td>${(x*0.25).toFixed(3)}</td></tr>`).join("");
       o.innerHTML=`<div class="sum" style="margin-top:12px"><div><b>${tot.toLocaleString("en-IN",{maximumFractionDigits:0})} MWh</b><br><span class="note">tentative generation for ${day}</span></div><div><b>${pk.toFixed(1)} MW</b><br><span class="note">peak</span></div><div><b>${cuf.toFixed(1)} %</b><br><span class="note">capacity factor</span></div></div>
-       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block</p>${wind?"":'<h2 style="font-size:16px;margin:12px 0 0">Solar generation by 15-minute block (MW)</h2>'}${wind?svg(mw,cap,"MW"):'<div id="solar-generation-plot"></div>'}<p data-imd-result class="note" hidden></p>
+       <p class="note" style="margin:6px 0 0">${esc(pl.name)} · ${wind?`${esc(TURB[+$("qm_t3").value][0])} × ${+$("qn3").value} = ${cap.toFixed(1)} MW, wind at ${hub} m hub height`:`${mounting.label}, performance ratio ${pr}`} · MW per 15-minute block<span data-imd-result hidden></span></p>${wind?"":'<h2 style="font-size:16px;margin:12px 0 0">Solar generation by 15-minute block (MW)</h2>'}${wind?svg(mw,cap,"MW"):'<div id="solar-generation-plot"></div>'}
        <div class="tools"><button class="alt" id="qcsv${k}">Download CSV</button></div>
        <details><summary>Show all 96 blocks</summary><div class="scroll"><table><thead><tr><th>Block</th><th>Time</th>${wind?`<th>Wind at ${hub} m (m/s)</th>`:""}<th>MW</th><th>MWh</th></tr></thead><tbody>${rows}</tbody></table></div></details>
        <p class="note" style="margin-top:8px">${wind?"Estimated from the forecast wind speed with the power curve of the chosen turbine (calculated from its rated power and rotor size) and 10% losses. The wind speed is adjusted from the model heights (80 m and 120 m) to your hub height.":"Estimated using irradiance on the panels, plant capacity and performance ratio, capped at plant capacity."} It is a tentative figure from the weather forecast only. For a better result use the advanced section with your own past data.</p>`;
@@ -578,13 +655,15 @@ $("go").onclick=async()=>{
       c=llOK();
     }else if(!$("loc").value.trim())await fillName();
     const p={latitude:c[0],longitude:c[1]};
-    label=`${$("loc").value.trim()||"Custom point"}${$("cty").value.trim()?", "+$("cty").value.trim():""} (${c[0].toFixed(2)}, ${c[1].toFixed(2)})`;
+    const fetchedLabel=`${$("loc").value.trim()||"Custom point"}${$("cty").value.trim()?", "+$("cty").value.trim():""} (${c[0].toFixed(2)}, ${c[1].toFixed(2)})`;
     msg("Fetching model data…");
     const settled=await Promise.allSettled(sel.map(i=>getModel(MODELS[i],p,d,d2)));
     results=[];const fails=[];
     settled.forEach((s,k)=>s.status==="fulfilled"?results.push(s.value):fails.push(MODELS[sel[k]][0]));
     if(!results.length){msg("No model returned data for this place and date. Try other models (each covers certain regions) or a nearer date.",true);return}
     msg(fails.length?`No data from: ${fails.join(", ")}. These models may not cover this place or date.`:"",!!fails.length);
+    label=fetchedLabel;
+    weatherLocation={coords:c,name:label};
     const transferModel = $("wxm");
     if (transferModel) transferModel.innerHTML = results.map(r => `<option>${r.name}</option>`).join("");
     show();showUpdates(results.map(r=>r.id));
@@ -597,16 +676,23 @@ function show(){
   const key=$("metric").value,base=results[0].time,multi=base.length>96;
   $("out").classList.remove("hide");$("tbl").classList.remove("hide");
   $("place").textContent=label+" · "+base[0].slice(0,10)+(multi?" to "+base[base.length-1].slice(0,10):"");
+  if(!$("weather-imd-summary")){
+    $("place").insertAdjacentHTML("afterend", '<span id="weather-imd-summary" data-imd-result class="note" hidden></span>');
+  }
+  updateMeteogramResults();
+  const imd=imdValues(key,base);
+  const datasets=results.map((r,i)=>({label:r.name,data:r[key],borderColor:COLORS[i],backgroundColor:COLORS[i],borderWidth:2,pointRadius:0,tension:.2,spanGaps:true}));
+  if(imd)datasets.push({label:"IMD forecast",data:imd,borderColor:"#7c3aed",borderDash:[6,4],pointRadius:2,spanGaps:true});
   if(chart)chart.destroy();
   chart=new Chart($("chart"),{type:"line",
-    data:{labels:base.map(t=>multi?t.slice(5,16).replace("T"," "):t.slice(11,16)),datasets:results.map((r,i)=>({label:r.name,data:r[key],borderColor:COLORS[i],backgroundColor:COLORS[i],borderWidth:2,pointRadius:0,tension:.2,spanGaps:true}))},
+    data:{labels:base.map(t=>multi?t.slice(5,16).replace("T"," "):t.slice(11,16)),datasets},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
       scales:{y:{title:{display:true,text:unit()},beginAtZero:true},x:{title:{display:true,text:"Time (local) · 96 blocks of 15 min"},ticks:{maxTicksLimit:13}}}}});
-  $("th").innerHTML="<tr><th>Block</th><th>Time</th>"+results.map(r=>`<th>${r.name} (${unit()})</th>`).join("")+"</tr>";
+  $("th").innerHTML="<tr><th>Block</th><th>Time</th>"+results.map(r=>`<th>${r.name} (${unit()})</th>`).join("")+(imd?`<th>IMD forecast (${unit()})</th>`:"")+"</tr>";
   $("tb").innerHTML=base.map((t,i)=>{
     const end=new Date(new Date(t).getTime()+15*60000);
     const e=String(end.getHours()).padStart(2,"0")+":"+String(end.getMinutes()).padStart(2,"0");
-    return `<tr><td>${blk(t)}</td><td>${multi?t.slice(0,10)+" ":""}${t.slice(11,16)}–${e}</td>`+results.map(r=>`<td>${r[key][i]==null?"–":r[key][i]}</td>`).join("")+"</tr>";
+    return `<tr><td>${blk(t)}</td><td>${multi?t.slice(0,10)+" ":""}${t.slice(11,16)}–${e}</td>`+results.map(r=>`<td>${r[key][i]==null?"–":r[key][i]}</td>`).join("")+(imd?`<td>${imd[i]??"–"}</td>`:"")+"</tr>";
   }).join("");
 }
 $("metric").onchange=()=>results.length&&show();
