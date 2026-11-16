@@ -337,7 +337,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   <div style="margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:12px">
     <b><span class="tip" data-g="bands">Deviation bands (set by you, as % of AvC)</span></b>
         <div class="scroll" style="margin-top:8px;max-height:none"><table><thead><tr><th>Band</th><th>Deviation range</th><th>Upper limit (%)</th><th class="tip" data-g="dsmrate">Under-injection DSM penalty rate (% of PPA)</th><th class="tip" data-g="bandund">Under-injection payable (% of PPA)</th><th class="tip" data-g="bandov">Over-injection receivable (% of PPA)</th><th class="tip" data-g="lossrate">Over-injection revenue loss (% of PPA)</th></tr></thead><tbody id="dbtb"></tbody></table></div>
-    <div class="tools" style="margin-top:8px"><button class="alt" id="dbadd">Add band</button><button class="alt" id="dbrem">Remove last band</button><span class="note" style="margin-left:10px">Presets:</span><button class="alt" id="dpre_my">My bands</button><button class="alt" id="dpre_pub">NRPC / WRPC published</button></div>
+    <div class="tools" style="margin-top:8px"><button class="alt" id="dbadd">Add band</button><button class="alt" id="dbrem">Remove last band</button><span class="note" style="margin-left:10px">Presets:</span><button class="alt" id="dpre_my">My bands</button><button class="alt" id="dpre_pub">RPC published (NRPC / WRPC / SRPC)</button></div>
     <div class="note" id="dpre_note" style="margin-top:6px"></div>
   </div>
   <div class="tools" style="margin-top:12px"><button id="dcalc">Calculate DSM</button><button class="alt" id="dsamp">Try sample data (2 SPVs, 10 days, dynamic price)</button><button class="alt" id="dsdl">Download sample CSV</button></div>
@@ -1631,8 +1631,7 @@ const GRP={day:"Results by day",week:"Results by week (Monday to Sunday)",month:
 // ----- calculate -----
 function dCalc(){
   if(!dData)return dm("Choose a file or click Try sample data.",true);
-  const ppa=+$("dppa").value,avc=+$("davc").value,mode=$("dmode").value,cfg=dBandRead(),spv=$("dspv").value;
-  if(!cfg)return dm("Band limits must be positive and each one larger than the one before.",true);
+  const ppa=+$("dppa").value,avc=+$("davc").value,mode=dPublished?"slice":$("dmode").value,spv=$("dspv").value;
   let g;
   if(dData.names[0]==="")g=dData.groups[""];
   else{const n=dData.names.find(x=>x.toLowerCase()===spv.toLowerCase());
@@ -1640,13 +1639,29 @@ function dCalc(){
   const from=$("dfrom").value,to=$("dto").value,run=$("drun").value||new Date().toISOString().slice(0,10);
   const list=g.days.map(d=>({...d,date:d.date||addDays(run,d.rel)})).filter(d=>(!from||d.date>=from)&&(!to||d.date<=to)).sort((a,b)=>a.date<b.date?-1:1);
   if(!list.length)return dm("No days fall inside the dates you chose.",true);
+  let cfg=dBandRead();
+  if(dPublished){
+    const first=list[0].date,last=list[list.length-1].date;
+    cfg=rpcPublishedConfig($("dtype").value,first);
+    if(!cfg||!rpcPublishedConfig($("dtype").value,last)){
+      dClear();
+      return dm("RPC published bands are available for 16 September 2024 through 31 March 2027. Select dates within that period or use My bands.",true);
+    }
+    if(first<"2026-04-01"&&last>="2026-04-01"){
+      dClear();
+      return dm("RPC bands change on 1 April 2026. Use the date filters to calculate each period separately.",true);
+    }
+    dBandRender(cfg);
+    dPreNote(first);
+  }
+  if(!cfg)return dm("Band limits must be positive and each one larger than the one before.",true);
   const priced=list.map(d=>({...d,rows:d.rows.map((r,i)=>{let p=r.p;if(!(p>0)&&dPrice)p=dPrice.bd.get(d.date+"|"+(i+1))??dPrice.bl.get(i+1)??0;return {...r,p}})}));
   if(!(ppa>0)&&priced.some(d=>d.rows.some(r=>!(r.p>0))))return dm("Enter the PPA rate (INR/kWh). Some blocks have no price of their own.",true);
   if(!(avc>0)&&priced.some(d=>d.rows.some(r=>!(r.v>0)&&(r.s>0||r.a>0))))return dm("Enter the available capacity (MW). Your file does not give it for every block.",true);
-  const i=spvIdx();spvs[i].ppa=ppa>0?ppa:spvs[i].ppa;spvs[i].avc=avc>0?avc:"";spvs[i].cfg=cfg;spvSave();dCfg=cfg;
+  const i=spvIdx();spvs[i].ppa=ppa>0?ppa:spvs[i].ppa;spvs[i].avc=avc>0?avc:"";if(!dPublished)spvs[i].cfg=cfg;spvSave();dCfg=cfg;
   const days=priced.map(d=>{const c=dCompute(d.rows,ppa,avc,mode,cfg);c.blocks.forEach(b=>b.date=d.date);return {date:d.date,rows:d.rows,blocks:c.blocks,sum:c.sum,count:d.count}});
   const total=dAgg(days.map(d=>d.sum));
-  dCur={meta:{spv,ppa,avc,mode,cfg,from:days[0].date,to:days[days.length-1].date},days,sum:total};
+  dCur={meta:{spv,ppa,avc,mode,cfg,published:dPublished,from:days[0].date,to:days[days.length-1].date},days,sum:total};
   $("dout").classList.remove("hide");
   const m=dCur.meta,one=days.length===1;
   $("dwho").innerHTML=`<b>${esc(spv)}</b> · ${one?m.from:`${m.from} to ${m.to} (${days.length} days)`} · PPA ₹${f2(ppa)}/kWh${priced.some(d=>d.rows.some(r=>r.p>0))?" (blocks with their own price use it)":""} · AvC ${avc>0?f2(avc)+" MW":"from file"} · bands ${cfg.limits.join("% / ")}% of AvC<br><span class="note">Rates used (from your bands table): ${bandsUsed(cfg)}</span>`;
@@ -1686,13 +1701,44 @@ function dRenderDay(){
   dPubDay(d);
 }
 $("dcalc").onclick=dCalc;$("dgrp").onchange=dRenderPeriods;$("dday").onchange=dRenderDay;
-// ----- band presets and comparison with the charge published by NRPC / WRPC -----
-const PUB_CFG=()=>({limits:[15],pay:[100,100],dsm:[0,10],over:[100,90],loss:[0,10]});
-let dMyCfg=null;
-const sameCfg=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-function dPreNote(){const c=dBandRead(),e=$("dpre_note");if(!e)return;e.textContent=c&&sameCfg(c,PUB_CFG())?"Using the NRPC / WRPC published rule: 100% of the rate both ways up to 15% of AvC; beyond 15% the shortfall is charged 110% and the excess is paid 90%.":""}
-$("dpre_pub").onclick=()=>{const c=dBandRead();if(c&&!sameCfg(c,PUB_CFG()))dMyCfg=c;dBandRender(PUB_CFG());dPreNote();if(dData)dCalc()};
-$("dpre_my").onclick=()=>{dBandRender(JSON.parse(JSON.stringify(dMyCfg||dfltCfg())));dPreNote();if(dData)dCalc()};
+// CERC DSM Regulations 2024, regulation 8(4), WS sellers.
+function rpcPublishedConfig(type,date){
+  if(date<"2024-09-16"||date>="2027-04-01")return null;
+  const first=(date<"2026-04-01"?10:5)+(type==="wind"?5:0);
+  return {limits:[first,first+5],pay:[100,100,100],dsm:[0,10,100],over:[100,90,0],loss:[0,10,100]};
+}
+let dPublished=false,dMyCfg=null;
+function dPreNote(date){
+  $("dpre_pub").setAttribute("aria-pressed",String(dPublished));
+  $("dpre_note").textContent=dPublished
+    ?date?`RPC published WS seller bands for ${date}. Shortfall is charged at 100%, 110% and 200%. Excess is paid at 100%, 90% and 0%.`
+      :"RPC published bands will be selected using the plant type and settlement dates."
+    :"";
+}
+function dUseCustomBands(){
+  dPublished=false;
+  dPreNote();
+}
+$("dpre_pub").onclick=()=>{
+  if(!dPublished)dMyCfg=dBandRead();
+  dPublished=true;
+  dPreNote();
+  if(dData)dCalc();
+};
+$("dpre_my").onclick=()=>{
+  if(dPublished)dBandRender(dMyCfg||spvs[spvIdx()].cfg||dfltCfg());
+  else dBandRender(dMyCfg||dfltCfg());
+  dUseCustomBands();
+  if(dData)dCalc();
+};
+$("dbtb").addEventListener("input",dUseCustomBands);
+$("dbadd").addEventListener("click",dUseCustomBands);
+$("dbrem").addEventListener("click",dUseCustomBands);
+$("dtype").addEventListener("change",()=>{if(dPublished&&dData)dCalc()});
+function dClear(){
+  dCur=null;
+  $("dout").classList.add("hide");
+}
 const pubTol=p=>Math.max(5,Math.abs(p)*0.005);
 const pubMis=b=>b.pub!=null&&Math.abs(b.pay-b.recv-b.pub)>pubTol(b.pub);
 function dPubSummary(){
@@ -1701,13 +1747,13 @@ function dPubSummary(){
   if(!all.length){box.classList.add("hide");box.innerHTML="";return}
   box.classList.remove("hide");
   let pp=0,pr=0,ap=0,ar=0,mis=0;all.forEach(b=>{if(b.pub>0)pp+=b.pub;else pr-=b.pub;ap+=b.pay;ar+=b.recv;if(pubMis(b))mis++});
-  const pct=(a,b)=>b?((a-b)/b*100).toFixed(2)+"%":"–",isPub=sameCfg(dCur.meta.cfg,PUB_CFG());
+  const pct=(a,b)=>b?((a-b)/b*100).toFixed(2)+"%":"–",isPub=dCur.meta.published;
   box.innerHTML=`<b>Check against the published regional charge</b>
    <div class="scroll" style="max-height:none;margin-top:8px"><table><thead><tr><th></th><th>Published (₹)</th><th>This app (₹)</th><th>Difference (₹)</th><th>Difference (%)</th></tr></thead><tbody>
    <tr><td>Under-injection charge</td><td>${f2(pp)}</td><td>${f2(ap)}</td><td>${f2(ap-pp)}</td><td>${pct(ap,pp)}</td></tr>
    <tr><td>Over-injection receivable</td><td>${f2(pr)}</td><td>${f2(ar)}</td><td>${f2(ar-pr)}</td><td>${pct(ar,pr)}</td></tr>
    <tr><td><b>Net charge</b></td><td><b>${f2(pp-pr)}</b></td><td><b>${f2(ap-ar)}</b></td><td><b>${f2(ap-ar-pp+pr)}</b></td><td>${pct(ap-ar,pp-pr)}</td></tr></tbody></table></div>
-   <p class="note" style="margin:8px 0 0">${all.length.toLocaleString("en-IN")} blocks compared · <b class="${mis?"err":""}">${mis.toLocaleString("en-IN")} block(s) differ</b> by more than ₹5 or 0.5%. ${mis?(isPub?"These blocks need a look: the data or the rule differs from what was published.":"Your own bands are in use, so differences are expected. Click the <b>NRPC / WRPC published</b> preset to check the data itself."):"The app matches the published charge."}</p>
+   <p class="note" style="margin:8px 0 0">${all.length.toLocaleString("en-IN")} blocks compared · <b class="${mis?"err":""}">${mis.toLocaleString("en-IN")} block(s) differ</b> by more than ₹5 or 0.5%. ${mis?(isPub?"These blocks need a look: the data or the rule differs from what was published.":"Your own bands are in use, so differences are expected. Select <b>RPC published (NRPC / WRPC / SRPC)</b> to compare using the applicable WS seller bands."):"The app matches the published charge."}</p>
    <div id="dpubday" style="margin-top:10px"></div>`;
 }
 function dPubDay(d){
@@ -1792,7 +1838,7 @@ $("hload").onclick=()=>{
   if(!hCur)return;const m=hCur.meta,d=hCur.days[0];
   dData={names:[""],groups:{"":{days:[{date:d.date,rel:0,rows:d.rows,count:96}],extra:0}},bad:0,seqDays:false};
   if(!spvs.some(x=>x.name===m.spv)){spvs.push(mkSpv(m.spv,m.ppa,m.avc,JSON.parse(JSON.stringify(m.cfg))));spvSave()}
-  spvFill(m.spv);$("drun").value=d.date;$("dppa").value=m.ppa;$("davc").value=m.avc>0?m.avc:"";$("dmode").value=m.mode;$("dfrom").value="";$("dto").value="";dBandRender(JSON.parse(JSON.stringify(m.cfg)));
+  dUseCustomBands();spvFill(m.spv);$("drun").value=d.date;$("dppa").value=m.ppa;$("davc").value=m.avc>0?m.avc:"";$("dmode").value=m.mode;$("dfrom").value="";$("dto").value="";dBandRender(JSON.parse(JSON.stringify(m.cfg)));
   $("d_t1").click();dCalc();
 };
 $("hall").onclick=()=>{
@@ -2619,6 +2665,8 @@ function dsmReceive(pl){
   if(!sp){sp=mkSpv(pl.name,+g("dppa").value||2.5,"",JSON.parse(JSON.stringify(dfltCfg())));spvs.push(sp)}
   sp.plant=Object.assign(defPlant(),sp.plant||{},{type:pl.type||(sp.plant&&sp.plant.type)||"solar",region:pl.region||(sp.plant&&sp.plant.region)||""});
   spvSave();spvFill(sp.name);
+  g("dtype").value=sp.plant.type;typeShow();
+  if(dPublished)dMyCfg=dBandRead();
   dData={names:[""],groups:{"":{days:pl.days.map(d=>({date:d.date,rel:0,rows:d.rows,count:d.count})),extra:0}},bad:0,seqDays:false};
   g("dfrom").value="";g("dto").value="";g("drun").value=pl.days[0].date;
   g("t5").click();dsub(1);
