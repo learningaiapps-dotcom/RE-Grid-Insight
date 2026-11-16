@@ -29,6 +29,7 @@ input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-r
 button{font:inherit;padding:9px 18px;border:0;border-radius:6px;background:var(--accent);color:#fff;cursor:pointer;font-weight:600}
 @media (prefers-color-scheme:dark){button{color:#08201d}}
 button.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.alt.d-preset[aria-pressed="true"]{background:#166534;color:#fff;border-color:#166534}
 button:disabled{opacity:.5}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .models{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px;margin-top:8px;max-height:230px;overflow:auto;padding:4px}
@@ -353,7 +354,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   <div style="margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:12px">
     <b><span class="tip" data-g="bands">Deviation bands (set by you, as % of AvC)</span></b>
         <div class="scroll" style="margin-top:8px;max-height:none"><table><thead><tr><th>Band</th><th>Deviation range</th><th>Upper limit (%)</th><th class="tip" data-g="dsmrate">Under-injection DSM penalty rate (% of PPA)</th><th class="tip" data-g="bandund">Under-injection payable (% of PPA)</th><th class="tip" data-g="bandov">Over-injection receivable (% of PPA)</th><th class="tip" data-g="lossrate">Over-injection revenue loss (% of PPA)</th></tr></thead><tbody id="dbtb"></tbody></table></div>
-    <div class="tools" style="margin-top:8px"><button class="alt" id="dbadd">Add band</button><button class="alt" id="dbrem">Remove last band</button><span class="note" style="margin-left:10px">Presets:</span><button class="alt" id="dpre_my">My bands</button><button class="alt" id="dpre_pub">RPC calculation methodology</button></div>
+    <div class="tools" style="margin-top:8px"><button class="alt" id="dbadd">Add band</button><button class="alt" id="dbrem">Remove last band</button><span class="note" style="margin-left:10px">Presets:</span><button class="alt d-preset" id="dpre_my" aria-pressed="true">My bands</button><button class="alt d-preset" id="dpre_pub" aria-pressed="false">RPC calculation methodology</button></div>
     <div class="note" id="dpre_note" style="margin-top:6px"></div>
   </div>
   <div class="tools" style="margin-top:12px"><button id="dcalc">Calculate DSM</button><button class="alt" id="dsamp">Try sample data (2 SPVs, 10 days, dynamic price)</button><button class="alt" id="dsdl">Download sample CSV</button></div>
@@ -1428,6 +1429,7 @@ function rpcPublishedConfig(type,date){
 let dPublished=false,dMyCfg=null;
 function dPreNote(date){
   $("dpre_pub").setAttribute("aria-pressed",String(dPublished));
+  $("dpre_my").setAttribute("aria-pressed",String(!dPublished));
   $("dpre_note").textContent=dPublished
     ?date?`RPC published WS seller bands for ${date}. Shortfall is charged at 100%, 110% and 200%. Excess is paid at 100%, 90% and 0%.`
       :"RPC published bands will be selected using the plant type and settlement dates."
@@ -2385,7 +2387,9 @@ function dsmReceive(pl){
   sp.plant=Object.assign(defPlant(),sp.plant||{},{type:pl.type||(sp.plant&&sp.plant.type)||"solar",region:pl.region||(sp.plant&&sp.plant.region)||""});
   spvSave();spvFill(sp.name);
   g("dtype").value=sp.plant.type;typeShow();
+  if(pl.region==="NRPC")dPublished=true;
   if(dPublished)dMyCfg=dBandRead();
+  dPreNote();
   dData={names:[""],groups:{"":{days:pl.days.map(d=>({date:d.date,rel:0,rows:d.rows,count:d.count})),extra:0}},bad:0,seqDays:false};
   g("dfrom").value="";g("dto").value="";g("drun").value=pl.days[0].date;
   g("t5").click();dsub(1);
