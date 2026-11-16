@@ -353,7 +353,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   <div style="margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:12px">
     <b><span class="tip" data-g="bands">Deviation bands (set by you, as % of AvC)</span></b>
         <div class="scroll" style="margin-top:8px;max-height:none"><table><thead><tr><th>Band</th><th>Deviation range</th><th>Upper limit (%)</th><th class="tip" data-g="dsmrate">Under-injection DSM penalty rate (% of PPA)</th><th class="tip" data-g="bandund">Under-injection payable (% of PPA)</th><th class="tip" data-g="bandov">Over-injection receivable (% of PPA)</th><th class="tip" data-g="lossrate">Over-injection revenue loss (% of PPA)</th></tr></thead><tbody id="dbtb"></tbody></table></div>
-    <div class="tools" style="margin-top:8px"><button class="alt" id="dbadd">Add band</button><button class="alt" id="dbrem">Remove last band</button><span class="note" style="margin-left:10px">Presets:</span><button class="alt" id="dpre_my">My bands</button><button class="alt" id="dpre_pub">RPC published (NRPC / WRPC / SRPC)</button></div>
+    <div class="tools" style="margin-top:8px"><button class="alt" id="dbadd">Add band</button><button class="alt" id="dbrem">Remove last band</button><span class="note" style="margin-left:10px">Presets:</span><button class="alt" id="dpre_my">My bands</button><button class="alt" id="dpre_pub">RPC calculation methodology</button></div>
     <div class="note" id="dpre_note" style="margin-top:6px"></div>
   </div>
   <div class="tools" style="margin-top:12px"><button id="dcalc">Calculate DSM</button><button class="alt" id="dsamp">Try sample data (2 SPVs, 10 days, dynamic price)</button><button class="alt" id="dsdl">Download sample CSV</button></div>
@@ -1471,7 +1471,7 @@ function dPubSummary(){
    <tr><td>Under-injection charge</td><td>${f2(pp)}</td><td>${f2(ap)}</td><td>${f2(ap-pp)}</td><td>${pct(ap,pp)}</td></tr>
    <tr><td>Over-injection receivable</td><td>${f2(pr)}</td><td>${f2(ar)}</td><td>${f2(ar-pr)}</td><td>${pct(ar,pr)}</td></tr>
    <tr><td><b>Net charge</b></td><td><b>${f2(pp-pr)}</b></td><td><b>${f2(ap-ar)}</b></td><td><b>${f2(ap-ar-pp+pr)}</b></td><td>${pct(ap-ar,pp-pr)}</td></tr></tbody></table></div>
-   <p class="note" style="margin:8px 0 0">${all.length.toLocaleString("en-IN")} blocks compared · <b class="${mis?"err":""}">${mis.toLocaleString("en-IN")} block(s) differ</b> by more than ₹5 or 0.5%. ${mis?(isPub?"These blocks need a look: the data or the rule differs from what was published.":"Your own bands are in use, so differences are expected. Select <b>RPC published (NRPC / WRPC / SRPC)</b> to compare using the applicable WS seller bands."):"The app matches the published charge."}</p>
+   <p class="note" style="margin:8px 0 0">${all.length.toLocaleString("en-IN")} blocks compared · <b class="${mis?"err":""}">${mis.toLocaleString("en-IN")} block(s) differ</b> by more than ₹5 or 0.5%. ${mis?(isPub?"These blocks need a look: the data or the rule differs from what was published.":"Your own bands are in use, so differences are expected. Select <b>RPC calculation methodology</b> to compare using the applicable WS seller bands."):"The app matches the published charge."}</p>
    <div id="dpubday" style="margin-top:10px"></div>`;
 }
 function dPubDay(d){
