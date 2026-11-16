@@ -28,7 +28,7 @@ const tools = {
   3: ["Wind forecast correction", "Estimate and adjust wind generation"],
   4: ["DSM calculator", "Check settlement and study standalone BESS blocks"],
   5: ["QCA DSM & analysis", "Calculate settlement and investigate deviations"],
-  6: ["NRPC & WRPC imports", "Prepare regional files for QCA analysis"],
+  6: ["NRPC, WRPC & SRPC imports", "Prepare regional files for QCA analysis"],
   7: ["ISTS pooling stations", "Explore grid connection points"],
   8: ["India renewable plants", "Browse solar and wind plants by region"],
 };

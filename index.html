@@ -73,8 +73,8 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <div id="task-home" hidden></div>
 <div id="task-workspace" class="wrap">
 <p><a class="task-back" href="index.html?view=full">← All tools</a></p>
-<div class="tabs"><button id="t1" class="on">Weather data</button><button id="t2">Solar forecast correction</button><button id="t3">Wind forecast correction</button><button id="t4">DSM calculator</button><button id="t5">QCA DSM engine &amp; analysis</button><button id="t6">NRPC &amp; WRPC data (Khavda)</button><button id="t7">ISTS pooling stations map</button><button id="t8">India RE plants map</button></div>
-<div id="steps" class="note" style="margin:-6px 0 14px"><b>Workflow:</b> <button class="alt" data-go="t6" style="padding:4px 10px">1. Plant region and NRPC / WRPC data</button> → <button class="alt" data-go="t5-1" style="padding:4px 10px">2. QCA DSM engine</button> → <button class="alt" data-go="t5-3" style="padding:4px 10px">3. Deviation analysis &amp; RCA</button> → <button class="alt" data-go="t5-4" style="padding:4px 10px">4. Weather model comparison</button></div>
+<div class="tabs"><button id="t1" class="on">Weather data</button><button id="t2">Solar forecast correction</button><button id="t3">Wind forecast correction</button><button id="t4">DSM calculator</button><button id="t5">QCA DSM engine &amp; analysis</button><button id="t6">NRPC, WRPC &amp; SRPC imports</button><button id="t7">ISTS pooling stations map</button><button id="t8">India RE plants map</button></div>
+<div id="steps" class="note" style="margin:-6px 0 14px"><b>Workflow:</b> <button class="alt" data-go="t6" style="padding:4px 10px">1. Plant region and regional import</button> → <button class="alt" data-go="t5-1" style="padding:4px 10px">2. QCA DSM engine</button> → <button class="alt" data-go="t5-3" style="padding:4px 10px">3. Deviation analysis &amp; RCA</button> → <button class="alt" data-go="t5-4" style="padding:4px 10px">4. Weather model comparison</button></div>
 <div id="p1">
 <h1>Solar &amp; wind in 96 time blocks</h1>
 <p class="sub">Type a place (the country is optional) and the coordinates fill in by themselves, or type latitude and longitude (or paste "lat, lon") and the place name fills in. Pick 1 to 3 weather models and compare 15-minute forecasts for one day or a date range (up to 93 days). Data: Open-Meteo.</p>
@@ -402,7 +402,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <div class="card hide" id="hdet"><div id="hhead"></div><div class="kpis" id="hkpi" style="margin-top:8px"></div><div class="tools" style="margin:8px 0"><button class="alt" id="hxl">Download Excel report</button><button class="alt" id="hload">Load in calculator</button></div><div id="htab"></div></div>
 </div>
 <div id="d_p3" class="hide">
- <div class="card" id="an_empty"><p style="margin:0">Nothing to analyse yet. Send data from the NRPC / WRPC tab, or upload a file in the Calculation engine, then click Calculate DSM.</p></div>
+ <div class="card" id="an_empty"><p style="margin:0">Nothing to analyse yet. Send data from the regional imports tab, or upload a file in the Calculation engine, then click Calculate DSM.</p></div>
  <div id="an_body" class="hide">
   <div class="card">
    <div class="note" id="an_who"></div>
@@ -423,7 +423,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
  </div>
 </div>
 <div id="d_p4" class="hide">
- <div class="card hide" id="mc_empty"><p style="margin:0">Calculate DSM first (send data from NRPC / WRPC or upload a file), then compare the weather models here.</p></div>
+ <div class="card hide" id="mc_empty"><p style="margin:0">Calculate DSM first (send data from regional imports or upload a file), then compare the weather models here.</p></div>
  <div class="card" id="mc_form">
   <b>Which open-source weather model is closest to your plant?</b>
   <p class="note" style="margin:4px 0 8px">The selected Open-Meteo models are fetched for your plant location and the dates below, converted to expected plant output (solar: capacity × sunlight × performance ratio; wind: capacity × a generic power curve), and compared with your actual generation and your schedule. Only latitude, longitude and dates are sent to Open-Meteo.</p>
@@ -443,9 +443,9 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 </div>
 </div>
 <div id="p6" class="hide">
-<h1>Khavda DSM Data Processing System</h1>
-<p class="sub">Extract and convert NRPC and WRPC scheduling data for one plant, check it, and download it as Excel or CSV. Files are processed in this browser only. Nothing is uploaded anywhere.</p>
-<div class="tabs" style="margin-bottom:12px"><button id="k_t1" class="on">NRPC Data Processing</button><button id="k_t2">WRPC Data Processing</button></div>
+<h1>Regional DSM Data Processing</h1>
+<p class="sub">Extract and convert NRPC, WRPC and SRPC scheduling data for one plant, check it, and download it as Excel or CSV. Files are processed in this browser only. Nothing is uploaded anywhere.</p>
+<div class="tabs" style="margin-bottom:12px"><button id="k_t1" class="on">NRPC Data Processing</button><button id="k_t2">WRPC Data Processing</button><button id="k_t3">SRPC Data Processing</button></div>
 <div id="k_p1">
 <div class="card">
   <div class="row"><label class="f">NRPC Excel workbook (.xlsx or .xls)<input id="n_file" type="file" accept=".xlsx,.xls"></label></div>
@@ -482,6 +482,19 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 </div>
 <div id="w_res"></div>
 </div>
+<div id="k_p3" class="hide">
+<div class="card">
+  <label class="f">SRPC generator DSM ZIP or individual CSV<input id="s_file" type="file" accept=".zip,.csv"></label>
+  <p class="note">ZIP imports list compatible commercial_dev2022 CSVs by their filename codes.</p>
+  <div id="s_msg" role="status"></div>
+  <div id="s_sel" class="hide" style="margin-top:12px">
+    <label class="f">Plant<select id="s_plant"></select></label>
+    <button id="s_go" style="margin-top:12px">Extract data</button>
+  </div>
+</div>
+<div id="s_res"></div>
+</div>
+
 </div>
 </div>
 <div id="tipbox"></div>
@@ -1407,7 +1420,7 @@ function dPubSummary(){
   box.classList.remove("hide");
   let pp=0,pr=0,ap=0,ar=0,mis=0;all.forEach(b=>{if(b.pub>0)pp+=b.pub;else pr-=b.pub;ap+=b.pay;ar+=b.recv;if(pubMis(b))mis++});
   const pct=(a,b)=>b?((a-b)/b*100).toFixed(2)+"%":"–",isPub=sameCfg(dCur.meta.cfg,PUB_CFG());
-  box.innerHTML=`<b>Check against the charge published by NRPC / WRPC</b>
+  box.innerHTML=`<b>Check against the published regional charge</b>
    <div class="scroll" style="max-height:none;margin-top:8px"><table><thead><tr><th></th><th>Published (₹)</th><th>This app (₹)</th><th>Difference (₹)</th><th>Difference (%)</th></tr></thead><tbody>
    <tr><td>Under-injection charge</td><td>${f2(pp)}</td><td>${f2(ap)}</td><td>${f2(ap-pp)}</td><td>${pct(ap,pp)}</td></tr>
    <tr><td>Over-injection receivable</td><td>${f2(pr)}</td><td>${f2(ar)}</td><td>${f2(ar-pr)}</td><td>${pct(ar,pr)}</td></tr>
@@ -1835,6 +1848,89 @@ async function wrpcExtract(idx,plant,progress){
       mapping:[],factors:[["Schedule (MW)","Schedule (MWh) × 4"],["Actual (MW)","Actual (MWh) × 4"],["Wt. Avg. Rate (Rs/kWh)","Wt. Avg. Rate (p/kWh) ÷ 100"],["WS Seller Capacity (MW)","WS Seller Capacity (MWh) × 4"],["Deviation (MW)","Deviation (MWh) × 4"],["Deviation (%)","Original value (no conversion)"]],at:new Date().toISOString()}};
 }
 
+/* ---------- SRPC generator DSM ---------- */
+const SR_FIELDS=[
+  ["sched","sch_total","Schedule (MW)",4],
+  ["actual","act_total","Actual (MW)",4],
+  ["cap","available_capacity","Available capacity (MW)",4],
+  ["rate","rate","DSM rate (Rs/kWh)",0.01],
+  ["ppa","ppa_rate","PPA rate (Rs/kWh)",0.01],
+  ["over","overinjection_charges","Over-injection (Rs)",1],
+  ["under","underinjection_charges","Under-injection (Rs)",1],
+  ["drawl","drawl_charges","Drawal (Rs)",1]
+];
+const SR_COLS=[{key:"date",h:"Date"},{key:"block",h:"Block"},
+  ...SR_FIELDS.map(([key,,h])=>({key,h})),{key:"pub",h:"Published net payable (Rs)"}];
+
+async function srpcIndex(entries){
+  const plants=[];
+  for(const entry of entries){
+    const rows=parseCSV(await entry.async("string"));
+    const header=(rows.shift()||[]).map(cell=>cell.trim().toLowerCase());
+    const cols=Object.fromEntries(header.map((key,index)=>[key,index]));
+    if(!["date","time",...SR_FIELDS.filter(([key])=>key!=="ppa").map(([,key])=>key)].every(key=>Object.prototype.hasOwnProperty.call(cols,key)))continue;
+    const plant=fileStem(entry.name).replace(/^commercial_dev2022_/i,"");
+    plants.push({plant,source:entry.name,cols,rows});
+  }
+  return plants.sort((a,b)=>a.plant.localeCompare(b.plant));
+}
+
+function srpcExtract({plant,source,cols,rows}){
+  const issues=[],details=[],records=[],byDate=new Map();
+  let missing=0,invalid=0,duplicates=0;
+  for(const row of rows){
+    if(row.every(cell=>!cell.trim()))continue;
+    const date=parseDate(row[cols.date]);
+    const time=/^([01]\d|2[0-3]):(00|15|30|45)(?::00)?$/.exec((row[cols.time]||"").trim());
+    if(!date||!time){
+      invalid++;
+      details.push({date:row[cols.date],column:"Date / Time",issue:"Invalid date or 15-minute start time"});
+      continue;
+    }
+    const block=Number(time[1])*4+Number(time[2])/15+1;
+    if(!byDate.has(date))byDate.set(date,new Set());
+    const blocks=byDate.get(date);
+    if(blocks.has(block)){
+      duplicates++;
+      details.push({date,block,column:"Date / Block",issue:"Duplicate block (first row kept)"});
+      continue;
+    }
+    blocks.add(block);
+    const record={date,block};
+    for(const [key,field,label,factor] of SR_FIELDS){
+      const value=num(row[cols[field]]);
+      record[key]=value.s==="ok"?mul(value.v,factor):null;
+      if(value.s!=="ok"&&Object.prototype.hasOwnProperty.call(cols,field)){
+        details.push({date,block,column:label,issue:value.s==="bad"?"Invalid number":"Missing value"});
+      }
+    }
+    // SRPC credits are positive and debits negative. QCA compares net payable.
+    const charges=[record.over,record.under,record.drawl];
+    record.pub=charges.every(value=>value!=null)?-charges.reduce((sum,value)=>sum+value,0):null;
+    records.push(record);
+  }
+  const dates=[...byDate.keys()].sort();
+  const badValues=details.length-invalid-duplicates;
+  for(const date of dates){
+    for(let block=1;block<=96;block++){
+      if(byDate.get(date).has(block))continue;
+      missing++;
+      details.push({date,block,column:"Block",issue:"Missing block"});
+    }
+  }
+  const missingDates=gaps(dates);
+  for(const [type,count] of [["Invalid date or time",invalid],["Duplicate blocks",duplicates],
+    ["Missing or invalid numeric values",badValues],["Missing blocks",missing],["Missing dates",missingDates.length]]){
+    if(count)issues.push({sev:"Warning",type,detail:`${count} found. See the validation report for row details.`,count});
+  }
+  for(const date of missingDates)details.push({date,column:"Date",issue:"Missing date"});
+  records.sort((a,b)=>a.date.localeCompare(b.date)||a.block-b.block);
+  return {region:"SRPC",plant,cols:SR_COLS,rows:records,issues,details,
+    meta:{region:"SRPC",plant,first:dates[0]||"",last:dates[dates.length-1]||"",dates:dates.length,records:records.length,
+      missing,mapping:[["CSV",source]],factors:SR_FIELDS.map(([,,label,factor])=>[label,`× ${factor}`]),
+      at:new Date().toISOString()}};
+}
+
 /* ---------- export ---------- */
 const csvCell=v=>{if(v==null)return "";const s=String(v);return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
 function toCSV(res){
@@ -1865,7 +1961,7 @@ function workbook(res){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(validationAOA(res)),"Data Validation");
   return wb;
 }
-return {norm,parseDate,num,mul,div,parseCSV,score,suggest,NR,NR_COLS,WR_COLS,analyzeSheet,nrpcIndex,nrpcExtract,wrpcHeader,fileStem,resolvePlant,wrpcEntries,wrpcIndex,wrpcExtract,toCSV,validationCSV,validationAOA,summaryAOA,workbook,gaps};
+return {norm,parseDate,num,mul,div,parseCSV,score,suggest,NR,NR_COLS,WR_COLS,analyzeSheet,nrpcIndex,nrpcExtract,wrpcHeader,fileStem,resolvePlant,wrpcEntries,wrpcIndex,wrpcExtract,srpcIndex,srpcExtract,toCSV,validationCSV,validationAOA,summaryAOA,workbook,gaps};
 })();
 </script>
 <script>
@@ -1879,8 +1975,8 @@ const safe=s=>String(s).replace(/[^\w.-]+/g,"_").slice(0,60);
 function saveBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
 
 /* ---------- sub tabs ---------- */
-function sub(n){["1","2"].forEach(m=>{g("k_p"+m).classList.toggle("hide",m!==n);g("k_t"+m).classList.toggle("on",m===n)})}
-g("k_t1").onclick=()=>sub("1");g("k_t2").onclick=()=>sub("2");
+function sub(n){["1","2","3"].forEach(m=>{g("k_p"+m).classList.toggle("hide",m!==n);g("k_t"+m).classList.toggle("on",m===n)})}
+g("k_t1").onclick=()=>sub("1");g("k_t2").onclick=()=>sub("2");g("k_t3").onclick=()=>sub("3");
 
 /* ---------- results view (shared by NRPC and WRPC) ---------- */
 function makeView(p,mount){
@@ -2061,6 +2157,44 @@ g("w_go").onclick=async()=>{
   }catch(x){wDone();wMsg("Extraction failed: "+x.message,true)}
   g("w_go").disabled=false;
 };
+/* ---------- SRPC ---------- */
+const sView=makeView("s","s_res");
+let sPlants=[],sLoad=0;
+g("s_file").onchange=async event=>{
+  const file=event.target.files[0];
+  const load=++sLoad;
+  sPlants=[];
+  sView.clear();
+  g("s_sel").classList.add("hide");
+  g("s_msg").textContent=file?"Reading SRPC file…":"";
+  if(!file)return;
+  try{
+    const entries=/\.zip$/i.test(file.name)
+      ?KD.wrpcEntries(await JSZip.loadAsync(file)).filter(entry=>/(^|\/)commercial_dev2022_/i.test(entry.name))
+      :[{name:file.name,async:()=>file.text()}];
+    const plants=await KD.srpcIndex(entries);
+    if(load!==sLoad)return;
+    sPlants=plants;
+    g("s_plant").replaceChildren(...plants.map(({plant,source},index)=>
+      new Option(plants.some((other,i)=>i!==index&&other.plant===plant)?source:plant,String(index))));
+    g("s_sel").classList.toggle("hide",!plants.length);
+    g("s_msg").textContent=plants.length
+      ?`${plants.length} compatible generator DSM file(s). Select a plant and click Extract data.`
+      :"No compatible SRPC generator DSM CSVs found in this upload.";
+  }catch(error){
+    if(load===sLoad)g("s_msg").textContent="Could not read the SRPC file: "+error.message;
+  }
+};
+g("s_plant").onchange=()=>sView.clear();
+g("s_go").onclick=()=>{
+  const selected=sPlants[Number(g("s_plant").value)];
+  if(!selected)return;
+  const result=KD.srpcExtract(selected);
+  if(result.rows.length)sView.show(result);
+  g("s_msg").textContent=result.rows.length
+    ?`Extracted ${nf(result.rows.length)} blocks across ${nf(result.meta.dates)} date(s).`
+    :"No valid 15-minute records found for this plant.";
+};
 })();
 </script>
 <script id="kd-headers">
@@ -2126,7 +2260,7 @@ function typeShow(){const t=g("dtype").value;g("dsolbox").classList.toggle("hide
 function geoNote(state,label,region){
   const r=region||regionOf(state);g("dgeo").dataset.region=r||"";
   g("dgeo").className="note";
-  g("dgeo").innerHTML=(label?label+". ":"")+(r?`State: ${state||"?"} → grid region <b>${r}</b>. `+((r==="NRPC"||r==="WRPC")?"":"This app can extract only NRPC and WRPC data. "):"Grid region not recognised. ")+"Please confirm with your connectivity (the region is judged from the state only).";
+  g("dgeo").innerHTML=(label?label+". ":"")+(r?`State: ${state||"?"} → grid region <b>${r}</b>. `+((r==="NRPC"||r==="WRPC"||r==="SRPC")?"":"This app can extract only NRPC, WRPC and SRPC data. "):"Grid region not recognised. ")+"Please confirm with your connectivity (the region is judged from the state only).";
 }
 function plantFill(p){
   p=Object.assign(defPlant(),p||{});
@@ -2170,7 +2304,8 @@ plantFill(spvs[spvIdx()].plant);
 /* ================= 2. hand-off from NRPC / WRPC ================= */
 const SRC={
  NRPC:{opts:[["gs","GS Station (MW)"],["act","Actual Injection (MW)"],["solar","Solar Availability (MW)"],["rate","Contract Rate"],["dev","Deviation Charges"]],def:{s:"gs",a:"act",v:"solar",p:"rate"}},
- WRPC:{opts:[["sched","Schedule (MW)"],["actual","Actual (MW)"],["cap","WS Seller Capacity (MW)"],["rate","Wt. Avg. Rate (Rs/kWh)"],["devmw","Deviation (MW)"]],def:{s:"sched",a:"actual",v:"cap",p:"rate"}}};
+ WRPC:{opts:[["sched","Schedule (MW)"],["actual","Actual (MW)"],["cap","WS Seller Capacity (MW)"],["rate","Wt. Avg. Rate (Rs/kWh)"],["devmw","Deviation (MW)"]],def:{s:"sched",a:"actual",v:"cap",p:"rate"}},
+ SRPC:{opts:[["sched","Schedule (MW)"],["actual","Actual (MW)"],["cap","Available capacity (MW)"],["rate","DSM rate (Rs/kWh)"],["ppa","PPA rate (Rs/kWh)"]],def:{s:"sched",a:"actual",v:"cap",p:"rate"}}};
 function buildDays(res,m,agg){
   const by=new Map();
   res.rows.forEach(r=>{
@@ -2221,7 +2356,7 @@ function sendUI(p,res){
   box.innerHTML=`<b>Send this data to the QCA DSM engine for analysis</b>
    <p class="note" style="margin:4px 0 8px">Choose which columns are the schedule, the actual generation, the available capacity and the price. The defaults are a guess: please check them against your files.</p>
    <div class="row">
-    <label class="f">SPV / plant name<input id="${p}_sn" value="${String(res.plant).replace(/"/g,"&quot;")}"></label>
+    <label class="f">SPV / plant name<input id="${p}_sn" value="${esc(res.plant)}"></label>
     <label class="f" style="flex:0 1 170px">Plant type<select id="${p}_ty"><option value="solar">Solar</option><option value="wind">Wind</option><option value="hybrid">Hybrid (solar + wind)</option></select></label>
     <label class="f">Schedule from${sel("s",S.def.s,false)}</label>
     <label class="f">Actual generation from${sel("a",S.def.a,false)}</label>
@@ -2237,6 +2372,9 @@ function sendUI(p,res){
     if(m.s===m.a)return g(p+"_smsg").textContent="Schedule and actual cannot come from the same column.";
     const b=buildDays(r,m,g(p+"_ag").value);
     if(!b.days.length)return g(p+"_smsg").textContent="No data to send.";
+    if(r.region==="SRPC"&&(b.missS||b.missA||r.rows.some(row=>!(row[m.v]>0)||!(row[m.p]>0)))){
+      return g(p+"_smsg").textContent="QCA requires a complete set of 96 blocks per imported date, with schedule, actual generation, positive AvC and a positive rate. Check the file and mappings.";
+    }
     g(p+"_smsg").textContent="";
     dsmReceive({name,type:g(p+"_ty").value,region:r.region,days:b.days,missS:b.missS,missA:b.missA,source:r.region});
   };
@@ -2246,7 +2384,7 @@ window.KDHOOK=sendUI;
 /* region helper at the top of the NRPC/WRPC tab */
 (function(){
   const host=g("k_p1").parentNode,box=document.createElement("div");
-  box.className="card";box.innerHTML=`<b>Which region is my plant in?</b> <span class="note">Type the plant location: the grid region (NRPC or WRPC) is suggested from its state.</span>
+  box.className="card";box.innerHTML=`<b>Which region is my plant in?</b> <span class="note">Type the plant location: the grid region (NRPC, WRPC or SRPC) is suggested from its state.</span>
    <div class="row" style="margin-top:8px"><label class="f">Plant location<input id="k_loc" placeholder="e.g. Khavda, Gujarat"></label><label class="f" style="flex:0 1 160px">Country (optional)<input id="k_cty" placeholder="India"></label></div>
    <div class="note" id="k_reg" style="margin-top:6px"></div>`;
   host.insertBefore(box,g("k_p1").previousElementSibling);
@@ -2258,8 +2396,8 @@ window.KDHOOK=sendUI;
       const p=await geocode(loc,g("k_cty").value.trim());if(t!==tok)return;
       if(!p){g("k_reg").className="note err";g("k_reg").textContent="Could not find that place.";return}
       const r=regionOf(p.admin1);
-      g("k_reg").innerHTML=`${p.name}, ${p.admin1||""} (${p.country}) → grid region <b>${r||"not recognised"}</b>.`+(r==="NRPC"?" Use the NRPC tab below.":r==="WRPC"?" Use the WRPC tab below.":r?" This app can extract only NRPC and WRPC data.":"")+" Please confirm with your connectivity.";
-      if(r==="NRPC")g("k_t1").click();if(r==="WRPC")g("k_t2").click();
+      g("k_reg").innerHTML=`${p.name}, ${p.admin1||""} (${p.country}) → grid region <b>${r||"not recognised"}</b>.`+(r==="NRPC"?" Use the NRPC tab below.":r==="WRPC"?" Use the WRPC tab below.":r==="SRPC"?" Use the SRPC tab below.":r?" This app can extract only NRPC, WRPC and SRPC data.":"")+" Please confirm with your connectivity.";
+      if(r==="NRPC")g("k_t1").click();if(r==="WRPC")g("k_t2").click();if(r==="SRPC")g("k_t3").click();
     }catch(e){if(t===tok){g("k_reg").className="note err";g("k_reg").textContent="Could not look up the place. Check your internet connection."}}
   },700);
   g("k_loc").addEventListener("input",run);g("k_cty").addEventListener("input",run);
@@ -2523,7 +2661,7 @@ async function anReport(){
   const pb=cur.days.flatMap(d=>d.blocks).filter(b=>b.pub!=null);
   let pubHtml="";
   if(pb.length){let pp=0,ap=0;pb.forEach(b=>{pp+=b.pub;ap+=b.pay-b.recv});const mis=pb.filter(b=>Math.abs(b.pay-b.recv-b.pub)>Math.max(5,Math.abs(b.pub)*0.005)).length;
-    pubHtml=`<h2>Check against the charge published by NRPC / WRPC</h2><table><tr><th>Net charge published</th><td>${R(pp)}</td></tr><tr><th>Net charge in this report</th><td>${R(ap)}</td></tr><tr><th>Difference</th><td>${R(ap-pp)}</td></tr><tr><th>Blocks that differ</th><td>${nf(mis)} of ${nf(pb.length)}</td></tr></table><p class="n">${mis?"Differences are expected when your own bands are used; with the NRPC / WRPC published preset the figures should match.":"This report matches the published charge."}</p>`}
+    pubHtml=`<h2>Check against the published regional charge</h2><table><tr><th>Net charge published</th><td>${R(pp)}</td></tr><tr><th>Net charge in this report</th><td>${R(ap)}</td></tr><tr><th>Difference</th><td>${R(ap-pp)}</td></tr><tr><th>Blocks that differ</th><td>${nf(mis)} of ${nf(pb.length)}</td></tr></table><p class="n">${mis?"Differences are expected when your own bands are used; with the NRPC / WRPC published preset the figures should match.":"This report matches the published charge."}</p>`}
   // hour bar chart (SVG)
   const mx=Math.max(1,...A.hours.map(H=>H.n?(H.ui+H.oi)/H.n*100:0));
   const hsvg=`<svg viewBox="0 0 720 170" width="100%"><line x1="30" x2="720" y1="140" y2="140" stroke="#999"/>`+A.hours.map((H,h)=>{const u=H.n?H.ui/H.n*100:0,o=H.n?H.oi/H.n*100:0,x=34+h*28,hu=u/mx*120,ho=o/mx*120;return `<rect x="${x}" y="${140-hu}" width="20" height="${hu}" fill="#ea580c"/><rect x="${x}" y="${140-hu-ho}" width="20" height="${ho}" fill="#16a34a"/>${h%2?"":`<text x="${x+10}" y="155" font-size="9" text-anchor="middle" fill="#555">${hh(h)}</text>`}`}).join("")+`<text x="2" y="20" font-size="9" fill="#555">${p1(mx)}%</text><text x="2" y="140" font-size="9" fill="#555">0</text></svg><p class="n"><span style="color:#ea580c">■</span> under-injection beyond the limit &nbsp; <span style="color:#16a34a">■</span> over-injection beyond the limit (share of active blocks in each hour)</p>`;
