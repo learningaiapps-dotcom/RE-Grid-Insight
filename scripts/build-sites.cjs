@@ -91,7 +91,7 @@ for (const id of siteTabs) {
   } else if (site.id === "maps") {
     panels = maps;
     libraries = "";
-    assets = [];
+    assets = ["data/ists-pooling-stations.html"];
     scripts = between(html, '<script type="text/plain" id="re_d_plants">', '<script src="task-picker.js" defer>');
   } else {
     panels = workflow + dsm;
