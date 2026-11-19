@@ -14,3 +14,8 @@ services:
     runtime: static
     buildCommand: node scripts/build-sites.cjs
     staticPublishPath: ./dist/dsm
+  - type: web
+    name: re-grid-bess-operations
+    runtime: static
+    buildCommand: node scripts/build-sites.cjs
+    staticPublishPath: ./dist/bess

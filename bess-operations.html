@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BESS DGR System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: plant control room, calm and exact; numbers first.
+   IDEA: the shift engineer's DGR sheet turned into a live control panel.
+   PICTURE: one dominant plant-availability readout beside thin KPI strips, then block-by-block charge/discharge.
+   COLOUR and TYPE: steel panel, black ink, white, alarm red only for alarms; Inter Tight + Inter.
+   LAYOUT: top bar with tabs; readout 40% / strips 60%; charts in a two-up grid stacking below 900px. */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#16191c);--panel:light-dark(#d5dbe0,#22272b);--panel2:light-dark(#e9edf0,#1c2024);
+--ink:light-dark(#0d0f11,#eef1f3);--mute:light-dark(#4a535b,#9aa5ae);--line:light-dark(#b9c2c9,#343b41);
+--alarm:#e8251a;--ok:light-dark(#1d7a46,#4cc38a);--warn:light-dark(#a86400,#f0a63a);
+--chg:light-dark(#2f6f9f,#6fb1e0);--dis:light-dark(#0d0f11,#eef1f3);--soc:light-dark(#e8251a,#ff6a5f)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3,.big{font-family:"Inter Tight",Inter,sans-serif;line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:clamp(26px,3.4vw,36px)}h2{font-size:22px;margin:0 0 12px}h3{font-size:17px;margin:0 0 8px}
+.top{position:sticky;top:0;z-index:5;background:var(--ink);color:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:10px max(3vw,14px)}
+.brand b{font-family:"Inter Tight",Inter,sans-serif;font-size:19px;margin-right:10px}.brand span{opacity:.75;font-size:14px;white-space:nowrap}
+.tabs{display:flex;gap:4px;flex:1;overflow-x:auto}
+.tabs a{flex:none;color:inherit;text-decoration:none;padding:10px 12px;border-radius:6px;font-size:15px;opacity:.8}
+.tabs a[aria-current]{background:var(--bg);color:var(--ink);opacity:1;font-weight:600}
+.tabs a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--chg);outline-offset:2px}
+.who{font-size:13px;opacity:.85;white-space:nowrap}
+.banner{background:var(--panel);padding:10px max(3vw,14px);font-size:14px}
+main{padding:20px max(3vw,14px) 60px;max-width:1400px;margin:0 auto}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:0 0 18px}
+.bar .grow{flex:1}
+label{display:grid;gap:4px;font-size:13px;color:var(--mute)}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-height:44px}
+button,.btn{font:600 15px Inter,sans-serif;min-height:44px;padding:0 16px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer}
+button.sec{background:transparent;color:var(--ink);border-color:var(--line)}
+button.danger{background:transparent;color:var(--alarm);border-color:var(--alarm)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.hero{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:16px;margin-bottom:16px}
+.read{background:var(--panel);border-radius:10px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.read .big{font-size:clamp(56px,8vw,92px);font-weight:700;letter-spacing:-.02em}
+.read .lbl{font-size:15px;color:var(--mute)}
+.meter{display:grid;grid-template-columns:7.5em minmax(0,1fr) 4.5em;gap:10px;align-items:center;font-size:14px}
+.meter .trk{height:10px;background:var(--panel2);border-radius:5px;overflow:hidden}
+.meter .fil{height:100%;background:var(--ink)}.meter .fil.low{background:var(--alarm)}
+.meter b{text-align:right;font-variant-numeric:tabular-nums}
+.strips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.strip{border-top:3px solid var(--ink);background:var(--panel2);padding:10px 12px;border-radius:0 0 8px 8px}
+.strip .v{font:700 26px "Inter Tight",Inter,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.strip .v small{font:500 13px Inter;color:var(--mute);margin-left:4px}
+.strip .k{font-size:13px;color:var(--mute)}.strip .d{font-size:12px;color:var(--mute)}
+.alerts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.al{padding:8px 12px;border-radius:6px;font-size:14px;background:var(--panel2);border-left:4px solid var(--ok)}
+.al.bad{border-left-color:var(--alarm)}.al.bad b{color:var(--alarm)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card .sub{font-size:13px;color:var(--mute);margin:-4px 0 10px}
+.fig{position:relative;min-height:280px}.fig>canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:13px;color:var(--mute);font-weight:600;background:var(--panel2)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.form{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:14px}
+.form .wide{grid-column:1/-1}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:28px;text-align:center;background:var(--panel2)}
+.drop.on{border-color:var(--chg)}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:12px;background:var(--panel)}
+.pill.open{background:var(--alarm);color:#fff}
+.muted{color:var(--mute);font-size:14px}
+.empty{padding:40px 20px;text-align:center;color:var(--mute)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
+.toast.on{opacity:1}
+pre,.scroll{overflow-x:auto}code{overflow-wrap:anywhere}
+details summary{cursor:pointer;font-weight:600;padding:8px 0}
+@media(max-width:900px){.hero,.grid2{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.tabs{order:3;flex:1 1 100%}.who{margin-left:auto}}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--mute)}.stack td:empty{display:none}.fig{min-height:240px}}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+
+.top select{background:transparent;color:inherit;border:1px solid color-mix(in srgb,var(--bg) 40%,transparent);min-height:40px;max-width:220px}
+.top select option{color:#0d0f11}
+.ready{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 16px}
+.chip{padding:5px 10px;border-radius:20px;font-size:13px;background:var(--panel2);border:1px solid var(--line);color:var(--mute)}
+.chip.ok{color:var(--ink);border-color:var(--ok)}.chip small{color:var(--mute)}
+.ready-t td.ok{color:var(--ok)}.ready-t td.miss{color:var(--mute)}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:16px}
+.pcard.sel{border-color:var(--ink);border-width:2px}
+.pcard td{padding:6px 8px}
+fieldset{border:1px solid var(--line);border-radius:8px;padding:12px 14px 2px;margin:0 0 14px}
+legend{font-weight:600;padding:0 6px}
+.red{color:var(--alarm)}
+.strip.left{border-top-color:var(--ok)}.strip.left .v,.lefttxt{color:var(--ok)}
+td.left{background:color-mix(in srgb,var(--ok) 16%,transparent)}td.short{background:color-mix(in srgb,var(--alarm) 18%,transparent);color:var(--alarm)}
+.pbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--panel2)}
+.pb-can{background:var(--ink)}.pb-left{background:var(--ok)}.pb-short{background:var(--alarm)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--mute)}
+.chk{display:flex;gap:10px;align-items:flex-start;color:var(--ink);font-size:14px;padding:8px 0;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.seg button{border:0;border-radius:0;background:transparent;color:var(--ink)}.seg button.on{background:var(--ink);color:var(--bg)}
+.pendbar{background:color-mix(in srgb,var(--alarm) 14%,var(--bg));border:2px solid var(--alarm);border-radius:8px;padding:10px 14px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.livehero{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;margin-bottom:16px}
+.nowc,.nextc{background:var(--panel);border-radius:10px;padding:18px 20px}.nowc .lbl,.nextc .lbl{font-size:14px;color:var(--mute);margin-bottom:10px}
+.sp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.sp span{display:block;font-size:13px;color:var(--mute)}.sp b{font:700 clamp(30px,4vw,46px)/1.05 "Inter Tight",Inter,sans-serif;font-variant-numeric:tabular-nums}.sp small{display:block;font-size:12px;color:var(--mute)}
+#cd{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+.nx{display:grid;grid-template-columns:2.5em 7.5em minmax(0,1fr) auto;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:center}.nx.pend{color:var(--alarm)}
+.livewrap{max-height:70vh;overflow:auto}
+table.live{font-size:13px;white-space:nowrap}table.live thead{position:sticky;top:0;z-index:2}table.live th{font-size:12px;white-space:normal;min-width:5.5em;vertical-align:bottom}
+table.live th.src{font-weight:500;font-size:11px}table.live th.sitehd{background:color-mix(in srgb,var(--chg) 18%,var(--panel2))}
+table.live td{padding:3px 6px}table.live tr.now td{background:color-mix(in srgb,var(--ok) 26%,var(--bg))}table.live tr.past td{opacity:.62}
+table.live tr.pend td:first-child{box-shadow:inset 4px 0 var(--alarm)}
+.ci{min-height:34px;width:6.5em;padding:4px 6px;font-size:14px;text-align:right;background:transparent}.ci.wide{width:12em;text-align:left}
+.ci.chg,span.chg{outline:2px solid #f0b400;outline-offset:-2px;background:color-mix(in srgb,#ffd84a 35%,transparent)}
+td.sp1{font-weight:600}td.act{font-weight:700}td.warnc{background:color-mix(in srgb,var(--alarm) 25%,transparent)}
+.okc{color:var(--ok);font-weight:700}
+.logl{max-height:360px;overflow:auto}.lg{padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}.pill.s{background:color-mix(in srgb,var(--chg) 25%,var(--panel))}
+@media(max-width:900px){.livehero{grid-template-columns:minmax(0,1fr)}}@media(max-width:600px){.sp{grid-template-columns:minmax(0,1fr)}}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px 22px}.pgroup h3{font-size:15px;margin:4px 0 4px;padding-bottom:4px;border-bottom:2px solid var(--ink)}.pgroup td{padding:6px 4px}.pgroup td.n{white-space:normal}
+.ef-card{padding:0;overflow:hidden}
+.ef{background:#f4f7fb;color:#13253a;padding:clamp(18px,3vw,36px)}
+.ef-h h2{font:700 clamp(26px,3.4vw,40px)/1.1 "Inter Tight",Inter,sans-serif;margin:0;color:#13253a}.ef-h h2 span{font-weight:400;margin:0 6px}.ef-h p{margin:4px 0 18px;color:#4f6075;font-size:17px}
+.ef-cap{background:#16324f;color:#fff;border-radius:4px;display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:10px 28px;align-items:center;padding:20px 28px;margin-bottom:22px}
+.ef-cap b{display:block;font:700 clamp(28px,3.6vw,40px)/1.05 "Inter Tight",Inter,sans-serif}.ef-cap span{font-size:15px;opacity:.9}.ef-cap i{font-style:normal;font-size:28px;color:#5fd4b8}
+.ef-basis{font-size:16px;opacity:.9}.ef-act b{color:#5fd4b8}
+.ef-body{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:26px;align-items:start}
+.ef h3{font:700 22px "Inter Tight",Inter,sans-serif;margin:0 0 10px;color:#13253a}
+.ef table{background:#fff;color:#13253a;border-collapse:collapse;width:100%}
+.ef th{background:#16324f;color:#fff;font-size:14px;padding:10px 12px;border:0}
+.ef td{border-bottom:1px solid #c9d3de;padding:8px 12px;font-size:15px}.ef-l tr:nth-child(even) td{background:#eef2f7}.ef-l td.n{font-weight:700}
+.ef-t td.eq{white-space:nowrap}.ef-t td.eq span{display:flex;align-items:center;gap:12px}@media(max-width:600px){.ef-t td{padding:6px 8px;font-size:13px}.ef-t td.chg,.ef-t td.dis{font-size:18px}.ef-t td.eq img{width:30px;height:24px}.ef-t th:nth-child(4),.ef-t td:nth-child(4){display:none}}.ef-t td{vertical-align:middle}.ef-t td.eq img{border-radius:3px;object-fit:cover;background:#fff}
+.ef-t td.chg{background:#e3eefb;color:#2f63c4;font:700 22px "Inter Tight",Inter,sans-serif;text-align:center}.ef-t td.dis{background:#e1f3ec;color:#16866a;font:700 22px "Inter Tight",Inter,sans-serif;text-align:center}
+.ef-t tr:nth-child(even) td:not(.chg):not(.dis){background:#eef2f7}
+.ef-note{color:#4f6075;font-size:14px;margin:10px 0 0}.ef-note b{color:#13253a}.ef .sec{color:#13253a;border-color:#9fb0c3;background:#fff;margin-left:6px}
+@media(max-width:900px){.ef-body{grid-template-columns:minmax(0,1fr)}.ef-cap{grid-template-columns:minmax(0,1fr)}.ef-cap i{display:none}}
+.efin{width:6.5em;min-height:36px;padding:4px 8px;text-align:right;font-weight:700;background:#fff;color:#13253a;border:1px solid #9fb0c3}
+.dtag,.ctag{font-size:11px;padding:1px 6px;border-radius:10px;margin-left:4px;white-space:nowrap}.dtag{background:#e3e9f0;color:#4f6075}.ctag{background:#fde7c7;color:#8a4b00}
+.efbtns{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}.efbtns button:not(.sec){background:#16324f;border-color:#16324f;color:#fff}
+.psum{margin:0 0 10px;color:var(--mute)}.psum b{color:var(--ink)}
+.pdet summary{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--line);border-radius:6px;font-weight:600;list-style:none;cursor:pointer}.pdet summary::-webkit-details-marker{display:none}
+.pdet summary::before{content:'▸';margin-right:8px}.pdet[open] summary::before{content:'▾'}.pdet[open] summary{margin-bottom:14px}
+.savebar{position:sticky;bottom:0;background:var(--bg);display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--line)}
+fieldset.wrap{border:0;padding:0;margin:0}fieldset.wrap:disabled input,fieldset.wrap:disabled select,fieldset.wrap:disabled textarea{background:var(--panel2);color:var(--ink);opacity:1}
+.chainwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+.ch-top{background:var(--panel);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.chain-t tr.bat td{background:var(--panel2);font-weight:600}.chain-t td.cup{color:var(--chg);font-weight:600}.chain-t td.cdn{font-weight:600}
+.chain-t td.cup::before{content:'▲ ';font-size:11px}.chain-t td.cdn::before{content:'▼ ';font-size:11px}
+figure.ref{margin:0}figure.ref img{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;display:block;background:#fff}figure.ref figcaption{font-size:13px;color:var(--mute);margin-top:6px}
+.prow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.prow.sel b{text-decoration:underline}
+@media(max-width:900px){.chainwrap{grid-template-columns:minmax(0,1fr)}}
+
+.chk input{min-height:auto;width:20px;height:20px;margin-top:1px}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><select id="plantSel" aria-label="Plant"></select> <span id="plantCap"></span></div>
+  <nav class="tabs scroll" id="tabs" aria-label="Sections">
+    <a href="#live">Live operation</a>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#dgr">Daily DGR</a>
+    <a href="#mis">Monthly MIS</a>
+    <a href="#planner">Planner</a>
+    <a href="#breakdowns">Breakdowns</a>
+    <a href="#upload" data-need="om">Upload data</a>
+    <a href="#plants">BESS parameters</a>
+  </nav>
+  <div class="who" id="roleChip">Loading…</div>
+</header>
+<div id="banner" class="banner" hidden></div>
+<main id="main"><div class="empty">Loading plant data…</div></main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script>
+{
+const EQIMG={"bess": "data:image/jpeg;base64,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", "pcs": "data:image/jpeg;base64,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", "idt": "data:image/jpeg;base64,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", "ht": "data:image/jpeg;base64,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", "line": "data:image/jpeg;base64,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"};
+/* ================= constants ================= */
+const PDEF={name:'',loc:'',mw:320,mwh:640,cTot:128,pTot:1536,nBlocks:4,cod:'',soh:100,eAux:97.5,eDcC:97.93,eDcD:97.27,eDcCab:99.65,ePcs:98.3,eLt:99.658,eMv:98.5,eHv:99.8,eSy:99.2,cyclesPerDay:1,maxCyclesYear:365,dod:100,socTh:5,socMaxOp:95,gRte:85,gAvail:95,auxLim:8,battTh:95,pcsTh:95,bdMin:60,emails:'',tChg:0,tDis:0,dLoss:3,cLoss:3,srcs:''};
+const SRC=['meter','schedule','scada','price'],CORE=['meter','schedule','scada'];
+const SRCN={meter:'Meter',schedule:'Schedule',scada:'SCADA',price:'Prices'};
+const FIELDS={
+  meter:[['imp','Grid Import (MWh)',/grid.*import|^import/],['exp','Grid Export (MWh)',/grid.*export|^export/],['aux','Auxiliary Consumption (MWh)',/aux/]],
+  price:[['disPrice','Discharge Price (₹/MWh)',/(dis|sell|sale|export).*(price|cost|rate|tariff)|(price|cost|rate|tariff).*(dis|sell|export)/],['chgPrice','Charge Price (₹/MWh)',/(charg|buy|purchas|import).*(price|cost|rate|tariff)|(price|cost|rate|tariff).*(charg|buy|import)/]],
+  schedule:[['sdis','Scheduled Discharge (MWh)',/(^| )sch\w*.*dis|dis\w* (^| )?sch/],['sch','Scheduled Charge (MWh)',/(^| )sch(?!.*dis)/]],
+  scada:[['soc','SOC (%)',/\bsoc\b/],['soh','SOH (%)',/\bsoh\b/],
+    ['chgMW','Charge Power (MW)',/^(?!.*(^| )sch)(?!.*dis).*charg.*(power|mw\b)/],['disMW','Discharge Power (MW)',/^(?!.*(^| )sch).*dis.*(power|mw\b)/],
+    ['bin','Battery Input DC (MWh)',/batt.*\binput\b|batt.*\bin\b|^dc.*in/],['bout','Battery Output DC (MWh)',/batt.*out|^dc.*out/],
+    ['cAv','Available Containers',/avail.*cont/],['pAv','Available PCS',/avail.*pcs/],
+    ['battPct','Battery Availability (%)',/batt.*avail/],['pcsPct','PCS Availability (%)',/pcs.*avail/],['bop','BOP Availability (%)',/bop/],
+    ['cStat','Container Status',/cont.*stat/],['pStat','PCS Status',/pcs.*stat/]]};
+const SUMF=['imp','exp','aux','sch','sdis','bin','bout'],MAXF=['chgMW','disMW'],TXTF=['cStat','pStat'];
+const BDF=[['plant','Plant ID',/plant/],['fdate','Fault Date',/fault.*date|^date/],['start','Fault Start Time',/start|fault.*time/],['rdate','Restoration Date',/restor.*date/],['end','Restoration Time',/restor/],
+  ['block','Block',/^block$|^block no|^block id/],['sub','Sub Block',/sub.*block/],['lc','LC',/^lc\b/],['bc','BC',/^bc\b/],['pcs','PCS No',/^pcs/],['container','Container No',/^cont/],
+  ['down','Down Capacity (MW)',/down/],['desc','Fault Description',/desc/],['cause','Root Cause',/root|cause/]];
+const S={plants:{},plant:null,data:null,real:{plants:{},src:{meter:{},schedule:{},scada:{},price:{}},bds:{},uploads:{},plans:{}},sample:false,role:'admin',local:true,
+  date:null,ym:null,staged:null,editBd:null,editPlant:null,uid:null,plan:null,liveDate:null,team:null};
+let db=null,dl=null,U=null,charts=[],subs=[];
+
+/* ================= helpers ================= */
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const f=(v,d=1)=>v==null||v===''||!isFinite(v)?'—':Number(v).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const TODAY=ymd(new Date());
+const hm=m=>pad(Math.floor(m/60))+':'+pad(m%60);
+const blockTime=i=>hm(i*15)+'–'+hm(i*15+15);
+const norm=h=>String(h??'').toLowerCase().replace(/[_\-]+/g,' ').replace(/\s+/g,' ').trim();
+const slug=n=>String(n).toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'PLANT';
+const hash=s=>{let h=5381;for(const c of s)h=(h*33^c.charCodeAt(0))>>>0;return h.toString(36)};
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),3600)};
+const LV={admin:3,om:2,mgmt:1};const can=r=>LV[S.role]>=LV[r];
+const monthName=ym=>{const[y,m]=ym.split('-');return new Date(+y,+m-1,1).toLocaleString('en-IN',{month:'long',year:'numeric'})};
+const fmtDT=s=>s?new Date(s).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false}):'';
+const P=()=>({...PDEF,...(S.plants[S.plant]||{})});
+const key=(plant,date)=>plant+'__'+date;
+const get=(src,date,plant=S.plant)=>S.data.src[src][key(plant,date)];
+const isNum=v=>v!==null&&v!==''&&v!==undefined&&isFinite(v);
+
+/* ================= aggregation of one source-day ================= */
+function buildAgg(cols,day){
+  const agg={};
+  for(const k in cols){
+    const v=cols[k].filter(isNum).map(Number);
+    if(TXTF.includes(k)){const bad=cols[k].filter(x=>x&&!/^(avail|run|ok|normal|on|healthy|online)/i.test(String(x))).length;agg[k+'Bad']=bad;continue}
+    if(!v.length)continue;
+    agg[k]=SUMF.includes(k)?v.reduce((a,b)=>a+b,0):MAXF.includes(k)?Math.max(...v):v.reduce((a,b)=>a+b,0)/v.length;
+  }
+  if(day)for(const k in day)if(isNum(day[k]))agg[k]=+day[k];
+  return agg;
+}
+const filled=cols=>{let n=0;for(let i=0;i<96;i++)if(Object.values(cols).some(a=>a&&isNum(a[i])))n++;return n};
+
+/* ================= sample data ================= */
+function rng(seed){let s=seed>>>0;return()=>(s=(s*1664525+1013904223)>>>0)/4294967296}
+function genDay(plant,date,seed){
+  const r=rng(seed),c={price:{chgPrice:[],disPrice:[]},meter:{imp:[],exp:[],aux:[]},schedule:{sch:[],sdis:[]},scada:{soc:[],soh:[],chgMW:[],disMW:[],bin:[],bout:[],cAv:[],pAv:[],bop:[],cStat:[],pStat:[]}};
+  let soc=7+r()*3;const sc=.96+r()*.06,soh=97.4-seed%50*.01,cAv=r()<.3?127:128,pAv=1536-Math.floor(r()*4);
+  for(let i=0;i<96;i++){
+    const a=.34+r()*.1;let imp=a,exp=0,sch=0,sdis=0;
+    const two=seed%3!==0;
+    if(two&&i>=4&&i<10){imp+=70*sc*(.97+r()*.06);sch=70}
+    if(two&&i>=24&&i<30){exp=60*sc*(.97+r()*.05);sdis=60}
+    if(i>=40&&i<48){imp+=72*sc*(.97+r()*.06);sch=72}
+    if(i>=72&&i<80){exp=61.5*sc*(.97+r()*.05);sdis=62}
+    const bin=(imp-a)*.952,bout=exp/.95;soc=Math.max(0,Math.min(100,soc+(bin-bout)/640*100));
+    c.meter.imp.push(+imp.toFixed(3));c.meter.exp.push(+exp.toFixed(3));c.meter.aux.push(+a.toFixed(3));
+    c.schedule.sch.push(sch);c.schedule.sdis.push(sdis);
+    const h=i/4,base=h<6?3800:h<9?7200:h<16?2600:h<23?9400:5200;c.price.chgPrice.push(Math.round(base*(.9+r()*.2)));c.price.disPrice.push(Math.round(base*(.92+r()*.2)));
+    Object.entries({soc:+soc.toFixed(2),soh:+soh.toFixed(2),chgMW:+((imp-a)*4).toFixed(1),disMW:+(exp*4).toFixed(1),bin:+bin.toFixed(3),bout:+bout.toFixed(3),cAv,pAv,bop:100,cStat:cAv<128?'1 container under fault':'Available',pStat:'Running'}).forEach(([k,v])=>c.scada[k].push(v));
+  }
+  const o={};SRC.forEach(s=>o[s]={plant,date,cols:c[s],agg:buildAgg(c[s]),n:96,sample:true});return o;
+}
+function buildSample(){
+  const id='BESS-PSS-08',plants={[id]:{...PDEF,id,name:'BESS PSS-08',loc:'Gujarat',cod:'2025-03-31',cyclesPerDay:2,maxCyclesYear:730,sample:true}};
+  const src={meter:{},schedule:{},scada:{},price:{}},bds={},now=new Date();
+  const days=[];for(let k=1;k<now.getDate();k++)days.push(ymd(new Date(now.getFullYear(),now.getMonth(),k)));
+  if(!days.length)for(let k=1;k<=28;k++)days.push(ymd(new Date(now.getFullYear(),now.getMonth()-1,k)));
+  days.forEach((d,i)=>{const g=genDay(id,d,(i+1)*7919);SRC.forEach(s=>src[s][key(id,d)]=g[s])});
+  const pick=n=>days[Math.min(n,days.length-1)];
+  const mk=(n,day,h1,dur,o)=>{const s=new Date(day+'T'+h1);bds['s'+n]={id:'s'+n,plant:id,start:s.toISOString(),end:new Date(s.getTime()+dur*36e5).toISOString(),...o,sample:true}};
+  mk(1,pick(3),'10:20',3.5,{block:'Block-2',sub:'SB-2.3',lc:'LC-07',bc:'BC-14',pcs:'PCS-12',container:'',down:2.5,desc:'PCS tripped on DC over-voltage',cause:'PCS fault'});
+  mk(2,pick(8),'06:05',26,{block:'Block-3',sub:'SB-3.1',lc:'LC-11',bc:'BC-22',pcs:'',container:'C-57',down:2.5,desc:'BMS communication loss on container',cause:'BMS / communication'});
+  mk(3,pick(13),'18:40',.75,{block:'Block-1',sub:'SB-1.4',lc:'LC-03',bc:'BC-05',pcs:'PCS-04',container:'',down:2.5,desc:'Auxiliary transformer breaker trip',cause:'Auxiliary system'});
+  return{plants,src,bds,uploads:{},plans:{}};
+}
+let SAMPLE=null;
+function applyData(){
+  const hasReal=Object.keys(S.real.plants).length>0;
+  S.sample=!hasReal;
+  S.data=hasReal?S.real:(SAMPLE||(SAMPLE=buildSample()));
+  S.plants=S.data.plants;
+  if(!S.plants[S.plant]){S.plant=Object.keys(S.plants).sort()[0]||null}
+  const ks=dayKeys();
+  if(!S.date||!ks.includes(S.date))S.date=ks[ks.length-1]||TODAY;
+  if(!S.ym)S.ym=S.date.slice(0,7);
+  const b=$('#banner');
+  if(S.sample){b.hidden=false;b.textContent='Sample data for one 320 MW / 640 MWh plant running up to two cycles a day is shown until a real plant is added. '+(can('admin')?'Start in “BESS parameters”: enter your plant once, then upload data.':'')}
+  else if(demoCount()){b.hidden=false;b.textContent='This plant contains demo data copied from the sample. '+(can('admin')?'Delete it in “BESS parameters” before relying on reports; uploading a real day also replaces that day.':'')}
+  else if(S.local){b.hidden=false;b.textContent=window.claude?'Working offline in this view: changes here are not saved. Open the app from its link to use the shared database.':'Standalone file: your data is saved in this browser on this computer only. Use the Excel exports to share or back it up.'}
+  else b.hidden=true;
+}
+function demoCount(){if(!S.data||S.sample)return 0;let n=0;for(const c of SRC)for(const d of Object.values(S.data.src[c]))if(d.demo&&d.plant===S.plant)n++;return n+plantBds().filter(b=>b.demo).length}
+function dayKeys(plant=S.plant){
+  const set=new Set(),pre=plant+'__';
+  if(!S.data)return[];
+  CORE.forEach(s=>Object.keys(S.data.src[s]).forEach(k=>{if(k.startsWith(pre))set.add(k.slice(pre.length))}));
+  return[...set].sort();
+}
+
+/* ================= KPI engine (BRD formulas) ================= */
+function kpi(date,plant=S.plant){
+  const m=get('meter',date,plant),s=get('schedule',date,plant),c=get('scada',date,plant);
+  if(!m&&!s&&!c)return null;
+  const p={...PDEF,...(S.plants[plant]||{})},A=(d,k)=>d&&isNum(d.agg[k])?d.agg[k]:null;
+  const imp=A(m,'imp'),exp=A(m,'exp'),aux=A(m,'aux')??(m?0:null);
+  const charge=imp!=null?imp-(aux||0):null,dis=exp;
+  const bin=A(c,'bin'),bout=A(c,'bout'),sch=A(s,'sch'),sdis=A(s,'sdis');
+  const socs=c&&c.cols&&c.cols.soc?c.cols.soc.filter(isNum).map(Number):[];
+  const cAv=A(c,'cAv'),pAv=A(c,'pAv');
+  const batt=cAv!=null&&p.cTot?cAv/p.cTot*100:A(c,'battPct');
+  const pcs=pAv!=null&&p.pTot?pAv/p.pTot*100:A(c,'pcsPct');
+  const bop=A(c,'bop');
+  const parts=[batt,pcs,bop].filter(v=>v!=null);
+  const socEnd=socs.length?socs[socs.length-1]:A(c,'soc');
+  return{m,s,c,p,imp,exp,aux,charge,dis,bin,bout,sch,sdis,cAv,pAv,
+    acRte:charge>0&&dis!=null?dis/charge*100:null,dcRte:bin>0&&bout!=null?bout/bin*100:null,
+    auxPct:charge>0?aux/charge*100:null,cycles:dis!=null&&p.mwh?dis/p.mwh:null,
+    loss:imp!=null&&exp!=null?imp-exp-(aux||0):null,
+    socMin:socs.length?Math.min(...socs):null,socMax:socs.length?Math.max(...socs):null,socAvg:socs.length?socs.reduce((a,b)=>a+b,0)/socs.length:A(c,'soc'),socEnd,
+    availDis:socEnd!=null?Math.max(0,socEnd-p.socTh)/100*p.mwh:null,soh:A(c,'soh'),chgMW:A(c,'chgMW'),disMW:A(c,'disMW'),
+    cBad:A(c,'cStatBad'),pBad:A(c,'pStatBad'),
+    batt,pcs,bop,plant:parts.length?parts.reduce((a,b)=>a+b,0)/parts.length:null,
+    schDev:sdis>0&&dis!=null?(dis-sdis)/sdis*100:null,...cycInfo(m,c,p),...leftInfo(m,s,c,p),...revInfo(m,s,get('price',date,plant),p)};
+}
+/* revenue: discharge energy x discharge price - grid import x charge price, block by block */
+function prices(pr,p){
+  const cp=Array(96),dp=Array(96);let any=false;
+  for(let i=0;i<96;i++){const a=pr&&pr.cols&&pr.cols.chgPrice&&pr.cols.chgPrice[i],b=pr&&pr.cols&&pr.cols.disPrice&&pr.cols.disPrice[i];
+    cp[i]=isNum(a)?+a:(isNum(pr?.agg?.chgPrice)?pr.agg.chgPrice:(p.tChg||null));dp[i]=isNum(b)?+b:(isNum(pr?.agg?.disPrice)?pr.agg.disPrice:(p.tDis||null));if(cp[i]||dp[i])any=true}
+  return any?{cp,dp,src:pr?'block prices':'plant tariff'}:null;
+}
+function revInfo(m,s,pr,p){
+  const P2=prices(pr,p);if(!P2||!m)return{rev:null};
+  const{cp,dp}=P2;let rev=0,cost=0;const net=Array(96).fill(null);
+  if(m.cols&&m.cols.imp){for(let i=0;i<96;i++){const im=isNum(m.cols.imp[i])?+m.cols.imp[i]:0,ex=m.cols.exp&&isNum(m.cols.exp[i])?+m.cols.exp[i]:0;
+      const c=im*(cp[i]||0),r=ex*(dp[i]||0);cost+=c;rev+=r;net[i]=r-c}}
+  else{const avg=a=>{const v=a.filter(isNum);return v.length?v.reduce((x,y)=>x+y,0)/v.length:0};cost=(m.agg.imp||0)*avg(cp);rev=(m.agg.exp||0)*avg(dp)}
+  let sRev=null;if(s&&s.cols){sRev=0;for(let i=0;i<96;i++)sRev+=(isNum(s.cols.sdis?.[i])?+s.cols.sdis[i]:0)*(dp[i]||0)-(isNum(s.cols.sch?.[i])?+s.cols.sch[i]:0)*(cp[i]||0)}
+  return{rev,cost,net:rev-cost,netBlk:m.cols&&m.cols.imp?net:null,cp,dp,priceSrc:P2.src,sNet:sRev};
+}
+/* energy left in the BESS after keeping enough for the rest of the day's scheduled discharge */
+function leftInfo(m,s,c,p){
+  const soc=c&&c.cols&&c.cols.soc;if(!soc)return{left:null};
+  const useS=s&&s.cols&&s.cols.sdis,due=useS?s.cols.sdis:(m&&m.cols&&m.cols.exp);if(!due)return{left:null};
+  const inc=useS?(s.cols.sch||[]):(m&&m.cols&&m.cols.imp?m.cols.imp.map((v,i)=>isNum(v)?v-(isNum(m.cols.aux?.[i])?+m.cols.aux[i]:0):0):[]);
+  const r=(p.gRte||85)/100,reserve=p.socTh/100*p.mwh,commit=[],left=[];let out=0,inn=0;const need=Array(96).fill(0);
+  for(let i=95;i>=0;i--){need[i]=Math.max(0,out-inn*r);out+=isNum(due[i])?+due[i]:0;inn+=isNum(inc[i])?Math.max(0,+inc[i]):0}
+  for(let i=0;i<96;i++){if(!isNum(soc[i])){commit.push(null);left.push(null);continue}
+    const e=Math.max(0,soc[i]/100*p.mwh-reserve);commit.push(Math.min(e,need[i]));left.push(e-need[i])}
+  const v=left.filter(isNum);
+  return{left,commit,leftSrc:useS?'schedule':'actual discharge',leftMin:v.length?Math.min(...v):null};
+}
+/* split a day into charge -> discharge cycles from the 96-block meter data */
+function cycInfo(m,c,p){
+  if(!m||!m.cols||!m.cols.imp)return{cyc:null,opCycles:null};
+  const imp=m.cols.imp,aux=m.cols.aux||[],exp=m.cols.exp||[],soc=c&&c.cols&&c.cols.soc,th=Math.max(.05,p.mwh*.002);
+  const out=[];let cur=null,ph=null;
+  for(let i=0;i<96;i++){
+    const ch=isNum(imp[i])?imp[i]-(isNum(aux[i])?+aux[i]:0):0,ds=isNum(exp[i])?+exp[i]:0;
+    const st=ds>th?'d':ch>th?'c':null;if(!st)continue;
+    if(st==='c'){if(!cur||ph==='d'){cur={c0:i,c1:i,d0:null,d1:null,chg:0,dis:0};out.push(cur)}cur.c1=i;cur.chg+=ch;ph='c'}
+    else{if(!cur){cur={c0:null,c1:null,d0:i,d1:i,chg:0,dis:0,carry:1};out.push(cur)}if(cur.d0==null)cur.d0=i;cur.d1=i;cur.dis+=ds;ph='d'}
+  }
+  const sv=i=>soc&&i!=null&&i>=0&&isNum(soc[i])?+soc[i]:null;
+  out.forEach((x,n)=>{x.n=n+1;x.rte=x.chg>0&&x.d0!=null?x.dis/x.chg*100:null;x.eq=p.mwh?x.dis/p.mwh:null;
+    x.cw=x.c0!=null?hm(x.c0*15)+'–'+hm((x.c1+1)*15):'Stored from previous day';x.dw=x.d0!=null?hm(x.d0*15)+'–'+hm((x.d1+1)*15):'Not discharged yet';
+    x.socTop=x.c1!=null?sv(x.c1):sv((x.d0??1)-1);x.socEnd=x.d1!=null?sv(x.d1):null;x.depth=x.socTop!=null&&x.socEnd!=null?x.socTop-x.socEnd:null;x.left=x.socEnd!=null?Math.max(0,x.socEnd-p.socTh)/100*p.mwh:null});
+  return{cyc:out,opCycles:out.filter(x=>x.d0!=null).length};
+}
+const durH=b=>{const s=new Date(b.start),e=b.end?new Date(b.end):new Date();return Math.max(0,(e-s)/36e5)};
+const plantBds=(plant=S.plant)=>Object.values(S.data.bds).filter(b=>b.plant===plant);
+const bdsIn=pref=>plantBds().filter(b=>b.start&&ymd(new Date(b.start)).startsWith(pref)).sort((x,y)=>x.start<y.start?-1:1);
+function monthAgg(ym){
+  const ks=dayKeys().filter(d=>d.startsWith(ym)).map(date=>({date,k:kpi(date)})).filter(x=>x.k);
+  const tot=k=>{const v=ks.map(x=>x.k[k]).filter(isNum);return v.length?v.reduce((a,b)=>a+b,0):null};
+  const avg=k=>{const v=ks.map(x=>x.k[k]).filter(isNum);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};
+  const imp=tot('imp'),exp=tot('exp'),aux=tot('aux'),charge=tot('charge'),bin=tot('bin'),bout=tot('bout');
+  const bds=bdsIn(ym),downH=bds.reduce((s,b)=>s+durH(b),0);
+  const[y,m]=ym.split('-').map(Number),dim=new Date(y,m,0).getDate();
+  const opH=(ym===TODAY.slice(0,7)?new Date().getDate():dim)*24;
+  const p=P();
+  return{ym,days:ks,n:ks.length,imp,exp,aux,charge,dis:exp,loss:imp!=null&&exp!=null?imp-exp-(aux||0):null,bin,bout,
+    acRte:charge>0&&exp!=null?exp/charge*100:null,dcRte:bin>0&&bout!=null?bout/bin*100:null,auxPct:charge>0&&aux!=null?aux/charge*100:null,
+    cycles:exp!=null&&p.mwh?exp/p.mwh:null,batt:avg('batt'),pcs:avg('pcs'),bop:avg('bop'),plant:avg('plant'),soh:avg('soh'),
+    opCycles:tot('opCycles'),rev:tot('rev'),cost:tot('cost'),net:tot('net'),planCycles:p.cyclesPerDay*ks.length,ytd:ytdCycles(ym),
+    bds,downH,opH,mttr:bds.length?downH/bds.length/24:null,mtbf:bds.length?opH/bds.length/24:null};
+}
+function ytdCycles(ym){const y=ym.slice(0,4),p=P();let t=0;dayKeys().filter(d=>d.startsWith(y)&&d.slice(0,7)<=ym).forEach(d=>{const m=get('meter',d);if(m&&isNum(m.agg.exp)&&p.mwh)t+=m.agg.exp/p.mwh});return t}
+function alertsFor(date){
+  const k=kpi(date),p=P(),out=[];if(!k)return out;
+  if(k.batt!=null&&k.batt<p.battTh)out.push({bad:1,t:`Battery availability ${f(k.batt,2)}% is below ${p.battTh}%`});
+  if(k.pcs!=null&&k.pcs<p.pcsTh)out.push({bad:1,t:`PCS availability ${f(k.pcs,2)}% is below ${p.pcsTh}%`});
+  if(k.socMin!=null&&k.socMin<p.socTh)out.push({bad:1,t:`SOC fell to ${f(k.socMin,1)}%, below the ${p.socTh}% minimum operating SOC`});
+  if(k.socMax!=null&&p.socMaxOp&&k.socMax>p.socMaxOp)out.push({bad:1,t:`SOC reached ${f(k.socMax,1)}%, above the ${p.socMaxOp}% maximum operating SOC`});
+  if(k.opCycles!=null&&p.cyclesPerDay&&k.opCycles>p.cyclesPerDay)out.push({bad:1,t:`${k.opCycles} cycles run today; the plant is set up for ${p.cyclesPerDay} per day`});
+  if(k.acRte!=null&&p.gRte&&k.acRte<p.gRte)out.push({bad:1,t:`AC RTE ${f(k.acRte,2)}% is below the guaranteed ${p.gRte}%`});
+  if(k.auxPct!=null&&p.auxLim&&k.auxPct>p.auxLim)out.push({bad:1,t:`Auxiliary consumption ${f(k.auxPct,2)}% is above the ${p.auxLim}% limit`});
+  bdsIn(date).filter(b=>durH(b)*60>p.bdMin).forEach(b=>out.push({bad:1,t:`Breakdown over ${p.bdMin} min: ${b.pcs||b.container||b.block||'equipment'} — ${f(durH(b),1)} h${b.end?'':' (still open)'}`}));
+  if(k.m&&k.s&&k.c)out.push({bad:0,t:`DGR generated for ${date}`});
+  else out.push({bad:1,t:`DGR incomplete: missing ${CORE.filter(x=>!k[x[0]==='m'?'m':x==='schedule'?'s':'c']).map(x=>SRCN[x]).join(', ')} data`});
+  return out;
+}
+
+/* ================= charts ================= */
+let probe=null;
+const css=v=>{if(!probe){probe=document.createElement('i');probe.style.display='none';document.body.appendChild(probe)}probe.style.color='var('+v+')';return getComputedStyle(probe).color};
+function killCharts(){charts.forEach(c=>c.destroy());charts=[]}
+function chart(id,cfg){
+  const el=document.getElementById(id);if(!el||!window.Chart)return;
+  const narrow=el.parentElement.clientWidth<520;
+  Chart.defaults.font.family='Inter, sans-serif';Chart.defaults.color=css('--mute');
+  cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,animation:matchMedia('(prefers-reduced-motion: reduce)').matches?false:{duration:300},
+    interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{boxWidth:12}}},
+    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:narrow?6:12,maxRotation:0}},y:{grid:{color:css('--line')},beginAtZero:true}}},cfg.options||{});
+  charts.push(new Chart(el,cfg));
+}
+
+/* ================= routing ================= */
+const VIEWS={live:vLive,dashboard:vDash,dgr:vDgr,mis:vMis,planner:vPlan,breakdowns:vBd,upload:vUpload,plants:vPlants};
+const NEED={upload:'om'};
+function route(){
+  let v=location.hash.slice(1);if(!VIEWS[v]||(NEED[v]&&!can(NEED[v])))v='dashboard';
+  document.querySelectorAll('#tabs a').forEach(a=>{a.hidden=a.dataset.need&&!can(a.dataset.need);a.getAttribute('href')==='#'+v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
+  const sel=$('#plantSel');sel.innerHTML=Object.values(S.plants).sort((a,b)=>a.name<b.name?-1:1).map(p=>`<option value="${esc(p.id)}"${p.id===S.plant?' selected':''}>${esc(p.name)}</option>`).join('')||'<option>No plant yet</option>';
+  const p=P();$('#plantCap').textContent=S.plant?`${f(p.mw,0)} MW / ${f(p.mwh,0)} MWh`:'';
+  $('#roleChip').textContent={admin:'Admin',om:'O&M / Scheduler',mgmt:'Management (view only)'}[S.role];
+  killCharts();$('#main').innerHTML=S.plant||v==='plants'||v==='upload'?VIEWS[v]():`<div class="empty">No plant has been set up yet. ${can('admin')?'<a href="#plants">Add your first plant</a>.':'Ask the admin to add the plant.'}</div>`;
+  bindView(v);fillNames();
+}
+function fillNames(){
+  const els=[...document.querySelectorAll('[data-uid]')];if(!els.length||!U)return;
+  U.profiles([...new Set(els.map(e=>e.dataset.uid))]).then(ps=>els.forEach(e=>{e.textContent=ps[e.dataset.uid]?.name||'Team member'})).catch(()=>{});
+}
+
+/* ================= shared UI bits ================= */
+function dateBar(extra=''){
+  const ks=dayKeys();
+  return`<div class="bar"><label>Report date<input type="date" id="pickDate" value="${S.date}" min="${ks[0]||''}" max="${ks[ks.length-1]||''}"></label>
+  <button class="sec" id="prevD" aria-label="Previous day">◀</button><button class="sec" id="nextD" aria-label="Next day">▶</button><div class="grow"></div>${extra}</div>`;
+}
+const strip=(k,v,u,d,prev,note)=>{let ch='';if(prev!=null&&v!=null&&isFinite(prev)&&isFinite(v)){const x=v-prev;ch=`${x>=0?'▲':'▼'} ${f(Math.abs(x),d)} vs previous day`}
+  return`<div class="strip"><div class="k">${k}</div><div class="v">${u==='₹'?'<small style="margin:0 4px 0 0">₹</small>'+f(v,d):f(v,d)+'<small>'+u+'</small>'}</div><div class="d">${note||ch||'&nbsp;'}</div></div>`};
+const meter=(k,v,th)=>`<div class="meter"><span>${k}</span><div class="trk"><div class="fil${v!=null&&v<th?' low':''}" style="width:${v==null?0:Math.max(0,Math.min(100,v))}%"></div></div><b>${f(v,2)}%</b></div>`;
+function readiness(date){
+  const k=kpi(date)||{};const at=[k.m,k.s,k.c].filter(Boolean).map(d=>d.at).filter(Boolean).sort().pop();
+  return`<div class="ready">${SRC.map(s=>{const d=get(s,date);return`<span class="chip${d?' ok':''}">${d?'✓':'–'} ${SRCN[s]}${d?` <small>${d.daily?'daily total':d.n+'/96'}</small>`:' <small>missing</small>'}</span>`}).join('')}
+  <span class="chip${bdsIn(date).length?' ok':''}">${bdsIn(date).length} breakdown${bdsIn(date).length===1?'':'s'}</span>${at?`<span class="muted">Last updated ${esc(fmtDT(at))}</span>`:''}</div>`;
+}
+
+/* ================= dashboard ================= */
+function vDash(){
+  const k=kpi(S.date),p=P();
+  if(!k)return dateBar()+readiness(S.date)+`<div class="empty">No data for ${S.date}. ${can('om')?'<a href="#upload">Upload data</a>.':''}</div>`;
+  const ks=dayKeys(),pi=ks.indexOf(S.date),pk=pi>0?kpi(ks[pi-1]):null,PV=x=>pk?pk[x]:null;
+  const g=(v,t,hi)=>v==null||!t?'':((hi?v<=t:v>=t)?`Within ${hi?'limit':'guarantee'} ${t}%`:`<b class="red">Outside ${hi?'limit':'guarantee'} ${t}%</b>`);
+  return dateBar()+`<h1 style="margin-bottom:8px">${esc(p.name)} · ${new Date(S.date+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</h1>
+  ${readiness(S.date)}
+  <section class="hero">
+    <div class="read"><div class="lbl">Plant availability</div><div class="big">${f(k.plant,2)}<span style="font-size:.4em">%</span></div>
+      ${meter('Battery',k.batt,p.battTh)}${meter('PCS',k.pcs,p.pcsTh)}${meter('BOP',k.bop,95)}
+      <div class="muted">Containers ${f(k.cAv,0)}/${p.cTot} · PCS ${f(k.pAv,0)}/${p.pTot}${p.gAvail?` · Guarantee ${p.gAvail}%`:''}</div></div>
+    <div class="strips">
+      ${strip('Energy charged',k.charge,'MWh',1,PV('charge'))}${strip('Energy discharged',k.dis,'MWh',1,PV('dis'))}
+      ${strip('AC RTE',k.acRte,'%',2,null,g(k.acRte,p.gRte))}${strip('DC RTE',k.dcRte,'%',2,PV('dcRte'))}
+      ${strip('Auxiliary consumption',k.auxPct,'%',2,null,g(k.auxPct,p.auxLim,1))}${strip('Cycles run',k.opCycles,'',0,null,`${f(k.cycles,3)} equivalent · plan ${p.cyclesPerDay}/day`)}
+      ${strip('Min / avg SOC',k.socMin,'% / '+f(k.socAvg,1)+'%',1)}<div class="strip left"><div class="k">Energy left after schedule</div><div class="v">${f(k.availDis,1)}<small>MWh</small></div><div class="d">${k.leftMin!=null&&k.leftMin<-0.5?`<b class="red">Short by ${f(-k.leftMin,1)} MWh during the day</b>`:'End of day, above min SOC'}</div></div>
+      ${strip('SOH',k.soh,'%',2,PV('soh'))}${strip('Peak charge / discharge',k.chgMW,'MW / '+f(k.disMW,0)+' MW',0)}
+      ${strip('BESS losses',k.loss,'MWh',1,PV('loss'))}${strip('Schedule deviation',k.schDev,'%',2)}${k.rev!=null?strip('Net revenue',k.net,'₹',0,null,`₹${f(k.rev,0)} sold − ₹${f(k.cost,0)} charging`):''}
+    </div>
+  </section>
+  <div class="alerts">${alertsFor(S.date).map(a=>`<div class="al${a.bad?' bad':''}">${a.bad?'<b>Alert</b> · ':''}${esc(a.t)}</div>`).join('')}</div>
+  ${cycTable(k)}
+  <div class="grid2">
+    <div class="card"><h3>Charge vs discharge</h3><div class="sub">MWh per 15-minute block, actual vs schedule</div><div class="fig"><canvas id="cCD"></canvas></div></div>
+    <div class="card"><h3>SOC curve</h3><div class="sub">State of charge across 96 blocks</div><div class="fig"><canvas id="cSOC"></canvas></div></div>
+    ${k.netBlk?`<div class="card" style="grid-column:1/-1"><h3>Block-wise revenue</h3><div class="sub">Net ₹ per 15-minute block (discharge revenue − charging cost), with charge and discharge prices (₹/MWh, from ${k.priceSrc})</div><div class="fig"><canvas id="cRev"></canvas></div></div>`:''}
+    ${k.left?`<div class="card" style="grid-column:1/-1"><h3>Energy in BESS vs remaining schedule</h3><div class="sub">Stored energy above ${k.p.socTh}% min SOC, split into what the rest of the day's ${k.leftSrc} still needs (after later charging) and what is <b class="lefttxt">left after the schedule</b>; <b class="red">red</b> = not enough stored</div><div class="fig"><canvas id="cLeft"></canvas></div></div>`:''}
+    <div class="card"><h3>Availability trend · ${monthName(S.date.slice(0,7))}</h3><div class="sub">Battery, PCS and plant availability by day</div><div class="fig"><canvas id="cAV"></canvas></div></div>
+    <div class="card"><h3>Energy trend · ${monthName(S.date.slice(0,7))}</h3><div class="sub">Daily charged and discharged energy, MWh</div><div class="fig"><canvas id="cET"></canvas></div></div>
+  </div>`;
+}
+function drawDash(){
+  const k=kpi(S.date);if(!k)return;
+  const col=(d,f)=>d&&d.cols&&d.cols[f]?d.cols[f]:null,lab=Array.from({length:96},(_,i)=>hm(i*15));
+  const imp=col(k.m,'imp'),aux=col(k.m,'aux'),exp=col(k.m,'exp'),sch=col(k.s,'sch'),sdis=col(k.s,'sdis'),soc=col(k.c,'soc');
+  const ds=[];
+  if(imp)ds.push({label:'Charge',data:imp.map((v,i)=>isNum(v)?-(v-(aux&&isNum(aux[i])?aux[i]:0)):null),backgroundColor:css('--chg')});
+  if(exp)ds.push({label:'Discharge',data:exp,backgroundColor:css('--dis')});
+  if(sch||sdis)ds.push({type:'line',label:'Scheduled',data:lab.map((_,i)=>(sdis&&+sdis[i])?+sdis[i]:(sch&&+sch[i])?-sch[i]:0),borderColor:css('--soc'),borderWidth:1.5,pointRadius:0,stepped:true});
+  if(ds.length)chart('cCD',{type:'bar',data:{labels:lab,datasets:ds},options:{scales:{x:{stacked:true,grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}},y:{grid:{color:css('--line')}}}}});
+  if(k.netBlk)chart('cRev',{type:'bar',data:{labels:lab,datasets:[
+    {label:'Net ₹',data:k.netBlk,backgroundColor:k.netBlk.map(v=>v<0?css('--alarm'):css('--ok')),yAxisID:'y'},
+    {type:'line',label:'Charge price ₹/MWh',data:k.cp,borderColor:css('--chg'),pointRadius:0,borderWidth:1.5,yAxisID:'y1'},
+    {type:'line',label:'Discharge price ₹/MWh',data:k.dp,borderColor:css('--dis'),pointRadius:0,borderWidth:1.5,yAxisID:'y1'}]},
+    options:{scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0}},y:{grid:{color:css('--line')},title:{display:true,text:'₹ net'}},y1:{position:'right',grid:{display:false},title:{display:true,text:'₹/MWh'}}}}});
+  if(k.left)chart('cLeft',{type:'bar',data:{labels:lab,datasets:[
+    {label:'Kept for remaining schedule',data:k.commit,backgroundColor:css('--chg'),stack:'e'},
+    {label:'Left after schedule',data:k.left.map(v=>isNum(v)?Math.max(0,v):null),backgroundColor:css('--ok'),stack:'e'},
+    {label:'Short of schedule',data:k.left.map(v=>isNum(v)&&v<0?v:null),backgroundColor:css('--alarm'),stack:'e'}]},
+    options:{scales:{x:{stacked:true,grid:{display:false},ticks:{maxTicksLimit:12,maxRotation:0}},y:{stacked:true,grid:{color:css('--line')},title:{display:true,text:'MWh'}}}}});
+  if(soc)chart('cSOC',{type:'line',data:{labels:lab,datasets:[{label:'SOC %',data:soc,borderColor:css('--soc'),pointRadius:0,borderWidth:2,tension:.25,spanGaps:true}]},
+    options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8,maxRotation:0}},y:{min:0,max:100,grid:{color:css('--line')}}}}});
+  const m=monthAgg(S.date.slice(0,7)),dl2=m.days.map(x=>x.date.slice(8));
+  chart('cAV',{type:'line',data:{labels:dl2,datasets:[
+    {label:'Plant',data:m.days.map(x=>x.k.plant),borderColor:css('--dis'),pointRadius:2,borderWidth:2},
+    {label:'Battery',data:m.days.map(x=>x.k.batt),borderColor:css('--chg'),pointRadius:0,borderWidth:1.5},
+    {label:'PCS',data:m.days.map(x=>x.k.pcs),borderColor:css('--soc'),pointRadius:0,borderWidth:1.5}]},
+    options:{scales:{x:{grid:{display:false}},y:{beginAtZero:false,suggestedMin:95,suggestedMax:100,grid:{color:css('--line')}}}}});
+  chart('cET',{type:'bar',data:{labels:dl2,datasets:[{label:'Charged',data:m.days.map(x=>x.k.charge),backgroundColor:css('--chg')},{label:'Discharged',data:m.days.map(x=>x.k.dis),backgroundColor:css('--dis')}]}});
+}
+
+/* ================= cycle table ================= */
+function cycNet(k,x){if(!k.netBlk)return null;let t=0;for(const[a,b]of[[x.c0,x.c1],[x.d0,x.d1]])if(a!=null)for(let i=a;i<=b;i++)t+=k.netBlk[i]||0;return t}
+function cycTable(k){
+  if(!k.cyc)return'';if(!k.cyc.length)return'<div class="card"><h3>Cycles</h3><p class="muted">No charging or discharging recorded on this day.</p></div>';
+  return`<div class="card"><h3>Cycle-wise performance · ${k.opCycles} cycle${k.opCycles===1?'':'s'}</h3><div class="sub">Each charge → discharge pair found in the 96-block meter data</div>
+  <div class="scroll"><table class="stack"><thead><tr><th>Cycle</th><th>Charging</th><th>Discharging</th><th class="n">Charge MWh</th><th class="n">Discharge MWh</th><th class="n">RTE %</th><th class="n">Equiv. cycles</th><th class="n">SOC top → end</th><th class="n">Depth %</th><th class="n">Energy left after cycle MWh</th>${k.netBlk?'<th class="n">Net revenue ₹</th>':''}</tr></thead><tbody>
+  ${k.cyc.map(x=>`<tr><td>Cycle ${x.n}</td><td style="white-space:nowrap">${x.cw}</td><td style="white-space:nowrap">${x.dw}</td><td class="n">${f(x.chg,1)}</td><td class="n">${f(x.dis,1)}</td><td class="n">${f(x.rte,2)}</td><td class="n">${f(x.eq,3)}</td><td class="n">${f(x.socTop,1)} → ${f(x.socEnd,1)}</td><td class="n">${f(x.depth,1)}</td><td class="n left">${f(x.left,1)}</td>${k.netBlk?`<td class="n">${f(cycNet(k,x),0)}</td>`:''}</tr>`).join('')}</tbody></table></div></div>`;
+}
+const cycRows=k=>[['Cycle','Charging','Discharging','Charge MWh','Discharge MWh','RTE %','Equivalent cycles','SOC top %','SOC end %','Depth %','Energy left after cycle MWh','Net revenue (Rs)'],...(k.cyc||[]).map(x=>['Cycle '+x.n,x.cw,x.dw,r2(x.chg),r2(x.dis),r2(x.rte),r2(x.eq,3),r2(x.socTop,1),r2(x.socEnd,1),r2(x.depth,1),r2(x.left,1),r2(cycNet(k,x),0)])];
+/* ================= DGR ================= */
+function kpiRows(k){
+  const p=k.p;
+  return[
+    ['Total grid import',k.imp,'MWh',2,'Σ meter import over 96 blocks'],['Total grid export',k.exp,'MWh',2,'Σ meter export over 96 blocks'],
+    ['Auxiliary consumption',k.aux,'MWh',2,'Σ auxiliary meter'],['Charge energy',k.charge,'MWh',2,'Total grid import − auxiliary consumption'],
+    ['Discharge energy',k.dis,'MWh',2,'Total grid export'],['AC RTE',k.acRte,'%',2,`Discharge energy ÷ charge energy (guarantee ${p.gRte}%)`],
+    ['DC RTE',k.dcRte,'%',2,'Battery output energy ÷ battery input energy'],['Auxiliary consumption %',k.auxPct,'%',2,`Aux energy ÷ charge energy × 100 (limit ${p.auxLim}%)`],
+    ['Number of cycles (equivalent)',k.cycles,'',3,`Discharge energy ÷ rated capacity (${p.mwh} MWh)`],['Operating cycles run',k.opCycles,'',0,`Charge → discharge pairs in the day (plan ${p.cyclesPerDay}/day)`],['BESS losses',k.loss,'MWh',2,'Grid import − grid export − auxiliary'],
+    ['Battery availability',k.batt,'%',2,`Available containers ÷ total containers (${p.cTot})`],['PCS availability',k.pcs,'%',2,`Available PCS ÷ total PCS (${p.pTot})`],
+    ['BOP availability',k.bop,'%',2,'From SCADA'],['Plant availability',k.plant,'%',2,`Average of battery, PCS and BOP availability (guarantee ${p.gAvail}%)`],
+    ['Minimum SOC',k.socMin,'%',1,'Lowest block SOC'],['Maximum SOC',k.socMax,'%',1,'Highest block SOC'],['Average SOC',k.socAvg,'%',1,'Mean of block SOC'],
+    ['Energy left after schedule (end of day)',k.availDis,'MWh',1,`(End-of-day SOC − ${p.socTh}% min operating SOC) × rated capacity`],['Lowest energy margin vs remaining schedule',k.leftMin,'MWh',1,`Min over blocks of (stored above min SOC + later scheduled charge × ${k.p.gRte}% RTE − later scheduled discharge); negative = shortfall`],['Average SOH',k.soh,'%',2,'Mean of block SOH'],
+    ['Peak charge power',k.chgMW,'MW',1,'Highest block charge power'],['Peak discharge power',k.disMW,'MW',1,'Highest block discharge power'],
+    ['Scheduled charge',k.sch,'MWh',2,'Σ charge schedule'],['Scheduled discharge',k.sdis,'MWh',2,'Σ discharge schedule'],['Schedule deviation',k.schDev,'%',2,'(Actual − scheduled discharge) ÷ scheduled'],
+    ['Charging cost',k.cost,'₹',0,`Σ grid import × charge price per block (${k.priceSrc||'no prices'})`],['Discharge revenue',k.rev,'₹',0,'Σ grid export × discharge price per block'],['Net revenue',k.net,'₹',0,'Discharge revenue − charging cost'],['Net revenue as scheduled',k.sNet,'₹',0,'Same prices applied to the schedule'],
+    ['Blocks with container status not normal',k.cBad,'',0,'From SCADA container status'],['Blocks with PCS status not normal',k.pBad,'',0,'From SCADA PCS status']];
+}
+const bdTable=list=>list.length?`<div class="scroll"><table class="stack"><thead><tr><th>Fault start</th><th>Block</th><th>Sub block</th><th>LC / BC</th><th>PCS / Container</th><th class="n">Down MW</th><th>Description</th><th>Root cause</th><th>Restored</th><th class="n">Duration h</th></tr></thead><tbody>${list.map(b=>`<tr><td>${esc(fmtDT(b.start))}</td><td>${esc(b.block)}</td><td>${esc(b.sub)}</td><td>${esc([b.lc,b.bc].filter(Boolean).join(' / '))}</td><td>${esc([b.pcs,b.container].filter(Boolean).join(' / '))}</td><td class="n">${f(b.down,2)}</td><td>${esc(b.desc)}</td><td>${esc(b.cause)}</td><td>${b.end?esc(fmtDT(b.end)):'<span class="pill open">Open</span>'}</td><td class="n">${f(durH(b),2)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No breakdowns recorded.</p>';
+const BLK=[['price','chgPrice','Charge ₹/MWh',0],['price','disPrice','Discharge ₹/MWh',0],['meter','imp','Import MWh',3],['meter','exp','Export MWh',3],['meter','aux','Aux MWh',3],['schedule','sch','Sch charge',2],['schedule','sdis','Sch discharge',2],['scada','soc','SOC %',1],['scada','soh','SOH %',2],['scada','chgMW','Charge MW',1],['scada','disMW','Discharge MW',1],['scada','bin','Batt in MWh',3],['scada','bout','Batt out MWh',3],['scada','cAv','Avail cont.',0],['scada','pAv','Avail PCS',0],['scada','cStat','Container status',-1],['scada','pStat','PCS status',-1]];
+function blockRows(k){
+  const pr=get('price',S.date);const d=s=>s==='meter'?k.m:s==='schedule'?k.s:s==='price'?pr:k.c;
+  const cols=BLK.filter(([s,f])=>d(s)?.cols?.[f]);
+  if(k.left)cols.push(['calc','left','Left after schedule MWh',1]);if(k.netBlk)cols.push(['calc','net','Net revenue ₹',0]);
+  return{cols,rows:Array.from({length:96},(_,i)=>[i+1,blockTime(i),...cols.map(([s,f])=>s==='calc'?(f==='net'?(isNum(k.netBlk[i])?Math.round(k.netBlk[i]):null):isNum(k.left[i])?+k.left[i].toFixed(2):null):d(s).cols[f][i])])};
+}
+function vDgr(){
+  const k=kpi(S.date);
+  const btns=can('om')&&k?`<button id="dgrX">DGR Excel</button><button class="sec" id="dgrP">DGR PDF</button>`:'';
+  if(!k)return dateBar()+readiness(S.date)+`<div class="empty">No data for ${S.date}.</div>`;
+  const br=blockRows(k);
+  return dateBar(btns)+`<h1 style="margin-bottom:8px">Daily Generation Report · ${S.date}</h1>${readiness(S.date)}
+  <div class="card"><h3>Daily KPIs</h3><div class="scroll"><table class="stack"><thead><tr><th>Parameter</th><th class="n">Value</th><th>Unit</th><th>Formula</th></tr></thead><tbody>
+  ${kpiRows(k).map(r=>`<tr><td>${r[0]}</td><td class="n">${f(r[1],r[3])}</td><td>${r[2]}</td><td class="muted">${r[4]}</td></tr>`).join('')}</tbody></table></div></div>
+  ${cycTable(k)}
+  <div class="card"><h3>Alerts</h3><div class="alerts" style="margin:0">${alertsFor(S.date).map(a=>`<div class="al${a.bad?' bad':''}">${esc(a.t)}</div>`).join('')}</div></div>
+  <div class="card"><h3>Breakdowns on this day</h3>${bdTable(bdsIn(S.date))}</div>
+  <div class="card"><details><summary>96-block data</summary><div class="scroll"><table><thead><tr><th>Block</th><th>Time</th>${br.cols.map(c=>`<th class="${c[3]<0?'':'n'}">${c[2]}</th>`).join('')}</tr></thead><tbody>
+  ${br.rows.map(r=>`<tr>${r.map((v,j)=>j<2?`<td style="white-space:nowrap">${v}</td>`:br.cols[j-2][3]<0?`<td>${esc(v)}</td>`:`<td class="n${br.cols[j-2][0]==='calc'&&br.cols[j-2][1]==='left'?(v<0?' short':' left'):''}">${f(v,br.cols[j-2][3])}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details></div>`;
+}
+
+/* ================= MIS ================= */
+function vMis(){
+  const m=monthAgg(S.ym),p=P();
+  const btns=can('om')?`<button id="misX">MIS Excel</button><button class="sec" id="misP">MIS PDF</button><button class="sec" id="mgmtP">Management summary</button>`:'';
+  const blocks={};m.bds.forEach(b=>{blocks[b.block||'—']=(blocks[b.block||'—']||0)+1});
+  return`<div class="bar"><label>Month<input type="month" id="pickMonth" value="${S.ym}"></label><div class="grow"></div>${btns}</div>
+  <h1 style="margin-bottom:16px">Monthly MIS · ${esc(p.name)} · ${monthName(S.ym)}</h1>
+  ${m.n?`<section class="strips" style="margin-bottom:16px">
+   ${strip('Month import',m.imp,'MWh',1)}${strip('Month export',m.exp,'MWh',1)}${strip('Month loss',m.loss,'MWh',1)}${strip('Month auxiliary',m.aux,'MWh',1)}
+   ${strip('AC RTE',m.acRte,'%',2,null,p.gRte?`Guarantee ${p.gRte}%`:'')}${strip('DC RTE',m.dcRte,'%',2)}${strip('Cycles run',m.opCycles,'',0,null,`Plan ${f(m.planCycles,0)} · ${f(m.cycles,2)} equivalent`)}${strip('Plant availability',m.plant,'%',2,null,p.gAvail?`Guarantee ${p.gAvail}%`:'')}
+   ${strip('Average SOH',m.soh,'%',2)}${strip('MTTR',m.mttr,'days',2)}${strip('MTBF',m.mtbf,'days',2)}${strip('Equivalent cycles this year',m.ytd,'',1,null,`Annual limit ${f(p.maxCyclesYear,0)}`)}${m.net!=null?strip('Net revenue',m.net,'₹',0,null,`₹${f(m.rev,0)} sold − ₹${f(m.cost,0)} charging`):''}${strip('Days reported',m.n,'',0)}</section>
+  <div class="grid2">
+   <div class="card"><h3>Energy trend</h3><div class="sub">Import and export by day, MWh</div><div class="fig"><canvas id="mET"></canvas></div></div>
+   <div class="card"><h3>Loss trend</h3><div class="sub">BESS losses (MWh) and AC RTE (%) by day</div><div class="fig"><canvas id="mLT"></canvas></div></div>
+  </div>`:`<div class="empty">No daily data for ${monthName(S.ym)}.</div>`}
+  <div class="grid2">
+   <div class="card"><h3>MTTR & MTBF</h3><table><tbody>
+    <tr><td>Breakdown events</td><td class="n">${m.bds.length}</td></tr><tr><td>Total breakdown duration</td><td class="n">${f(m.downH,2)} h</td></tr>
+    <tr><td>Operating hours in period</td><td class="n">${f(m.opH,0)} h</td></tr>
+    <tr><td><b>MTTR</b> = total breakdown duration ÷ events</td><td class="n"><b>${f(m.mttr,3)} days</b></td></tr>
+    <tr><td><b>MTBF</b> = operating hours ÷ failure count</td><td class="n"><b>${f(m.mtbf,2)} days</b></td></tr></tbody></table></div>
+   <div class="card"><h3>Fault trend</h3><div class="sub">Breakdown hours by root cause</div><div class="fig" style="min-height:220px"><canvas id="mFT"></canvas></div>
+    <p class="muted">Events by block: ${Object.entries(blocks).map(([b,n])=>esc(b)+' '+n).join(' · ')||'none'}</p></div>
+  </div>
+  ${m.n?`<div class="card"><h3>Daily summary</h3><div class="scroll"><table><thead><tr><th>Date</th><th class="n">Charge MWh</th><th class="n">Discharge MWh</th><th class="n">Aux MWh</th><th class="n">Loss MWh</th><th class="n">AC RTE %</th><th class="n">DC RTE %</th><th class="n">Cycles run</th><th class="n">Equiv. cycles</th><th class="n">Battery %</th><th class="n">PCS %</th><th class="n">Plant %</th><th class="n">Net ₹</th></tr></thead><tbody>
+   ${m.days.map(({date,k})=>`<tr><td><a href="#dgr" data-day="${date}">${date}</a></td><td class="n">${f(k.charge,1)}</td><td class="n">${f(k.dis,1)}</td><td class="n">${f(k.aux,2)}</td><td class="n">${f(k.loss,1)}</td><td class="n">${f(k.acRte,2)}</td><td class="n">${f(k.dcRte,2)}</td><td class="n">${f(k.opCycles,0)}</td><td class="n">${f(k.cycles,3)}</td><td class="n">${f(k.batt,2)}</td><td class="n">${f(k.pcs,2)}</td><td class="n">${f(k.plant,2)}</td><td class="n">${f(k.net,0)}</td></tr>`).join('')}
+   </tbody></table></div></div>`:''}
+  <div class="card"><h3>Breakdown analysis</h3>${bdTable(m.bds)}</div>`;
+}
+function drawMis(){
+  const m=monthAgg(S.ym),lab=m.days.map(x=>x.date.slice(8));
+  if(m.n){
+    chart('mET',{type:'bar',data:{labels:lab,datasets:[{label:'Import',data:m.days.map(x=>x.k.imp),backgroundColor:css('--chg')},{label:'Export',data:m.days.map(x=>x.k.exp),backgroundColor:css('--dis')}]}});
+    chart('mLT',{type:'bar',data:{labels:lab,datasets:[{label:'Losses MWh',data:m.days.map(x=>x.k.loss),backgroundColor:css('--chg'),yAxisID:'y'},{type:'line',label:'AC RTE %',data:m.days.map(x=>x.k.acRte),borderColor:css('--soc'),pointRadius:2,yAxisID:'y1'}]},
+      options:{scales:{x:{grid:{display:false}},y:{grid:{color:css('--line')}},y1:{position:'right',grid:{display:false},min:70,max:100}}}});
+  }
+  const c={};m.bds.forEach(b=>{c[b.cause||'Unspecified']=(c[b.cause||'Unspecified']||0)+durH(b)});
+  chart('mFT',{type:'bar',data:{labels:Object.keys(c),datasets:[{label:'Hours',data:Object.values(c),backgroundColor:css('--soc')}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:css('--line')}},y:{grid:{display:false}}}}});
+}
+
+/* ================= planner: charge / discharge requirement ================= */
+function splitSched(ch,ds){
+  const out=[];let cur=null,ph=null;
+  for(let i=0;i<96;i++){const c=isNum(ch&&ch[i])?+ch[i]:0,d=isNum(ds&&ds[i])?+ds[i]:0;const st=d>0?'d':c>0?'c':null;if(!st)continue;
+    if(st==='c'){if(!cur||ph==='d'){cur={c0:i,c1:i,d0:null,d1:null,chg:0,dis:0,db:0};out.push(cur)}cur.c1=i;cur.chg+=c;ph='c'}
+    else{if(!cur){cur={c0:null,c1:null,d0:i,d1:i,chg:0,dis:0,db:0};out.push(cur)}if(cur.d0==null)cur.d0=i;cur.d1=i;cur.dis+=d;cur.db++;ph='d'}}
+  return out.filter(x=>x.dis>0);
+}
+function planDefaults(date){
+  const p=P(),ks=dayKeys().filter(d=>d<date),last=ks.slice(-30).map(d=>kpi(d)).filter(Boolean);
+  const avg=f=>{const v=last.map(k=>k[f]).filter(isNum);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null};
+  const prev=ks.length?kpi(ks[ks.length-1]):null,sd=get('schedule',date);
+  const sc=sd&&sd.cols?splitSched(sd.cols.sch,sd.cols.sdis):[];
+  const ps=new Date(date+'T00:00'),pe=new Date(ps.getTime()+864e5);
+  const bds=plantBds().filter(b=>new Date(b.start)<pe&&(!b.end||new Date(b.end)>ps));
+  const rte=avg('acRte');
+  return{date,fromSched:sc.length>0,
+    cycles:sc.length?sc.map(x=>({req:+x.dis.toFixed(2),hrs:x.db/4,win:hm(x.d0*15)+'–'+hm((x.d1+1)*15),c0:x.c0,c1:x.c1,d0:x.d0,d1:x.d1})):Array.from({length:p.cyclesPerDay},()=>({req:+(p.mwh*(p.socMaxOp-p.socTh)/100).toFixed(1),hrs:+(p.mwh/p.mw).toFixed(2),win:''})),
+    rte:+(rte??p.gRte).toFixed(2),rteSrc:rte!=null?`average of last ${last.length} day${last.length===1?'':'s'}`:'guaranteed value',
+    aux:+(avg('aux')??0).toFixed(2),soc0:+((prev&&prev.socEnd)??p.socTh).toFixed(1),
+    sel:Object.fromEntries(bds.map(b=>[b.id,true])),bdList:bds.map(b=>b.id),xCont:0,xPcs:0,xMW:0};
+}
+function planCalc(x){
+  const p=P(),bl=x.bdList.map(id=>S.data.bds[id]).filter(Boolean).filter(b=>x.sel[b.id]);
+  const cOut=Math.min(p.cTot,bl.filter(b=>b.container).length+(+x.xCont||0)),pOut=Math.min(p.pTot,bl.filter(b=>b.pcs).length+(+x.xPcs||0));
+  const downMW=bl.reduce((a,b)=>a+(+b.down||0),0)+(+x.xMW||0);
+  const cap=p.mwh*((+p.soh||100)/100)*(p.cTot-cOut)/p.cTot,pw=Math.max(0,p.mw-Math.max(downMW,pOut*p.mw/p.pTot));
+  const usable=cap*Math.max(0,Math.min(p.dod||100,p.socMaxOp-p.socTh))/100,rte=(+x.rte||0)/100;
+  let stored=Math.min(usable,Math.max(0,(+x.soc0-p.socTh)/100*cap));
+  const rows=x.cycles.map((c,i)=>{const req=+c.req||0,hrs=+c.hrs||0,lim=Math.min(usable,pw*hrs),can=Math.min(req,lim);
+    const need=rte>0?Math.max(0,can/rte-(i===0?stored/Math.sqrt(rte):0)):null;
+    return{n:i+1,req,hrs,win:c.win,lim,can,short:req-can,left:Math.max(0,usable-can),need,why:can<req?(pw*hrs<usable?'power limit':'energy limit'):''}});
+  const pz=prices(get('price',x.date),p),avgP=(a,i0,i1)=>{if(!pz)return null;const v=[];for(let i=i0??0;i<=(i1??95);i++)if(isNum(a[i]))v.push(+a[i]);return v.length?v.reduce((q,w)=>q+w,0)/v.length:null};
+  rows.forEach((r,i)=>{const c=x.cycles[i];r.dp=pz?avgP(pz.dp,c.d0,c.d1):null;r.cpr=pz?avgP(pz.cp,c.c0,c.c1):null;r.net=r.dp!=null&&r.cpr!=null&&r.need!=null?r.can*r.dp-r.need*r.cpr:null});
+  const auxCost=pz?(+x.aux||0)*(avgP(pz.cp)||0):0;
+  const t=k=>rows.reduce((a,r)=>a+(r[k]||0),0);
+  const net=pz&&rows.every(r=>r.net!=null)?t('net')-auxCost:null;
+  return{net,priceSrc:pz?pz.src:null,p,bl,cOut,pOut,downMW,cap,pw,usable,stored,rows,dis:t('can'),req:t('req'),short:t('short'),left:t('left'),chg:t('need'),imp:t('need')+(+x.aux||0)};
+}
+function vPlan(){
+  const p=P();
+  const ks=dayKeys(),nxt=ks.length?ymd(new Date(new Date(ks[ks.length-1]+'T00:00').getTime()+864e5)):TODAY;
+  if(!S.plan||S.plan.plant!==S.plant){S.plan={plant:S.plant,...(S.data.plans?.[key(S.plant,nxt)]?.inputs||planDefaults(nxt))}}
+  const x=S.plan,saved=S.data.plans?.[key(S.plant,x.date)];
+  const bl=x.bdList.map(id=>S.data.bds[id]).filter(Boolean);
+  const inp=(n,v,l,st='any')=>`<label>${l}<input type="number" step="${st}" data-pi="${n}" value="${esc(v)}"></label>`;
+  return`<div class="bar"><label>Plan date<input type="date" id="planDate" value="${x.date}"></label><button class="sec" id="planReset">Reset to data</button><div class="grow"></div>${can('om')?'<button id="planSave">Save plan</button>':''}</div>
+  <h1 style="margin-bottom:6px">Charge / discharge planner · ${esc(p.name)}</h1>
+  <p class="muted" style="margin:0 0 16px">${x.fromSched?`Cycles taken from the uploaded schedule for ${x.date}.`:`No schedule uploaded for ${x.date} — using ${p.cyclesPerDay} full cycle${p.cyclesPerDay>1?'s':''} from the plant parameters.`} Change any number below; results update as you type.${saved?` Saved plan loaded (saved ${esc(fmtDT(saved.at))}).`:''}</p>
+  <section class="hero" style="grid-template-columns:minmax(0,3fr) minmax(0,2fr)">
+   <div><div class="card"><h3>Cycles required</h3><div class="scroll"><table><thead><tr><th>Cycle</th><th>Window</th><th class="n">Discharge required MWh</th><th class="n">Discharge hours</th><th></th></tr></thead><tbody>
+    ${x.cycles.map((c,i)=>`<tr><td>Cycle ${i+1}</td><td>${esc(c.win||'—')}</td><td class="n"><input type="number" step="any" data-ci="${i}" data-cf="req" value="${c.req}" style="width:8em;text-align:right"></td><td class="n"><input type="number" step="any" data-ci="${i}" data-cf="hrs" value="${c.hrs}" style="width:6em;text-align:right"></td><td>${x.cycles.length>1?`<button class="sec" data-crm="${i}" aria-label="Remove cycle">✕</button>`:''}</td></tr>`).join('')}
+    </tbody></table></div>${x.cycles.length<4?'<button class="sec" id="addCyc" style="margin-top:10px">Add cycle</button>':''}</div>
+   <div class="card"><h3>Your inputs</h3><div class="form">${inp('rte',x.rte,'Expected AC RTE %')}${inp('aux',x.aux,'Auxiliary consumption for the day (MWh)')}${inp('soc0',x.soc0,'Starting SOC %')}
+     ${inp('xCont',x.xCont,'Extra containers unavailable','1')}${inp('xPcs',x.xPcs,'Extra PCS unavailable','1')}${inp('xMW',x.xMW,'Other power derating (MW)')}</div>
+     <p class="muted" style="margin:0">RTE default: ${esc(x.rteSrc||'')}. Starting SOC default: end of the last reported day.</p></div>
+   <div class="card"><h3>Breakdowns considered</h3>${bl.length?bl.map(b=>`<label class="chk"><input type="checkbox" data-bsel="${esc(b.id)}"${x.sel[b.id]?' checked':''}> ${esc([b.pcs,b.container,b.block].filter(Boolean).join(' · ')||'Equipment')} — ${esc(b.desc||b.cause||'')} · ${f(b.down,1)} MW · ${b.end?'restores '+esc(fmtDT(b.end)):'<b class="red">open</b>'}</label>`).join(''):`<p class="muted">No breakdown open on ${x.date}.</p>`}
+     <p class="muted" style="margin-bottom:0">Each ticked event removes its down capacity (MW); one naming a container removes that container's energy, one naming a PCS removes that PCS.</p></div></div>
+   <div id="planOut"></div>
+  </section>`;
+}
+function planOut(){
+  const r=planCalc(S.plan),el=$('#planOut');if(!el)return;
+  const bar=c=>{const tot=Math.max(c.req,r.usable)||1;return`<div class="pbar"><div style="width:${c.can/tot*100}%" class="pb-can"></div><div style="width:${c.left/tot*100}%" class="pb-left"></div><div style="width:${Math.max(0,c.short)/tot*100}%" class="pb-short"></div></div>`};
+  el.innerHTML=`<div class="read" style="gap:10px"><div class="lbl">Total charge energy required</div><div class="big" style="font-size:clamp(44px,6vw,72px)">${f(r.chg,1)}<span style="font-size:.35em"> MWh</span></div>
+   <div class="muted">Grid import incl. auxiliary: <b>${f(r.imp,1)} MWh</b></div>
+   <div class="strips" style="grid-template-columns:repeat(2,minmax(0,1fr))">${strip('Total discharge possible',r.dis,'MWh',1,null,`of ${f(r.req,1)} MWh required`)}
+   ${r.short>0.05?`<div class="strip" style="border-top-color:var(--alarm)"><div class="k">Shortfall vs schedule</div><div class="v red">${f(r.short,1)}<small>MWh</small></div><div class="d">Cannot be delivered</div></div>`:strip('Shortfall vs schedule',0,'MWh',1,null,'Schedule can be met')}
+   <div class="strip left"><div class="k">Energy left after schedule</div><div class="v">${f(r.left,1)}<small>MWh</small></div><div class="d">Usable but not scheduled</div></div>
+   ${r.net!=null?strip('Estimated net revenue',r.net,'₹',0,null,`Prices: ${r.priceSrc}`):strip('Estimated net revenue',null,'',0,null,'Upload block prices or set a tariff')}
+   ${strip('Available power',r.pw,'MW',1,null,`of ${f(r.p.mw,0)} MW`)}${strip('Available capacity',r.cap,'MWh',1,null,`${r.p.cTot-r.cOut}/${r.p.cTot} containers`)}${strip('Usable per cycle',r.usable,'MWh',1,null,`SOC ${r.p.socTh}–${r.p.socMaxOp}%`)}</div>
+   <table><thead><tr><th>Cycle</th><th class="n">Possible</th><th class="n">Charge needed</th><th class="n">Net ₹</th><th></th></tr></thead><tbody>${r.rows.map(c=>`<tr><td style="white-space:nowrap">Cycle ${c.n}${c.why?` <span class="red">(${c.why})</span>`:''}</td><td class="n">${f(c.can,1)}</td><td class="n">${f(c.need,1)}</td><td class="n">${f(c.net,0)}</td><td style="width:35%">${bar(c)}</td></tr>`).join('')}</tbody></table>
+   <div class="legend"><span><i class="sw pb-can"></i>Discharged</span><span><i class="sw pb-left"></i>Left after schedule</span><span><i class="sw pb-short"></i>Shortfall</span></div>
+   <p class="muted" style="margin:0">Revenue = possible discharge × average discharge price in its window − charge needed × average charge price in its window − auxiliary × average charge price. Charge needed = possible discharge ÷ RTE. Cycle 1 subtracts energy already stored above ${r.p.socTh}% SOC (${f(r.stored,1)} MWh). Breakdowns: ${r.downMW>0?'−'+f(r.downMW,1):'0'} MW, ${r.cOut} container${r.cOut===1?'':'s'} and ${r.pOut} PCS out.</p></div>`;
+}
+function bindPlan(){
+  planOut();const x=S.plan;
+  $('#planDate').onchange=e=>{if(!e.target.value)return;const sv=S.data.plans?.[key(S.plant,e.target.value)];S.plan={plant:S.plant,...(sv?.inputs||planDefaults(e.target.value))};route()};
+  $('#planReset').onclick=()=>{S.plan={plant:S.plant,...planDefaults(x.date)};route()};
+  const ac=$('#addCyc');if(ac)ac.onclick=()=>{const c=x.cycles[x.cycles.length-1];x.cycles.push({...c,win:''});route()};
+  $('#main').oninput=e=>{const t=e.target;
+    if(t.dataset.pi!=null)x[t.dataset.pi]=t.value;
+    if(t.dataset.ci!=null)x.cycles[+t.dataset.ci][t.dataset.cf]=t.value;
+    if(t.dataset.bsel!=null)x.sel[t.dataset.bsel]=t.checked;
+    planOut()};
+  $('#main').addEventListener('change',e=>{if(e.target.dataset.bsel!=null){x.sel[e.target.dataset.bsel]=e.target.checked;planOut()}});
+  const ps=$('#planSave');if(ps)ps.onclick=async()=>{const r=planCalc(x);const{plant,...inputs}=x;
+    if(await save('plans',key(S.plant,x.date),{plant:S.plant,date:x.date,inputs,result:{net:r.net,chg:r.chg,imp:r.imp,dis:r.dis,short:r.short,left:r.left,pw:r.pw,cap:r.cap},at:new Date().toISOString(),by:S.uid},true))toast('Plan saved for '+x.date)};
+}
+
+/* ================= live real-time operation sheet (site <-> HO) ================= */
+const IST=()=>new Date(Date.now()+(330+new Date().getTimezoneOffset())*6e4);
+const istDate=()=>ymd(IST());
+const curBlock=()=>{const t=IST();return Math.floor((t.getHours()*60+t.getMinutes())/15)};
+const L={subs:[],subKey:null,ops:null,site:null,log:[],opsEx:false,siteEx:false,pending:false,q:Promise.resolve(),lastBlk:-1,lastPend:0,syncT:null};
+const MEM={ops:{},site:{},log:{}};
+const useMem=()=>!db||S.sample;
+const liveKey=()=>key(S.plant,S.liveDate);
+const enqueue=fn=>(L.q=L.q.then(fn).catch(e=>{toast(e&&e.code==='invalid_argument'?'You do not have permission to change this':'Could not save — check connection and try again')}));
+function deepMerge(a,b){const o=Array.isArray(a)?[...a]:{...(a||{})};for(const k in b){const v=b[k];o[k]=v&&typeof v==='object'&&!Array.isArray(v)&&a&&typeof a[k]==='object'&&a[k]&&!Array.isArray(a[k])?deepMerge(a[k],v):v}return o}
+function defSources(){
+  const lines=String(P().srcs||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  const l=lines.map((t,i)=>{const[a,b]=t.split('|').map(x=>(x||'').trim());return{id:'s'+i,label:a||'Charging source '+(i+1),contract:b||''}});
+  return l.length?l:[{id:'s0',label:'Charging source 1',contract:''}];
+}
+function seedSample(k){
+  if(MEM.ops[k]||!S.sample||S.liveDate!==istDate())return;
+  const g=genDay(S.plant,S.liveDate,4242),blocks={};
+  for(let i=0;i<96;i++){const d=g.schedule.cols.sdis[i]*4,c=Math.round(g.schedule.cols.sch[i]*4*.85);if(d||c)blocks['b'+(i+1)]={d:d||null,iex:c?Math.round(c*.2):null,c:{s0:c?Math.round(c*.5):null,s1:c?c-Math.round(c*.2)-Math.round(c*.5):null}}}
+  const t=Math.min(95,Math.max(curBlock()+3,74));blocks['b'+t]={...(blocks['b'+t]||{}),o:{d:blocks['b'+t]?.d??null},d:200,rev:1,note:'Grid instruction — reduce discharge',at:new Date().toISOString()};
+  MEM.ops[k]={plant:S.plant,date:S.liveDate,issued:true,issuedAt:new Date(Date.now()-5*36e5).toISOString(),blocks,
+    sources:[{id:'s0',label:'AGE26AL_PSS12_KPS3_W',contract:'GNARE/WR/2026/09/07/9857'},{id:'s1',label:'ARE57L_PSS13_KPS1_S',contract:'GNARE/WR/2026/09/22/5590'}]};
+  MEM.site[k]={plant:S.plant,date:S.liveDate,blocks:{},ack:{}};
+  MEM.log[k]=[{at:new Date().toISOString(),team:'ho',block:t,field:'Discharge schedule',from:256,to:200,kind:'revision'},{at:MEM.ops[k].issuedAt,team:'ho',kind:'issue',field:'Schedule issued to site'}];
+}
+function opsDoc(){const k=liveKey();if(useMem()){seedSample(k);return MEM.ops[k]||{plant:S.plant,date:S.liveDate,sources:defSources(),blocks:{},issued:false}}return L.ops||{plant:S.plant,date:S.liveDate,sources:defSources(),blocks:{},issued:false}}
+function siteDoc(){const k=liveKey();return(useMem()?MEM.site[k]:L.site)||{plant:S.plant,date:S.liveDate,blocks:{},ack:{}}}
+function logList(){return(useMem()?(MEM.log[liveKey()]||[]):L.log).slice().sort((a,b)=>a.at<b.at?1:-1)}
+function defaultStartSoc(){const p=P(),prev=dayKeys().filter(d=>d<S.liveDate).pop(),k=prev?kpi(prev):null;return k&&isNum(k.socEnd)?+(k.socEnd/100*p.mwh).toFixed(1):+(p.socTh/100*p.mwh).toFixed(1)}
+function liveRows(){
+  const p=P(),o=opsDoc(),st=siteDoc(),dl=(+p.dLoss||0)/100,cl=(+p.cLoss||0)/100;
+  let soc=isNum(st.startSoc)?+st.startSoc:defaultStartSoc();const rows=[];
+  for(let i=0;i<96;i++){
+    const bk='b'+(i+1),b=o.blocks[bk]||{},s=st.blocks[bk]||{};
+    const d=isNum(b.d)?+b.d:0,iex=isNum(b.iex)?+b.iex:0,cs=o.sources.map(x=>isNum(b.c&&b.c[x.id])?+b.c[x.id]:0);
+    const ctot=iex+cs.reduce((a,v)=>a+v,0),dSet=dl<1?d/(1-dl):d,cSet=ctot*(1-cl);
+    let actual=false;if(isNum(s.asoc)){soc=+s.asoc;actual=true}else soc=soc+cSet/4-dSet/4;
+    rows.push({i,n:i+1,bk,b,s,d,iex,cs,ctot,dSet,cSet,soc,actual,rev:b.rev||0,ack:(st.ack||{})[bk]||0});
+  }
+  return rows;
+}
+function liveState(){const today=S.liveDate===istDate(),fut=S.liveDate>istDate();return{today,fut,past:!today&&!fut,cur:today?curBlock():fut?-1:96}}
+function pendingAcks(rows){return rows.filter(r=>r.rev>r.ack)}
+const getTeam=()=>{try{return localStorage.getItem('bessTeam')}catch{return null}};
+const setTeam=t=>{S.team=t;try{localStorage.setItem('bessTeam',t)}catch{}};
+
+function vLive(){
+  if(!S.liveDate)S.liveDate=istDate();if(!S.team)S.team=getTeam()||'ho';
+  subLive();
+  const p=P(),o=opsDoc(),rows=liveRows(),ls=liveState(),cur=ls.cur,edit=can('om'),ho=edit&&S.team==='ho',site=edit&&S.team==='site';
+  const maxD=Math.max(1,...rows.map(r=>r.d)),minS=p.socTh/100*p.mwh,maxS=p.socMaxOp/100*p.mwh,pend=pendingAcks(rows);
+  const nRev=rows.filter(r=>r.rev).length;
+  const cb=cur>=0&&cur<96?rows[cur]:null,nx=rows.slice(Math.max(cur+1,0),Math.max(cur+1,0)+4);
+  const sumD=rows.reduce((a,r)=>a+r.d/4,0),sumC=rows.reduce((a,r)=>a+r.ctot/4,0);
+  const hoCell=(r,f,v)=>{const lock=!ho||(ls.past)||(ls.today&&r.i<cur);const ch=r.b.o&&f in(r.b.o)&&String(r.b.o[f]??'')!==String(v??'')?' chg':'';
+    return lock?`<span class="${ch}">${v?f1(v):''}</span>`:`<input class="ci${ch}" inputmode="decimal" data-b="${r.n}" data-f="${f}" value="${v??''}" aria-label="Block ${r.n} ${f}">`};
+  const f1=v=>Number(v).toLocaleString('en-IN',{maximumFractionDigits:1});
+  const siteCell=(r,f,v,w)=>{const lock=!site||ls.fut||(ls.today&&r.i>cur);return lock?esc(v??''):`<input class="ci${w?' wide':''}" ${f==='rem'?'':'inputmode="decimal"'} data-b="${r.n}" data-f="${f}" value="${esc(v??'')}" aria-label="Block ${r.n} ${f}">`};
+  return`<div class="bar"><label>Operating day<input type="date" id="liveDate" value="${S.liveDate}"></label>
+   <button class="sec" id="lPrev" aria-label="Previous day">◀</button><button class="sec" id="lNext" aria-label="Next day">▶</button><button class="sec" id="lToday">Today</button>
+   ${edit?`<div class="seg" role="group" aria-label="Team"><button class="${S.team==='ho'?'on':''}" data-team="ho">HO team</button><button class="${S.team==='site'?'on':''}" data-team="site">Site team</button></div>`:''}
+   <span class="muted" id="liveStat">${useMem()?'Not shared (sample / offline)':'● Live — both teams see changes instantly'}</span><div class="grow"></div>
+   ${ho?`<button class="sec" id="lUpBtn">Upload schedule</button><input type="file" id="lUp" accept=".xlsx,.xls,.csv" hidden>${!o.issued?'<button class="sec" id="lCopy">Copy previous day</button>':''}`:''}
+   <button class="sec" id="lX">Export Excel</button>${ho&&!o.issued?'<button id="lIssue">Issue to site</button>':''}</div>
+  <h1 style="margin-bottom:6px">Real-time operation · ${esc(p.name)} · ${new Date(S.liveDate+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</h1>
+  <p class="muted" style="margin:0 0 14px">${o.issued?`Schedule issued to site ${esc(fmtDT(o.issuedAt))}${o.issuedBy?' by <span data-uid="'+esc(o.issuedBy)+'">HO</span>':''} · ${nRev} block${nRev===1?'':'s'} revised in real time`:'<b class="red">Draft — not yet issued to site.</b> HO enters or uploads the schedule, then clicks “Issue to site”.'} · Discharge set point = schedule ÷ (1 − ${p.dLoss}% loss) · Charging set point = total charging × (1 − ${p.cLoss}% loss)</p>
+  ${(()=>{const bad=rows.find(r=>r.soc<minS-.01||r.soc>maxS+.01);return bad?`<div class="al bad" style="margin:0 0 14px"><b>SOC check</b> · Projected SOC ${bad.soc<minS?'falls below the '+f(minS,1)+' MWh minimum':'rises above the '+f(maxS,1)+' MWh maximum'} at block ${bad.n} (${blockTime(bad.i)}) — the schedule cannot be met as it stands. Check SOC at 00:00 or revise.</div>`:''})()}
+  ${pend.length&&o.issued?`<div class="pendbar"><b>${pend.length} real-time change${pend.length===1?'':'s'} not yet acknowledged by site:</b> ${pend.slice(0,8).map(r=>`Block ${r.n} (${blockTime(r.i)}) rev ${r.rev}`).join(' · ')}${pend.length>8?' …':''} ${site?'<button id="lAck">Acknowledge all</button>':''}</div>`:''}
+  <section class="livehero">
+   ${cb?`<div class="nowc"><div class="lbl">Now · Block ${cb.n} · ${blockTime(cb.i)} IST · <span id="cd"></span></div>
+     <div class="sp"><div><span>Discharge set point</span><b>${f(cb.dSet,1)}</b> MW<small>schedule ${f(cb.d,1)} MW</small></div><div><span>Charging set point</span><b>${f(cb.cSet,1)}</b> MW<small>total charging ${f(cb.ctot,1)} MW</small></div><div><span>Projected SOC end of block</span><b class="${cb.soc<minS-.01||cb.soc>maxS+.01?'red':''}">${f(cb.soc,1)}</b> MWh<small>${f(cb.soc/p.mwh*100,1)}% · ${cb.actual?'actual':'projected'}</small></div></div>
+     ${cb.rev?`<div class="muted">Revised ${cb.rev}×${cb.b.note?' — '+esc(cb.b.note):''}</div>`:''}</div>
+    <div class="nextc"><div class="lbl">Next blocks</div>${nx.map(r=>`<div class="nx${r.rev>r.ack?' pend':''}"><b>${r.n}</b><span>${blockTime(r.i)}</span><span>${r.dSet?'Discharge '+f(r.dSet,1)+' MW':r.cSet?'Charge '+f(r.cSet,1)+' MW':'Idle'}</span>${r.rev?`<span class="pill">rev ${r.rev}</span>`:''}</div>`).join('')||'<p class="muted">End of day.</p>'}</div>`
+   :`<div class="nowc"><div class="lbl">${ls.fut?'Planned day':'Completed day'}</div><div class="sp"><div><span>Scheduled discharge</span><b>${f(sumD,1)}</b> MWh</div><div><span>Scheduled charging</span><b>${f(sumC,1)}</b> MWh</div><div><span>Real-time revisions</span><b>${nRev}</b></div></div></div>`}
+  </section>
+  <div class="card" style="padding:0"><div class="scroll livewrap" id="liveWrap"><table class="live"><thead>
+   <tr><th rowspan="2">Block</th><th rowspan="2">Time</th><th rowspan="2" class="n">Discharge schedule (MW)</th><th rowspan="2" class="n">IEX purchase (MW)</th>
+   ${o.sources.map(s=>`<th class="n src">${esc(s.contract||'')}<br><b>${esc(s.label)}</b></th>`).join('')}<th rowspan="2" class="n">Total charging (MW)</th><th rowspan="2">Real-time changes</th>
+   <th rowspan="2" class="n">Discharge set point (MW)</th><th rowspan="2" class="n">Charging set point (MW)</th><th rowspan="2" class="n">SOC (MWh)</th>
+   <th colspan="3" class="sitehd">Site team entries</th><th rowspan="2">Ack</th></tr>
+   <tr>${o.sources.map(()=>'<th class="n src2">Charging schedule (MW)</th>').join('')}<th class="n sitehd">Actual MW (+dis / −chg)</th><th class="n sitehd">Actual SOC (MWh)</th><th class="sitehd">Remarks</th></tr></thead><tbody>
+   ${rows.map(r=>{const both=r.d>0&&r.ctot>0;const heat=r.d>0?` style="background:color-mix(in srgb,#e8251a ${Math.round(12+58*r.d/maxD)}%,#ffd84a);color:#111"`:'';
+     return`<tr class="${r.i===cur?'now':ls.today&&r.i<cur||ls.past?'past':''}${r.rev>r.ack&&o.issued?' pend':''}" id="lb${r.n}"><td>${r.n}</td><td style="white-space:nowrap">${blockTime(r.i)}</td>
+     <td class="n"${heat}>${hoCell(r,'d',r.b.d)}</td><td class="n">${hoCell(r,'iex',r.b.iex)}</td>
+     ${o.sources.map(s=>`<td class="n">${hoCell({...r,b:{...r.b,o:r.b.o&&r.b.o.c?{['c.'+s.id]:r.b.o.c[s.id]}:r.b.o}},'c.'+s.id,r.b.c&&r.b.c[s.id])}</td>`).join('')}
+     <td class="n${both?' warnc':''}" title="${both?'Charging and discharging in the same block':''}">${r.ctot?f(r.ctot,1):''}</td>
+     <td class="rt">${r.rev?`<span class="pill">rev ${r.rev}${r.b.at?' · '+new Date(r.b.at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false}):''}</span> `:''}${ho&&!(ls.past||(ls.today&&r.i<cur))?`<input class="ci wide" data-b="${r.n}" data-f="note" value="${esc(r.b.note||'')}" placeholder="note" aria-label="Block ${r.n} note">`:esc(r.b.note||'')}</td>
+     <td class="n sp1">${r.dSet?f(r.dSet,1):''}</td><td class="n sp1">${r.cSet?f(r.cSet,1):''}</td>
+     <td class="n${r.soc<minS-.01||r.soc>maxS+.01?' short':''}${r.actual?' act':''}">${f(r.soc,1)}</td>
+     <td class="n">${siteCell(r,'amw',r.s.amw)}</td><td class="n">${siteCell(r,'asoc',r.s.asoc)}</td><td>${siteCell(r,'rem',r.s.rem,1)}</td>
+     <td>${r.rev?(r.ack>=r.rev?'<span class="okc">✓</span>':'<span class="red">Pending</span>'):''}</td></tr>`}).join('')}
+   </tbody></table></div></div>
+  <div class="grid2" style="margin-top:16px">
+   <div class="card"><h3>Change log</h3><div class="sub">Every entry by HO and site, newest first</div><div class="logl">${logList().slice(0,150).map(l=>`<div class="lg"><span class="muted">${esc(new Date(l.at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false}))}</span> <span class="pill ${l.team==='site'?'s':'h'}">${l.team==='site'?'Site':'HO'}</span> ${l.by?`<span data-uid="${esc(l.by)}">Team member</span> · `:''}${esc(l.kind==='revision'?`Block ${l.block}: ${l.field} ${l.from===''||l.from==null?'—':l.from} → ${l.to===''||l.to==null?'—':l.to} MW (real-time change)`:l.block?`Block ${l.block}: ${l.field} ${l.to===''||l.to==null?'cleared':'= '+l.to}`:l.field)}</div>`).join('')||'<p class="muted">No entries yet.</p>'}</div></div>
+   <div class="card"><h3>Day settings</h3>
+    <div class="form"><label>SOC at 00:00 (MWh)${site||ho?`<input id="lStart" inputmode="decimal" value="${esc(siteDoc().startSoc??'')}" placeholder="${defaultStartSoc()}">`:`<span>${f(siteDoc().startSoc??defaultStartSoc(),1)}</span>`}</label>
+     <label>SOC limits (MWh)<span style="color:var(--ink);padding-top:10px">${f(minS,1)} – ${f(maxS,1)}</span></label></div>
+    <p class="muted">Losses, SOC window and default charging sources come from BESS parameters. Site enters actual SOC at the end of a block; the projection restarts from it.</p>
+    <h3 style="margin-top:12px">Charging sources today</h3>${o.sources.map(s=>`<div class="muted">${esc(s.label)}${s.contract?' · '+esc(s.contract):''}</div>`).join('')}
+    ${ho?`<div class="form" style="margin-top:10px"><label>New source name<input id="nsL" placeholder="AGE26AL_PSS12_KPS3_W"></label><label>Contract / approval no.<input id="nsC" placeholder="GNARE/WR/2026/09/07/9857"></label></div><button class="sec" id="lAddSrc">Add charging source</button>`:''}</div>
+  </div>`;
+}
+
+/* ---------- writes ---------- */
+function liveSet(coll,patch){
+  const k=liveKey(),isOps=coll==='ops';
+  return enqueue(async()=>{
+    if(useMem()){const m=isOps?MEM.ops:MEM.site;m[k]=deepMerge(isOps?opsDoc():siteDoc(),patch);if(!S.sample)persistLocal();refreshLive();return}
+    const ref=db.collection(coll).doc(k);
+    if(!(isOps?L.opsEx:L.siteEx)){await ref.set(deepMerge(isOps?opsDoc():siteDoc(),{plant:S.plant,date:S.liveDate,...patch}));if(isOps)L.opsEx=true;else L.siteEx=true}
+    else await ref.update(patch);
+  });
+}
+function liveLog(e){
+  const k=liveKey(),rec={plant:S.plant,date:S.liveDate,at:new Date().toISOString(),by:S.uid||null,team:S.team,...e};
+  if(useMem()){(MEM.log[k]=MEM.log[k]||[]).push(rec);if(!S.sample)persistLocal();return}
+  enqueue(()=>db.collection('oplog').add(rec));
+}
+const FN={d:'Discharge schedule',iex:'IEX purchase',note:'Note',amw:'Actual MW',asoc:'Actual SOC',rem:'Remark'};
+function liveEdit(el){
+  const n=+el.dataset.b,f=el.dataset.f,raw=el.value.trim(),bk='b'+n,p=P();
+  const txt=f==='note'||f==='rem',v=txt?raw:(raw===''?null:+raw.replace(/,/g,''));
+  if(!txt&&raw!==''&&!isFinite(v)){toast('Enter a number');return}
+  const now=new Date().toISOString();
+  if(f==='d'||f==='iex'||f==='note'||f.startsWith('c.')){
+    const o=opsDoc(),b=o.blocks[bk]||{},src=f.startsWith('c.')?f.slice(2):null,cur=src?(b.c||{})[src]:b[f];
+    if(String(cur??'')===String(v??''))return;
+    if(!txt&&v!=null&&(v<0||v>p.mw*1.25)){toast(`Enter 0 – ${p.mw} MW`);el.value=cur??'';return}
+    const patch={at:now,by:S.uid||null};if(src)patch.c={[src]:v};else patch[f]=v;
+    const rt=o.issued&&!txt;
+    if(rt){patch.rev=(b.rev||0)+1;if(!b.o)patch.o={d:b.d??null,iex:b.iex??null,c:{...(b.c||{})}}}
+    liveSet('ops',{blocks:{[bk]:patch}});
+    const sl=src?o.sources.find(s=>s.id===src):null;
+    liveLog({block:n,field:src?'Charging '+(sl?sl.label:''):FN[f],from:cur??'',to:v??'',kind:rt?'revision':txt?'note':'draft'});
+    schedSync();
+    if(rt)toast(`Block ${n} revised — site team will see it now`);
+  }else{
+    const st=siteDoc(),cur=(st.blocks[bk]||{})[f];if(String(cur??'')===String(v??''))return;
+    if(f==='asoc'&&v!=null&&(v<0||v>p.mwh*1.05)){toast(`Enter 0 – ${p.mwh} MWh`);el.value=cur??'';return}
+    liveSet('opsite',{blocks:{[bk]:{[f]:v,at:now,by:S.uid||null}}});
+    liveLog({block:n,field:FN[f],from:cur??'',to:v??'',kind:'site'});
+  }
+}
+function schedSync(){ // the live schedule also feeds the DGR / planner schedule (MW -> MWh per block)
+  clearTimeout(L.syncT);L.syncT=setTimeout(()=>{if(useMem()&&S.sample)return;
+    const rows=liveRows(),cols={sch:rows.map(r=>+(r.ctot/4).toFixed(4)),sdis:rows.map(r=>+(r.d/4).toFixed(4))};
+    save('schedule',key(S.plant,S.liveDate),{plant:S.plant,date:S.liveDate,cols,n:96,agg:buildAgg(cols),at:new Date().toISOString(),by:S.uid||null,file:'Live operation sheet'},true)},2500);
+}
+async function liveCopyPrev(){
+  const prev=ymd(new Date(new Date(S.liveDate+'T00:00').getTime()-864e5)),pk=key(S.plant,prev);let src=null;
+  if(useMem())src=MEM.ops[pk];else{try{const s=await db.collection('ops').doc(pk).get();if(s.exists)src=s.data()}catch{}}
+  if(!src){toast('No sheet found for '+prev);return}
+  const blocks={};for(const[k,b]of Object.entries(src.blocks||{}))blocks[k]={d:b.d??null,iex:b.iex??null,c:{...(b.c||{})},note:''};
+  liveSet('ops',{sources:src.sources||defSources(),blocks,issued:false});liveLog({kind:'draft',field:'Copied schedule from '+prev});schedSync();toast('Copied '+prev+' — check and issue');
+}
+function parseOps(wb){
+  for(const name of wb.SheetNames){
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null});
+    const hi=rows.findIndex(r=>r&&r.some(c=>/time ?block/.test(norm(c)))&&r.some(c=>/discharg/.test(norm(c))));if(hi<0)continue;
+    const h=rows[hi].map(norm),fi=rx=>h.findIndex(c=>rx.test(c));
+    const iB=fi(/time ?block/),iDt=fi(/^date/),iD=fi(/discharg.*sch|sch.*discharg/),iX=fi(/iex|purchase/),iN=fi(/real ?time/);
+    const iC=h.map((c,j)=>/charg.*sch|sch.*charg/.test(c)&&!/discharg/.test(c)?j:-1).filter(j=>j>=0);
+    const srcs=iC.map((j,n)=>{const up=rows.slice(0,hi).map(r=>r&&r[j]).filter(v=>v!=null&&String(v).trim()).map(v=>String(v).replace(/\s+/g,''));
+      const contract=up.find(v=>v.includes('/'))||'',label=up.find(v=>!v.includes('/'))||'Charging source '+(n+1);return{label,contract}});
+    const out={date:null,sources:srcs,blocks:{}};
+    for(const r of rows.slice(hi+1)){if(!r||!isNum(r[iB]))continue;const n=+r[iB];if(n<1||n>96)continue;
+      if(!out.date&&iDt>=0)out.date=parseDate(r[iDt]);
+      const num=j=>j>=0&&isNum(r[j])?+r[j]:null;
+      out.blocks[n]={d:num(iD),iex:num(iX),c:iC.map(num),note:iN>=0&&r[iN]!=null?String(r[iN]):''}}
+    if(Object.keys(out.blocks).length)return out;
+  }
+  return null;
+}
+async function liveUpload(file){
+  if(!window.XLSX)return toast('Excel reader did not load');
+  let x;try{x=parseOps(XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true}))}catch{x=null}
+  if(!x){toast('Could not find the Time Block / Discharge Schedule columns in this file');return}
+  if(x.date&&x.date!==S.liveDate){S.liveDate=x.date;subLive();await new Promise(r=>setTimeout(r,600))}
+  const o=opsDoc(),srcs=[...o.sources],map=x.sources.map(s=>{let m=srcs.find(e=>(s.contract&&e.contract===s.contract)||e.label===s.label);
+    if(!m){const used=srcs.findIndex(e=>/^Charging source \d+$/.test(e.label)&&!Object.values(o.blocks).some(b=>b.c&&isNum(b.c[e.id])));
+      if(used>=0){srcs[used]={...srcs[used],...s};m=srcs[used]}else{m={id:'s'+srcs.length,...s};srcs.push(m)}}return m.id});
+  const now=new Date().toISOString(),blocks={};let changed=0;
+  for(let n=1;n<=96;n++){const u=x.blocks[n];if(!u)continue;const b=o.blocks['b'+n]||{};
+    const nb={d:u.d,iex:u.iex,c:Object.fromEntries(map.map((id,j)=>[id,u.c[j]]))};
+    const diff=String(b.d??'')!==String(nb.d??'')||String(b.iex??'')!==String(nb.iex??'')||map.some(id=>String((b.c||{})[id]??'')!==String(nb.c[id]??''));
+    if(!diff&&!(u.note&&u.note!==b.note))continue;changed++;
+    const patch={...nb,at:now,by:S.uid||null};if(u.note)patch.note=u.note;
+    if(o.issued&&diff){patch.rev=(b.rev||0)+1;if(!b.o)patch.o={d:b.d??null,iex:b.iex??null,c:{...(b.c||{})}}}
+    blocks['b'+n]=patch}
+  liveSet('ops',{sources:srcs,blocks});liveLog({kind:o.issued?'revision-file':'draft',field:`Uploaded ${file.name}: ${changed} block${changed===1?'':'s'} ${o.issued?'revised':'filled'}`});schedSync();
+  toast(`${file.name}: ${changed} block${changed===1?'':'s'} ${o.issued?'revised — site will be asked to acknowledge':'loaded as draft'}`);
+}
+function xLive(){
+  if(!window.XLSX)return toast('Excel writer did not load');
+  const o=opsDoc(),rows=liveRows(),p=P(),wb=XLSX.utils.book_new();
+  const head=['Time Block','Date','Time Stamp','Discharge Schedule (MW)','IEX Purchase (MW)',...o.sources.map(()=>'Charging Schedule (MW)'),'Total Charging (MW)','Real time changes','Discharge Set point (MW)','Charging Set point (MW)','SOC (MWh)','Actual MW','Actual SOC (MWh)','Site remarks','Acknowledged'];
+  const pre=n=>['','','','','',...o.sources.map(s=>n?s.label:s.contract)];
+  const aoa=[[...pre(0),'','','Discharge loss',p.dLoss/100,'Charging loss',p.cLoss/100],pre(1),head,...rows.map(r=>[r.n,S.liveDate,blockTime(r.i).replace('–',' - '),r.b.d??null,r.b.iex??null,...o.sources.map(s=>r.b.c&&isNum(r.b.c[s.id])?+r.b.c[s.id]:null),r.ctot||null,
+    (r.rev?`Rev ${r.rev}`+(r.b.o&&isNum(r.b.o.d)&&r.b.o.d!==r.b.d?` (discharge was ${r.b.o.d})`:''):'')+(r.b.note?(r.rev?' · ':'')+r.b.note:''),r2(r.dSet,1),r2(r.cSet,1),r2(r.soc,1),r.s.amw??null,r.s.asoc??null,r.s.rem||'',r.rev?(r.ack>=r.rev?'Yes':'Pending'):''])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Operation sheet');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Time','Team','Block','Change','From','To'],...logList().map(l=>[fmtDT(l.at),l.team==='site'?'Site':'HO',l.block||'',l.field||'',l.from??'',l.to??''])]),'Change log');
+  give(`Live_operation_${fn(p.name)}_${S.liveDate}.xlsx`,wbOut(wb));
+}
+
+/* ---------- live data + refresh ---------- */
+function subLive(){
+  const k=S.plant&&S.liveDate?liveKey():null;if(L.subKey===k&&(L.subs.length||useMem()))return;
+  L.subs.forEach(u=>u());L.subs=[];L.subKey=k;L.ops=null;L.site=null;L.log=[];L.opsEx=false;L.siteEx=false;L.lastPend=0;
+  if(!k||useMem())return;
+  L.subs.push(db.doc('ops/'+k).onSnapshot(s=>{L.opsEx=s.exists;L.ops=s.exists?s.data():null;refreshLive()},()=>{}));
+  L.subs.push(db.doc('opsite/'+k).onSnapshot(s=>{L.siteEx=s.exists;L.site=s.exists?s.data():null;refreshLive()},()=>{}));
+  L.subs.push(db.collection('oplog').where('plant','==',S.plant).where('date','==',S.liveDate).limit(500).onSnapshot(q=>{L.log=q.docs.map(d=>d.data());refreshLive()},()=>{}));
+}
+function refreshLive(){
+  if(location.hash!=='#live')return;
+  const a=document.activeElement;if(a&&a.classList&&a.classList.contains('ci')||a&&(a.id==='lStart'||a.id==='nsL'||a.id==='nsC')){L.pending=true;return}
+  L.pending=false;const w=$('#liveWrap'),sx=w?w.scrollLeft:0,sy=w?w.scrollTop:0;route();const w2=$('#liveWrap');if(w2){w2.scrollLeft=sx;w2.scrollTop=sy}
+  const pc=pendingAcks(liveRows()).length;if(S.team==='site'&&pc>L.lastPend&&opsDoc().issued)toast('New real-time change from HO — please acknowledge');L.lastPend=pc;
+}
+function bindLive(){
+  const ls=liveState();
+  $('#liveDate').onchange=e=>{if(e.target.value){S.liveDate=e.target.value;route()}};
+  const sh=d=>{S.liveDate=ymd(new Date(new Date(S.liveDate+'T00:00').getTime()+d*864e5));route()};
+  $('#lPrev').onclick=()=>sh(-1);$('#lNext').onclick=()=>sh(1);$('#lToday').onclick=()=>{S.liveDate=istDate();route()};
+  document.querySelectorAll('[data-team]').forEach(b=>b.onclick=()=>{setTeam(b.dataset.team);route()});
+  const on=(id,f)=>{const el=$(id);if(el)el.onclick=f};
+  on('#lX',xLive);on('#lCopy',liveCopyPrev);
+  on('#lIssue',()=>{liveSet('ops',{issued:true,issuedAt:new Date().toISOString(),issuedBy:S.uid||null});liveLog({kind:'issue',field:'Schedule issued to site'});schedSync();toast('Issued — site team can see the schedule')});
+  on('#lAck',()=>{const pend=pendingAcks(liveRows());if(!pend.length)return;liveSet('opsite',{ack:Object.fromEntries(pend.map(r=>[r.bk,r.rev]))});liveLog({kind:'ack',field:'Site acknowledged blocks '+pend.map(r=>r.n).join(', ')})});
+  on('#lUpBtn',()=>$('#lUp').click());const up=$('#lUp');if(up)up.onchange=()=>up.files[0]&&liveUpload(up.files[0]);
+  on('#lAddSrc',()=>{const l=$('#nsL').value.trim(),c=$('#nsC').value.trim();if(!l){toast('Enter the source name');return}const o=opsDoc();
+    liveSet('ops',{sources:[...o.sources,{id:'s'+Date.now().toString(36),label:l,contract:c}]});liveLog({kind:'draft',field:'Added charging source '+l})});
+  const st=$('#lStart');if(st)st.onchange=()=>{const v=st.value.trim();const n=v===''?null:+v;if(v!==''&&!isFinite(n))return toast('Enter a number');liveSet('opsite',{startSoc:n});liveLog({kind:'site',field:'SOC at 00:00 set to '+(v||'default')})};
+  const w=$('#liveWrap');
+  w.addEventListener('change',e=>{if(e.target.classList.contains('ci'))liveEdit(e.target)});
+  w.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList.contains('ci')){e.preventDefault();const all=[...w.querySelectorAll(`.ci[data-f="${e.target.dataset.f}"]`)],i=all.indexOf(e.target);e.target.blur();(all[i+1]||e.target).focus()}});
+  $('#main').addEventListener('focusout',()=>setTimeout(()=>{if(L.pending&&!(document.activeElement&&document.activeElement.classList.contains('ci')))refreshLive()},150));
+  if(ls.today&&!L.scrolled){const r=$('#lb'+Math.max(1,curBlock()-1));if(r&&w)w.scrollTop=r.offsetTop-60;L.scrolled=true}
+  L.lastBlk=curBlock();tick();
+}
+function tick(){
+  const cd=$('#cd');if(cd){const t=IST(),s=(15-(t.getMinutes()%15))*60-t.getSeconds();cd.textContent=`${pad(Math.floor(s/60))}:${pad(s%60)} left`}
+  if(location.hash==='#live'&&S.liveDate===istDate()&&curBlock()!==L.lastBlk){L.lastBlk=curBlock();refreshLive()}
+}
+setInterval(tick,1000);
+
+/* ================= breakdowns ================= */
+function vBd(){
+  const e=S.editBd?S.data.bds[S.editBd]:null,v=k=>esc(e?e[k]:'');
+  const loc=s=>{if(!s)return'';const d=new Date(s);return ymd(d)+'T'+pad(d.getHours())+':'+pad(d.getMinutes())};
+  const list=bdsIn(S.ym).reverse(),closed=list.filter(b=>b.end),down=list.reduce((s,b)=>s+durH(b),0);
+  const form=can('om')?`<div class="card"><h2>${e?'Edit breakdown':'Log a breakdown'}</h2><p class="muted" style="margin-top:-6px">Many events at once? Put them on the “Breakdowns” sheet and use <a href="#upload">Upload data</a>.</p><form id="bdForm" class="form">
+   <label>Fault start *<input type="datetime-local" name="start" required value="${e?loc(e.start):''}"></label>
+   <label>Restoration time<input type="datetime-local" name="end" value="${e?loc(e.end):''}"></label>
+   <label>Block<input name="block" value="${v('block')}" placeholder="Block-2"></label><label>Sub block<input name="sub" value="${v('sub')}"></label>
+   <label>LC<input name="lc" value="${v('lc')}"></label><label>BC<input name="bc" value="${v('bc')}"></label>
+   <label>PCS no.<input name="pcs" value="${v('pcs')}" placeholder="PCS-12"></label><label>Container no.<input name="container" value="${v('container')}" placeholder="C-57"></label>
+   <label>Down capacity (MW)<input type="number" step="any" min="0" name="down" value="${v('down')}"></label><label>Root cause<input name="cause" list="causes" value="${v('cause')}"></label>
+   <label class="wide">Fault description<textarea name="desc" rows="2">${v('desc')}</textarea></label>
+   <div class="wide" style="display:flex;gap:10px;flex-wrap:wrap"><button type="submit">${e?'Save changes':'Add breakdown'}</button>${e?'<button type="button" class="sec" id="bdCancel">Cancel</button>':''}</div>
+   <datalist id="causes"><option>PCS fault</option><option>BMS / communication</option><option>Auxiliary system</option><option>HVAC / thermal</option><option>Grid / transmission</option><option>Planned maintenance</option></datalist></form></div>`:'';
+  return`<div class="bar"><label>Month<input type="month" id="pickMonth" value="${S.ym}"></label><div class="grow"></div>${can('om')?'<button class="sec" id="bdX">Export log (Excel)</button>':''}</div>
+  <h1 style="margin-bottom:16px">Breakdown management · ${monthName(S.ym)}</h1>
+  <section class="strips" style="margin-bottom:16px">${strip('Breakdown events',list.length,'',0)}${strip('Total downtime',down,'h',1)}${strip('Average restoration',closed.length?closed.reduce((s,b)=>s+durH(b),0)/closed.length:null,'h',1)}${strip('Open events',list.length-closed.length,'',0)}</section>
+  ${form}
+  <div class="card"><h2>Events</h2>${list.length?`<div class="scroll"><table class="stack"><thead><tr><th>Fault start</th><th>Equipment</th><th>Description</th><th>Root cause</th><th class="n">Down MW</th><th>Status</th><th class="n">Duration h</th><th></th></tr></thead><tbody>
+  ${list.map(b=>`<tr><td>${esc(fmtDT(b.start))}</td><td>${esc([b.block,b.sub,b.lc,b.bc,b.pcs,b.container].filter(Boolean).join(' · '))}</td><td>${esc(b.desc)}</td><td>${esc(b.cause)}</td><td class="n">${f(b.down,2)}</td><td>${b.end?'Restored '+esc(fmtDT(b.end)):'<span class="pill open">Open</span>'}</td><td class="n">${f(durH(b),2)}</td>
+  <td style="white-space:nowrap">${can('om')&&!b.sample?`${b.end?'':`<button class="sec" data-close="${esc(b.id)}">Close now</button> `}<button class="sec" data-edit="${esc(b.id)}">Edit</button>`:''}${can('admin')&&!b.sample?` <button class="danger" data-del="${esc(b.id)}">Delete</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No breakdowns this month.</p>'}</div>`;
+}
+
+/* ================= upload ================= */
+function vUpload(){
+  const st=S.staged,pl=Object.values(S.plants);
+  const noPlant=S.sample||!pl.length;
+  let html=`<h1 style="margin-bottom:6px">Upload data</h1><p class="muted" style="margin:0 0 16px">Drop every file here — meter, schedule, SCADA, block prices and breakdown data, one day or a whole month, one workbook or several files. The app reads the column names, sorts the data and updates every screen.</p>`;
+  if(noPlant)return html+`<div class="card"><p style="margin:0">${S.sample?'The app is showing sample data. ':''}Add your plant in <a href="#plants">BESS parameters</a> first — its parameters are entered once and used for every upload.</p></div>`;
+  html+=`<div class="card"><div class="form" style="margin:0"><label>Plant (when the file has no Plant ID column)<select id="upPlant">${pl.map(p=>`<option value="${esc(p.id)}"${p.id===S.plant?' selected':''}>${esc(p.name)}</option>`).join('')}</select></label>
+   <label>Date (when the file has no Date column)<input type="date" id="upDate" value="${S.date}"></label></div>
+   <div class="drop" id="drop"><p style="margin:0 0 10px"><b>Drop Excel or CSV files here</b></p><input type="file" id="file" accept=".xlsx,.xls,.csv" multiple></div>
+   <div class="bar" style="margin:14px 0 0"><span class="muted">Templates:</span><button class="sec" data-tpl="all">Complete workbook (all sheets)</button><button class="sec" data-tpl="meter">Meter</button><button class="sec" data-tpl="schedule">Schedule</button><button class="sec" data-tpl="scada">SCADA</button><button class="sec" data-tpl="price">Prices</button><button class="sec" data-tpl="breakdowns">Breakdowns</button></div></div>`;
+  if(st){
+    const days=Object.values(st.groups).sort((a,b)=>(a.plant+a.date<b.plant+b.date?-1:1));
+    html+=`<div class="card"><h2>Check before saving</h2>
+    <p class="muted">${esc(st.files.join(', '))} · ${days.length} plant-day${days.length===1?'':'s'} · ${st.bds.length} breakdown event${st.bds.length===1?'':'s'}</p>
+    ${st.errors.length?`<div class="al bad" style="margin-bottom:10px"><b>Not imported</b> · ${st.errors.map(esc).join('<br>')}</div>`:''}
+    ${st.warns.length?`<div class="al" style="margin-bottom:10px;border-left-color:var(--warn)">${st.warns.map(esc).join('<br>')}</div>`:''}
+    ${days.length?`<div class="scroll"><table class="stack"><thead><tr><th>Plant</th><th>Date</th>${SRC.map(s=>`<th>${SRCN[s]}</th>`).join('')}<th class="n">Charge MWh</th><th class="n">Discharge MWh</th><th>Already saved</th></tr></thead><tbody>
+    ${days.map(g=>{const ex=SRC.filter(s=>g.src[s]&&get(s,g.date,g.plant));const t=g.src.meter?.agg||{};return`<tr><td>${esc(S.plants[g.plant]?.name||g.plant)}</td><td>${g.date}</td>${SRC.map(s=>`<td>${g.src[s]?(g.src[s].daily?'daily total':g.src[s].n+'/96 blocks'):'–'}</td>`).join('')}<td class="n">${isNum(t.imp)?f(t.imp-(t.aux||0),1):'—'}</td><td class="n">${f(t.exp,1)}</td><td>${ex.length?'Will replace '+ex.map(s=>SRCN[s]).join(', '):'New'}</td></tr>`}).join('')}</tbody></table></div>`:''}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button id="saveAll"${days.length||st.bds.length?'':' disabled'}>Save ${days.length+st.bds.length} item${days.length+st.bds.length===1?'':'s'}</button><button class="sec" id="discard">Discard</button><span class="muted" id="saveProg"></span></div></div>`;
+  }
+  const ks=dayKeys().filter(d=>d.startsWith(S.ym));
+  const[y,mo]=S.ym.split('-').map(Number),dim=new Date(y,mo,0).getDate();
+  html+=`<div class="card"><div class="bar" style="margin-bottom:8px"><h2 style="margin:0">Data readiness · ${esc(P().name)}</h2><div class="grow"></div><label>Month<input type="month" id="pickMonth" value="${S.ym}"></label></div>
+   <div class="scroll"><table class="ready-t"><thead><tr><th>Date</th>${SRC.map(s=>`<th>${SRCN[s]}</th>`).join('')}<th>Breakdowns</th></tr></thead><tbody>
+   ${Array.from({length:dim},(_,i)=>`${S.ym}-${pad(i+1)}`).filter(d=>d<=TODAY).reverse().map(d=>`<tr><td><a href="#dgr" data-day="${d}">${d}</a></td>${SRC.map(s=>{const x=get(s,d);return`<td class="${x?'ok':'miss'}">${x?'✓ '+(x.daily?'daily':x.n):'missing'}</td>`}).join('')}<td>${bdsIn(d).length||''}</td></tr>`).join('')}
+   </tbody></table></div><p class="muted">${ks.length} day${ks.length===1?'':'s'} with data this month.</p></div>`;
+  const ups=Object.values(S.data.uploads||{}).sort((a,b)=>a.at<b.at?1:-1).slice(0,30);
+  html+=`<div class="card"><h2>Upload history</h2>${ups.length?`<div class="scroll"><table class="stack"><thead><tr><th>When</th><th>Who</th><th>Files</th><th>Plant</th><th>Dates</th><th>Saved</th></tr></thead><tbody>
+   ${ups.map(u=>`<tr><td>${esc(fmtDT(u.at))}</td><td>${u.by?`<span data-uid="${esc(u.by)}">Team member</span>`:'—'}</td><td>${esc((u.files||[]).join(', '))}</td><td>${esc((u.plants||[]).map(id=>S.plants[id]?.name||id).join(', '))}</td><td>${esc(u.from===u.to?u.from:(u.from||'')+' → '+(u.to||''))}</td><td>${esc(Object.entries(u.counts||{}).filter(([,n])=>n).map(([k,n])=>n+' '+(SRCN[k]||k)).join(' · '))}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No uploads yet.</p>'}</div>`;
+  return html;
+}
+
+/* ---------- parsing ---------- */
+function parseDate(v){
+  if(v instanceof Date&&!isNaN(v))return v.getFullYear()>1901?ymd(v):null;
+  if(typeof v==='number'&&v>1000&&window.XLSX){const p=XLSX.SSF.parse_date_code(v);if(p)return p.y+'-'+pad(p.m)+'-'+pad(p.d)}
+  const s=String(v??'').trim();let m;
+  if(m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/))return m[1]+'-'+pad(m[2])+'-'+pad(m[3]);
+  if(m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/))return m[3]+'-'+pad(m[2])+'-'+pad(m[1]);
+  if(m=s.match(/^(\d{1,2})[- ]([A-Za-z]{3})[a-z]*[- ,]+(\d{4})/)){const i='janfebmaraprmayjunjulaugsepoctnovdec'.indexOf(m[2].toLowerCase());if(i>=0)return m[3]+'-'+pad(i/3+1)+'-'+pad(m[1])}
+  return null;
+}
+function parseMin(v){ // minutes after midnight, or null
+  if(v instanceof Date&&!isNaN(v))return Math.round((v.getHours()*3600+v.getMinutes()*60+v.getSeconds())/60)%1440;
+  if(typeof v==='number'){const fr=v%1;return fr||v<1?Math.round(fr*1440)%1440:null}
+  const m=String(v??'').match(/(\d{1,2}):(\d{2})/);return m?(+m[1]*60+ +m[2]):null;
+}
+function parseDT(v,baseDate){
+  const d=parseDate(v),mn=parseMin(v);
+  const day=d||baseDate;if(!day)return null;
+  const t=mn??0;const dt=new Date(day+'T'+hm(t));return isNaN(dt)?null:dt;
+}
+function matchPlant(v,fallback){
+  if(v==null||v==='')return fallback;
+  const n=norm(v).replace(/[^a-z0-9]/g,'');
+  const p=Object.values(S.plants).find(p=>norm(p.id).replace(/[^a-z0-9]/g,'')===n||norm(p.name).replace(/[^a-z0-9]/g,'')===n);
+  return p?p.id:undefined;
+}
+function parseWorkbook(wb,fname,defPlant,defDate,st){
+  const fileDate=(fname.match(/\d{4}-\d{2}-\d{2}|\d{2}[-.]\d{2}[-.]\d{4}/)||[])[0];
+  const baseDate=fileDate?parseDate(fileDate):defDate;
+  let info=null;
+  for(const name of wb.SheetNames){
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null}).filter(r=>r&&r.some(c=>c!==null&&c!==''));
+    if(!rows.length)continue;
+    if(rows.some(r=>r.some(c=>/time ?block/.test(norm(c))))&&rows.some(r=>r.some(c=>/charg.*sch.*\bmw\b|iex/.test(norm(c))))){st.errors.push(`Sheet “${name}” looks like a real-time operation sheet (MW per block). Upload it on the Live operation page — it converts MW to MWh and keeps every charging source.`);continue}
+    // breakdown table?
+    const bi=rows.findIndex(r=>r.some(c=>/restor|root cause|fault desc/.test(norm(c))));
+    if(bi>=0){parseBd(rows.slice(bi),name,defPlant,baseDate,st);continue}
+    // block data table?
+    const hi=rows.findIndex(r=>r.filter(c=>SRC.some(s=>FIELDS[s].some(([,,rx])=>rx.test(norm(c))))).length>=1&&r.filter(c=>c!=null&&c!=='').length>=2&&r.every(c=>c==null||typeof c==='string'));
+    if(hi>=0){parseBlocks(rows.slice(hi),name,defPlant,baseDate,st);continue}
+    // key/value daily info
+    const kv={};rows.forEach(r=>{if(typeof r[0]==='string'&&r[1]!=null)kv[norm(r[0])]=r[1]});
+    const pick=rx=>{const k=Object.keys(kv).find(k=>rx.test(k));return k!=null?kv[k]:undefined};
+    const d=pick(/^date|report date/),di={};
+    for(const[fk,,rx]of FIELDS.scada)if(!TXTF.includes(fk)){const v=pick(rx);if(isNum(v))di[fk]=+v}
+    const pid=matchPlant(pick(/plant/),defPlant);
+    if(Object.keys(di).length)info={date:parseDate(d)||baseDate,plant:pid,day:di};
+  }
+  if(info&&info.plant&&info.date){
+    const g=group(st,info.plant,info.date);
+    if(!g.src.scada)g.src.scada={plant:info.plant,date:info.date,cols:{},n:0};
+    g.src.scada.day={...(g.src.scada.day||{}),...info.day};
+  }
+}
+function group(st,plant,date){const k=key(plant,date);return st.groups[k]||(st.groups[k]={plant,date,src:{},raw:{}})}
+function parseBlocks(rows,sheet,defPlant,baseDate,st){
+  const h=rows[0].map(norm),map={};
+  for(const s of ['price',...CORE])for(const[fk,,rx]of FIELDS[s]){const i=h.findIndex((c,j)=>c&&rx.test(c)&&!Object.values(map).some(x=>x[1]===j));if(i>=0)map[fk]=[s,i]}
+  const iPlant=h.findIndex(c=>/plant/.test(c)),iDate=h.findIndex(c=>/^date$|^date |report date|^day$/.test(c));
+  const iBlock=h.findIndex(c=>/^(time )?block( no\.?| number| id)?$|^blk/.test(c)),iTime=h.findIndex(c=>/time|timestamp|interval|^from/.test(c)&&!/block/.test(c));
+  const seq={},unknown=new Set();let bad=0;
+  for(const r of rows.slice(1)){
+    const vals=Object.entries(map).filter(([,[,i]])=>r[i]!=null&&r[i]!=='');if(!vals.length)continue;
+    const plant=matchPlant(iPlant>=0?r[iPlant]:null,defPlant);
+    if(plant===undefined){unknown.add(String(r[iPlant]));continue}
+    let date=iDate>=0?parseDate(r[iDate]):null;if(!date&&iTime>=0)date=parseDate(r[iTime]);if(!date)date=baseDate;
+    if(!date){bad++;continue}
+    let idx=null;
+    if(iBlock>=0&&isNum(r[iBlock])&&+r[iBlock]>=1&&+r[iBlock]<=96)idx=+r[iBlock]-1;
+    else if(iTime>=0){const mn=parseMin(r[iTime]);if(mn!=null)idx=Math.floor(mn/15)}
+    const gk=key(plant,date);if(idx==null){idx=seq[gk]=(seq[gk]??-1)+1}
+    if(idx>95){bad++;continue}
+    const g=group(st,plant,date);
+    for(const[fk,[s,i]]of vals){
+      g.raw[s]=g.raw[s]||{};const a=g.raw[s][fk]=g.raw[s][fk]||Array(96).fill(null);
+      const v=r[i];a[idx]=TXTF.includes(fk)?String(v):(isNum(v)?+v:(isNum(String(v).replace(/,/g,''))?+String(v).replace(/,/g,''):null));
+    }
+  }
+  if(unknown.size)st.errors.push(`Sheet “${sheet}”: Plant ID ${[...unknown].slice(0,3).join(', ')} is not set up. Add the plant in BESS parameters or fix the Plant ID.`);
+  if(bad)st.warns.push(`Sheet “${sheet}”: ${bad} row(s) skipped (no date or block beyond 96).`);
+  const found=SRC.filter(s=>FIELDS[s].some(([fk])=>map[fk]&&map[fk][0]===s)).map(s=>SRCN[s]+' ('+FIELDS[s].filter(([fk])=>map[fk]).map(x=>x[1].replace(/ \(.*/,'')).join(', ')+')');
+  st.warns.push(`Sheet “${sheet}”: read ${found.join('; ')}`);
+}
+function parseBd(rows,sheet,defPlant,baseDate,st){
+  const h=rows[0].map(norm),map={};
+  for(const[fk,,rx]of BDF){const i=h.findIndex((c,j)=>c&&rx.test(c)&&!Object.values(map).includes(j));if(i>=0)map[fk]=i}
+  let n=0,skip=0;const unknown=new Set();
+  for(const r of rows.slice(1)){
+    const g=k=>map[k]!=null?r[map[k]]:null;
+    const plant=matchPlant(g('plant'),defPlant);if(plant===undefined){unknown.add(String(g('plant')));continue}
+    const fd=parseDate(g('fdate'))||parseDate(g('start'))||baseDate;
+    const start=parseDT(g('start')??g('fdate'),fd);if(!start){skip++;continue}
+    const rd=parseDate(g('rdate'))||parseDate(g('end'))||fd;
+    let end=g('end')!=null&&g('end')!==''?parseDT(g('end'),rd):null;
+    if(end&&end<start&&!parseDate(g('rdate'))&&!parseDate(g('end')))end=new Date(end.getTime()+864e5);
+    const o={plant,start:start.toISOString(),end:end?end.toISOString():null};
+    for(const k of ['block','sub','lc','bc','pcs','container','desc','cause'])o[k]=g(k)==null?'':String(g(k)).trim();
+    o.down=isNum(g('down'))?+g('down'):null;
+    o.id='bd-'+hash([plant,o.start,o.pcs,o.container,o.block,o.sub].join('|'));
+    st.bds.push(o);n++;
+  }
+  if(unknown.size)st.errors.push(`Sheet “${sheet}”: Plant ID ${[...unknown].slice(0,3).join(', ')} is not set up.`);
+  if(skip)st.warns.push(`Sheet “${sheet}”: ${skip} breakdown row(s) skipped — no fault date/time.`);
+  st.warns.push(`Sheet “${sheet}”: read ${n} breakdown event(s)`);
+}
+function finishStage(st){
+  for(const g of Object.values(st.groups)){
+    for(const s of SRC){
+      const cols=g.raw[s];
+      if(cols){const n=filled(cols);const daily=n===1&&cols&&Object.values(cols).every(a=>a.filter(isNum).length<=1)&&!st.blockInfo;
+        g.src[s]={plant:g.plant,date:g.date,cols,n,...(g.src[s]&&g.src[s].day?{day:g.src[s].day}:{})};
+        if(n<96&&n>1)st.warns.push(`${g.date}: ${SRCN[s]} has ${n} of 96 blocks.`);}
+      if(g.src[s]){g.src[s].agg=buildAgg(g.src[s].cols||{},g.src[s].day);
+        if(g.src[s].n<=1&&!g.src[s].day){g.src[s].daily=true;g.src[s].cols=null}}
+    }
+    delete g.raw;
+  }
+}
+async function readFiles(files){
+  if(!window.XLSX){toast('Excel reader did not load');return}
+  const defPlant=$('#upPlant').value,defDate=$('#upDate').value||null;
+  const st={files:[],groups:{},bds:[],errors:[],warns:[]};
+  for(const file of files){
+    try{const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});st.files.push(file.name);parseWorkbook(wb,file.name,defPlant,defDate,st)}
+    catch(e){st.errors.push(`${file.name}: could not be read`)}
+  }
+  finishStage(st);
+  if(!Object.keys(st.groups).length&&!st.bds.length&&!st.errors.length)st.errors.push('No recognised columns found. Use the template column names, e.g. “Grid Import (MWh)”, “SOC (%)”, “Fault Description”.');
+  S.staged=st;route();
+}
+async function saveStaged(){
+  const st=S.staged,btn=$('#saveAll'),prog=$('#saveProg');btn.disabled=true;
+  const jobs=[];const at=new Date().toISOString(),by=S.uid||null;
+  for(const g of Object.values(st.groups))for(const s of SRC)if(g.src[s])jobs.push([s,key(g.plant,g.date),{...g.src[s],at,by,file:st.files.join(', ')}]);
+  st.bds.forEach(b=>jobs.push(['breakdowns',b.id,{...b,at,by}]));
+  let ok=0;
+  for(const[c,id,d]of jobs){prog.textContent=`Saving ${ok+1} of ${jobs.length}…`;if(await save(c,id,d,true))ok++;else break}
+  const dates=Object.values(st.groups).map(g=>g.date).sort();
+  const counts={};SRC.forEach(s=>counts[s]=Object.values(st.groups).filter(g=>g.src[s]).length);counts.breakdowns=st.bds.length;
+  if(ok)await save('uploads','u'+Date.now().toString(36),{at,by,files:st.files,plants:[...new Set([...Object.values(st.groups).map(g=>g.plant),...st.bds.map(b=>b.plant)])],from:dates[0]||'',to:dates[dates.length-1]||'',counts},true);
+  if(ok===jobs.length){S.staged=null;if(dates.length){S.date=dates[dates.length-1];S.ym=S.date.slice(0,7)}
+    const gp=Object.values(st.groups)[0];if(gp&&gp.plant!==S.plant)setPlant(gp.plant);
+    toast(`Saved ${ok} item${ok===1?'':'s'} — dashboard, DGR and MIS are updated`);route()}
+  else{prog.textContent=`Saved ${ok} of ${jobs.length}. Fix the problem and save again — saved items will be replaced, not duplicated.`;btn.disabled=false}
+}
+
+/* ================= plants & BESS parameters ================= */
+function chain(p){
+  const g=k=>(isNum(p[k])&&+p[k]>0?+p[k]:100)/100,cap=(+p.mwh||0)*g('soh')*g('dod');
+  const st=[['BESS (DC)','DC cable and BESS DC efficiency',g('eDcD')*g('eDcCab'),g('eDcC')*g('eDcCab')],['PCS','PCS and LT cable losses',g('ePcs')*g('eLt'),g('ePcs')*g('eLt')],
+    ['IDT (MV transformer)','MV transformer losses',g('eMv'),g('eMv')],['HT feeders','Auxiliary consumption and HV cable losses (aux on discharge only)',g('eAux')*g('eHv'),g('eHv')],['400 kV line','Switchyard and power transformer losses',g('eSy'),g('eSy')]];
+  let d=cap,c=cap;const rows=st.map(([n,l,ed,ec])=>{d*=ed;c/=ec;return{n,l,d,c}});const last=rows[rows.length-1];
+  return{cap,rows,rte:last.c?last.d/last.c*100:null};
+}
+function chainHtml(p){
+  const ch=chain(p),img=['bess','pcs','idt','ht','line'],nm=['BESS','PCS','IDT','HT feeders','400 kV line'],
+    loss=['DC cable and BESS DC efficiency','PCS and LT cable','MV transformer','Auxiliary consumption (discharge) and HV cable','400 kV switchyard and power transformer'];
+  const pc=v=>isNum(v)?Number(v).toLocaleString('en-IN',{maximumFractionDigits:3})+'%':'—';
+  const eff=[['Depth of discharge (DoD)','dod'],['Auxiliary consumption','eAux'],['BESS DC efficiency · charging','eDcC'],['BESS DC efficiency · discharging','eDcD'],['DC cable','eDcCab'],['PCS','ePcs'],['LT cable','eLt'],['MV transformer','eMv'],['HV cable','eHv'],['Switchyard and power transformer','eSy']];
+  return`<div class="ef"><div class="ef-h"><h2>${esc(p.name||'Plant')} <span>|</span> BESS energy flow</h2><p>Charge and discharge energy by equipment stage</p></div>
+  <div class="ef-cap"><div><b>${f(p.mwh,0)} MWh</b><span>Rated battery capacity</span></div><i aria-hidden="true">→</i><div class="ef-basis">${f(p.soh,1)}% FAT-to-SAT SoH &nbsp;/&nbsp; ${f(p.dod,0)}% DoD</div><div class="ef-act"><b id="efcap">${f(ch.cap,0)} MWh</b><span>Actual battery capacity</span></div></div>
+  <div class="ef-body"><div><h3>Energy at each stage</h3><div class="scroll"><table class="ef-t"><thead><tr><th>Equipment stage</th><th class="n">↑ Charge</th><th class="n">↓ Discharge</th><th>Losses included</th></tr></thead><tbody>
+   ${ch.rows.map((r,i)=>`<tr><td class="eq"><span><img src="${EQIMG[img[i]]}" alt="" width="40" height="32"><b>${nm[i]}</b></span></td><td class="n chg" id="efc${i}">${f(r.c,0)}</td><td class="n dis" id="efd${i}">${f(r.d,0)}</td><td>${loss[i]}</td></tr>`).join('')}</tbody></table></div>
+   <p class="ef-note">All stage values are in MWh. Round-trip efficiency at 400 kV: <b id="efrte">${f(ch.rows[4].d,0)} ÷ ${f(ch.rows[4].c,0)} = ${f(ch.rte,2)}%</b>${can('admin')?` <button type="button" class="sec" id="useRte" data-rte="${f(ch.rte,2).replace(/,/g,'')}">Use as guaranteed AC RTE</button>`:''}</p></div>
+  <div><h3>Losses and efficiency</h3>${(()=>{const inl=can('admin')&&!S.editPlant&&!S.sample;const tag=k=>+p[k]===+PDEF[k]?'<small class="dtag">default</small>':'<small class="ctag">changed</small>';
+   return`<table class="ef-l"><thead><tr><th>Parameter</th><th class="n">Value</th></tr></thead><tbody>${eff.map(([l,k])=>`<tr><td>${l} <span id="eft-${k}">${tag(k)}</span></td><td class="n">${inl?`<input class="efin" data-k="${k}" inputmode="decimal" value="${esc(p[k])}" aria-label="${l} %"> %`:pc(p[k])}</td></tr>`).join('')}</tbody></table>
+   ${inl?`<div class="efbtns"><button type="button" id="efSave" disabled>Save values</button><button type="button" class="sec" id="efReset">Reset to default values</button><span class="ef-note" id="efMsg"></span></div><p class="ef-note">Change any value if your plant differs; otherwise the defaults are used.</p>`:`<p class="ef-note">${S.sample?'Sample plant: use “Edit parameters” to set your own values.':S.editPlant?'Updates as you type in the form above.':'Defaults are used unless the admin changes them.'}</p>`}`})()}</div></div></div>`;
+}
+const EFFK=['dod','eAux','eDcC','eDcD','eDcCab','ePcs','eLt','eMv','eHv','eSy'];
+const PGROUPS=[['Plant details',[['Plant ID','id'],['Location','loc'],['COD date','cod'],['Number of blocks','nBlocks']]],
+  ['Battery & PCS',[['Power','mw',' MW'],['Battery rated capacity','mwh',' MWh'],['FAT to SAT SoH','soh','%'],['Total containers','cTot'],['Total PCS','pTot']]],
+  ['Losses and efficiency',[['DoD','dod','%'],['Auxiliary consumption','eAux','%'],['BESS DC efficiency (charging)','eDcC','%'],['BESS DC efficiency (discharging)','eDcD','%'],['DC cable','eDcCab','%'],['PCS','ePcs','%'],['LT cable','eLt','%'],['MV transformer','eMv','%'],['HV cable','eHv','%'],['Switchyard and power transformer','eSy','%']]],
+  ['Cycling & SOC window',[['Planned cycles per day','cyclesPerDay'],['Max cycles per year (warranty)','maxCyclesYear'],['Minimum operating SOC','socTh','%'],['Maximum operating SOC','socMaxOp','%']]],
+  ['Guarantees',[['Guaranteed AC RTE','gRte','%'],['Guaranteed availability','gAvail','%'],['Aux consumption limit','auxLim','%']]],
+  ['Tariff',[['Charging cost','tChg',' ₹/MWh'],['Discharge price','tDis',' ₹/MWh']]],
+  ['Real-time operation',[['Discharge loss','dLoss','%'],['Charging loss','cLoss','%'],['Charging sources','srcs']]],
+  ['Alerts',[['Battery availability below','battTh','%'],['PCS availability below','pcsTh','%'],['Breakdown longer than','bdMin',' min'],['Alert e-mails','emails']]]];
+function paramTable(e){
+  const val=(k,u)=>{const v=e[k];if(v==null||v==='')return'—';if(k==='srcs')return String(v).split('\n').filter(x=>x.trim()).map(x=>esc(x.trim())).join('<br>')||'—';return esc(v)+(u?esc(u):'')};
+  return`<div class="pgrid">${PGROUPS.map(([g,rows])=>`<div class="pgroup"><h3>${g}</h3><table><tbody>${rows.map(([l,k,u])=>`<tr><td class="muted">${l}</td><td class="n">${val(k,u)}</td></tr>`).join('')}</tbody></table></div>`).join('')}</div>`;
+}
+function vPlants(){
+  const pl=Object.values(S.plants).sort((a,b)=>a.name<b.name?-1:1),isNew=S.editPlant==='new',ro=!can('admin');
+  const e=isNew?{...PDEF}:{...PDEF,...(S.plants[S.plant]||{})},editing=!!S.editPlant&&!ro;
+  const fld=(n,l,t='number',x='')=>`<label>${l}<input name="${n}" type="${t}" step="any" value="${esc(e[n])}" ${x}></label>`;
+  const title=isNew?'Add a new plant':S.sample?'Sample plant — change anything and save to make it your plant':'Parameters · '+esc(e.name);
+  return`<div class="bar"><h1 style="margin:0">BESS parameters</h1><div class="grow"></div>${can('admin')&&!isNew?'<button class="sec" id="addPlant">Add another plant</button>':''}</div>
+  <p class="muted" style="margin:-6px 0 16px">One-time inputs for each plant. Every KPI, cycle count, set point, alert, plan and report uses them.${ro?' Only the admin (owner or editor of this app) can change them.':''}</p>
+  <div class="card"><div class="bar" style="margin:0 0 10px"><h2 style="margin:0">${editing?title:esc(e.name)+(S.sample?' <span class="pill">Sample</span>':'')}</h2><div class="grow"></div>${!editing&&!ro?'<button id="editParams">Edit parameters</button>':''}</div>
+  ${!editing?`<p class="psum">${esc(e.loc||'—')} · <b>${f(e.mw,0)} MW / ${f(e.mwh,0)} MWh</b> · ${e.cTot} containers · ${e.pTot} PCS · ${e.cyclesPerDay} cycle${e.cyclesPerDay>1?'s':''}/day · SOC ${e.socTh}–${e.socMaxOp}% · guaranteed RTE ${e.gRte}%</p><details class="pdet"${S.openParams?' open':''}><summary>Show all parameters</summary>`+paramTable(e)+'</details>'+(S.sample&&!ro?'<p class="muted" style="margin-bottom:0">This is the sample plant. Click “Edit parameters”, enter your values and save to make it your plant.</p>':''):`<form id="plantForm"><fieldset class="wrap"${ro?' disabled':''}>
+   <fieldset><legend>Plant details</legend><div class="form"><label>Plant name *<input name="name" required value="${esc(e.name)}" placeholder="BESS PSS-10"></label>${fld('loc','Location','text')}${fld('cod','COD date','date')}${fld('nBlocks','Number of blocks')}</div></fieldset>
+   <fieldset><legend>Battery & PCS</legend><div class="form">${fld('mw','Power (MW) *','number','required min="0"')}${fld('mwh','Battery rated capacity (MWh) *','number','required min="0"')}${fld('soh','FAT to SAT SoH %')}
+   ${fld('cTot','Total containers *','number','required min="1"')}${fld('pTot','Total PCS *','number','required min="1"')}</div></fieldset>
+   <fieldset><legend>Losses and efficiency</legend><div class="form">${fld('dod','DoD %')}${fld('eAux','Auxiliary consumption %')}${fld('eDcC','BESS DC efficiency (charging) %')}${fld('eDcD','BESS DC efficiency (discharging) %')}
+   ${fld('eDcCab','DC cable %')}${fld('ePcs','PCS %')}${fld('eLt','LT cable %')}${fld('eMv','MV transformer %')}${fld('eHv','HV cable %')}${fld('eSy','Switchyard and power transformer %')}</div></fieldset>
+   <fieldset><legend>Cycling & SOC window</legend><div class="form"><label>Planned cycles per day<select name="cyclesPerDay">${[1,2,3].map(n=>`<option${+e.cyclesPerDay===n?' selected':''}>${n}</option>`).join('')}</select></label>
+   ${fld('maxCyclesYear','Max cycles per year (warranty)')}${fld('socTh','Minimum operating SOC %')}${fld('socMaxOp','Maximum operating SOC %')}</div></fieldset>
+   <fieldset><legend>Guarantees</legend><div class="form">${fld('gRte','Guaranteed AC RTE %')}${fld('gAvail','Guaranteed availability %')}${fld('auxLim','Aux consumption limit %')}</div></fieldset>
+   <fieldset><legend>Tariff (used when no block prices are uploaded)</legend><div class="form">${fld('tChg','Charging cost ₹/MWh')}${fld('tDis','Discharge price ₹/MWh')}</div></fieldset>
+   <fieldset><legend>Real-time operation</legend><div class="form">${fld('dLoss','Discharge loss % (set point = schedule ÷ (1 − loss))')}${fld('cLoss','Charging loss % (set point = charging × (1 − loss))')}
+   <label class="wide">Default charging sources — one per line: name | contract no.<textarea name="srcs" rows="3" placeholder="AGE26AL_PSS12_KPS3_W | GNARE/WR/2026/09/07/9857">${esc(e.srcs)}</textarea></label></div></fieldset>
+   <fieldset><legend>Alerts</legend><div class="form">${fld('battTh','Battery availability below %')}${fld('pcsTh','PCS availability below %')}${fld('bdMin','Breakdown longer than (min)')}
+   <label class="wide">Alert e-mail recipients<input name="emails" value="${esc(e.emails)}" placeholder="om@company.com, scheduling@company.com"></label></div></fieldset>
+   ${ro?'':`${S.sample?'<label class="chk" style="border:0"><input type="checkbox" id="keepDemo" checked> Copy the sample data (about 18 days, 3 breakdowns) into this plant so the dashboard and reports are not empty. It is marked as demo data and can be deleted in one click.</label>':''}<div class="savebar"><button type="submit">${isNew||S.sample?'Save plant':'Save changes'}</button><button type="button" class="sec" id="plantCancel">Cancel</button><button type="button" class="sec" id="formReset">Reset losses to defaults</button><span class="muted" id="dirtyNote">${S.pdirty?'Unsaved changes':''}</span></div>`}
+  </fieldset></form>`}
+  ${editing&&!isNew&&!S.sample?`<p class="muted" style="margin-bottom:0">Plant ID <b>${esc(e.id)}</b> — use it in the “Plant ID” column of uploads. It stays the same if you rename the plant.</p>`:''}</div>
+  ${demoCount()&&can('admin')?`<div class="card" style="border-color:var(--warn)"><h2>Demo data</h2><p class="muted">${demoCount()} demo record${demoCount()===1?'':'s'} copied from the sample are in this plant. Delete them before relying on reports; uploading a real day also replaces that day.</p><button class="danger" id="delDemo">Delete demo data</button> <span class="muted" id="demoProg"></span></div>`:''}
+  ${!S.sample&&can('admin')&&!isNew&&!dayKeys().length?`<div class="card"><h2>No data in this plant yet</h2><p class="muted">Upload your real data on the Upload data page — or load about 18 days of demo data to see how the dashboard and reports look. Demo data is marked and can be deleted in one click.</p><button class="sec" id="loadDemo">Load demo data</button> <span class="muted" id="demoProg"></span></div>`:''}
+  <div class="card ef-card" id="chainBox">${chainHtml(e)}</div>
+  <div class="card"><h2>Your plants</h2>${pl.map(p0=>{const p={...PDEF,...p0};return`<div class="prow${p.id===S.plant?' sel':''}"><div><b>${esc(p.name)}</b> ${p.sample?'<span class="pill">Sample</span>':''}<div class="muted">${esc(p.loc||'—')} · ${f(p.mw,0)} MW / ${f(p.mwh,0)} MWh · ${p.cTot} containers · ${p.pTot} PCS · ${p.cyclesPerDay} cycle${p.cyclesPerDay>1?'s':''}/day</div></div>${p.id===S.plant?'<span class="pill">Selected</span>':`<button class="sec" data-psel="${esc(p.id)}">Open</button>`}</div>`}).join('')}</div>
+  ${S.plant?`<div class="card"><h2>Alert e-mail</h2><p class="muted">Builds the alert mail for ${esc(P().name)} on ${S.date}. Paste it into your mail; automatic sending needs a mail server (see below).</p><button class="sec" id="copyMail">Copy alert e-mail</button></div>`:''}
+  <div class="card"><h2>Data integrations</h2><table class="stack"><thead><tr><th>Source</th><th>Interface</th><th>Status</th></tr></thead><tbody>
+   <tr><td>Excel / CSV upload</td><td>Upload data and Live operation pages</td><td>Working</td></tr><tr><td>SCADA</td><td>API</td><td>Needs a server-side connector</td></tr><tr><td>EMS</td><td>API</td><td>Needs a server-side connector</td></tr>
+   <tr><td>Meter database</td><td>API</td><td>Needs a server-side connector</td></tr><tr><td>SQL Server</td><td>Direct connection</td><td>Needs a server-side connector</td></tr><tr><td>E-mail alerts</td><td>SMTP</td><td>Needs a mail server</td></tr></tbody></table></div>
+  <div class="card"><h2>User roles</h2><table class="stack"><thead><tr><th>BRD role</th><th>Share level on this app</th><th>Can do</th></tr></thead><tbody>
+   <tr><td>Admin</td><td>Owner / Editor</td><td>Add and edit plants and their parameters, delete records, everything below</td></tr>
+   <tr><td>Scheduler, HO & site O&M</td><td>Contributor</td><td>Upload data, live operation sheet, log breakdowns, view and download reports</td></tr>
+   <tr><td>Management</td><td>Viewer</td><td>View dashboard and reports only</td></tr></tbody></table></div>`;
+}
+
+/* ================= binding ================= */
+function setPlant(id){if(id===S.plant)return;S.plant=id;L.scrolled=false;S.editBd=null;S.plan=null;subPlant();applyData();const ks=dayKeys();S.date=ks[ks.length-1]||S.date;S.ym=S.date.slice(0,7)}
+function bindView(v){
+  const pd=$('#pickDate');if(pd)pd.onchange=()=>{if(pd.value){S.date=pd.value;S.ym=S.date.slice(0,7);route()}};
+  const step=d=>{const ks=dayKeys(),i=ks.indexOf(S.date),j=i<0?ks.length-1:i+d;if(ks[j]){S.date=ks[j];S.ym=S.date.slice(0,7);route()}};
+  if($('#prevD')){$('#prevD').onclick=()=>step(-1);$('#nextD').onclick=()=>step(1)}
+  const pm=$('#pickMonth');if(pm)pm.onchange=()=>{if(pm.value){S.ym=pm.value;route()}};
+  if(v==='dashboard')drawDash();if(v==='mis')drawMis();
+  const on=(id,fn)=>{const el=$(id);if(el)el.onclick=fn};
+  on('#dgrX',xDgr);on('#dgrP',pDgr);on('#misX',xMis);on('#misP',pMis);on('#mgmtP',pMgmt);on('#bdX',xBd);
+  $('#main').onclick=async e=>{
+    const t=e.target.closest('[data-day],[data-edit],[data-close],[data-del],[data-tpl],[data-pedit],[data-psel],[data-crm]');if(!t)return;
+    if(t.dataset.crm!=null){S.plan.cycles.splice(+t.dataset.crm,1);route();return}
+    if(t.dataset.day){S.date=t.dataset.day;S.ym=S.date.slice(0,7)}
+    if(t.dataset.tpl)xTemplate(t.dataset.tpl);
+    if(t.dataset.pedit){S.editPlant=t.dataset.pedit;route();scrollTo(0,0)}
+    if(t.dataset.psel){setPlant(t.dataset.psel);location.hash='#dashboard';route()}
+    if(t.dataset.edit){S.editBd=t.dataset.edit;route();scrollTo(0,0)}
+    if(t.dataset.close){const b={...S.data.bds[t.dataset.close],end:new Date().toISOString()};if(await save('breakdowns',b.id,b))toast('Breakdown closed')}
+    if(t.dataset.del){if(t.dataset.sure){if(await remove('breakdowns',t.dataset.del))toast('Breakdown deleted')}else{t.dataset.sure=1;t.textContent='Confirm delete'}}
+  };
+  if(v==='breakdowns')bindBd();if(v==='upload')bindUpload();if(v==='plants')bindPlants();if(v==='planner')bindPlan();if(v==='live')bindLive();
+}
+function bindBd(){
+  const fm=$('#bdForm');if(!fm)return;
+  fm.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(fm));
+    if(d.end&&d.end<d.start){toast('Restoration time is before fault start');return}
+    const id=S.editBd||('bd'+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
+    const rec={id,plant:S.plant,start:new Date(d.start).toISOString(),end:d.end?new Date(d.end).toISOString():null,block:d.block,sub:d.sub,lc:d.lc,bc:d.bc,pcs:d.pcs,container:d.container,down:d.down===''?null:+d.down,desc:d.desc,cause:d.cause,at:new Date().toISOString(),by:S.uid};
+    if(await save('breakdowns',id,rec)){S.editBd=null;toast('Breakdown saved');route()}};
+  const c=$('#bdCancel');if(c)c.onclick=()=>{S.editBd=null;route()};
+}
+function bindUpload(){
+  const fi=$('#file'),dr=$('#drop');if(!fi)return;
+  fi.onchange=()=>fi.files.length&&readFiles([...fi.files]);
+  dr.ondragover=e=>{e.preventDefault();dr.classList.add('on')};dr.ondragleave=()=>dr.classList.remove('on');
+  dr.ondrop=e=>{e.preventDefault();dr.classList.remove('on');if(e.dataTransfer.files.length)readFiles([...e.dataTransfer.files])};
+  const sa=$('#saveAll');if(sa)sa.onclick=saveStaged;
+  const di=$('#discard');if(di)di.onclick=()=>{S.staged=null;route()};
+}
+function bindDemo(){
+  const ld=$('#loadDemo');if(ld)ld.onclick=async()=>{ld.disabled=true;const smp=SAMPLE||(SAMPLE=buildSample()),id=S.plant,jobs=[];
+    for(const c of SRC)for(const d of Object.values(smp.src[c]||{}))jobs.push([c,key(id,d.date),{...d,plant:id,sample:null,demo:true,at:new Date().toISOString()}]);
+    Object.values(smp.bds).forEach((b,i)=>jobs.push(['breakdowns','demo-'+i,{...b,id:'demo-'+i,plant:id,sample:null,demo:true}]));let n=0;
+    for(const[c,k,d]of jobs){$('#demoProg').textContent=`Loading ${++n} of ${jobs.length}…`;if(!await save(c,k,d,true))break}
+    applyData();{const ks=dayKeys();if(ks.length){S.date=ks[ks.length-1];S.ym=S.date.slice(0,7)}}toast('Demo data loaded');route()};
+  const dd=$('#delDemo');if(dd)dd.onclick=async()=>{if(!dd.dataset.sure){dd.dataset.sure=1;dd.textContent='Confirm: delete all demo data';return}
+    dd.disabled=true;const jobs=[];for(const c of SRC)for(const[k,d]of Object.entries(S.data.src[c]))if(d.demo&&d.plant===S.plant)jobs.push([c,k]);
+    for(const b of plantBds())if(b.demo)jobs.push(['breakdowns',b.id]);let n=0;
+    for(const[c,k]of jobs){$('#demoProg').textContent=`Deleting ${++n} of ${jobs.length}…`;if(!await remove(c,k))break}
+    applyData();toast('Demo data deleted');route()};
+}
+function bindMail(){
+  const cm=$('#copyMail');if(cm)cm.onclick=async()=>{const al=alertsFor(S.date),k=kpi(S.date),p=P();
+    const txt=`To: ${p.emails}\nSubject: ${p.name} DGR ${S.date} — ${al.filter(a=>a.bad).length} alert(s)\n\n${al.map(a=>'• '+a.t).join('\n')}\n\nCharge ${f(k?.charge,1)} MWh · Discharge ${f(k?.dis,1)} MWh · AC RTE ${f(k?.acRte,2)}% · Plant availability ${f(k?.plant,2)}%`;
+    try{await navigator.clipboard.writeText(txt);toast('Alert e-mail copied')}catch{toast('Copy was blocked in this view')}};
+}
+function bindEff(){
+  const ins=[...document.querySelectorAll('.efin')];if(!ins.length)return;
+  const vals=()=>{const o={...P()};ins.forEach(i=>{const v=i.value.trim();o[i.dataset.k]=v===''?PDEF[i.dataset.k]:+v});return o};
+  const upd=()=>{const o=vals(),ch=chain(o);ch.rows.forEach((r,i)=>{$('#efc'+i).textContent=f(r.c,0);$('#efd'+i).textContent=f(r.d,0)});
+    $('#efcap').textContent=f(ch.cap,0)+' MWh';$('#efrte').textContent=`${f(ch.rows[4].d,0)} ÷ ${f(ch.rows[4].c,0)} = ${f(ch.rte,2)}%`;
+    const u=$('#useRte'),okv=ins.every(i=>i.value.trim()===''||(+i.value>0&&+i.value<=100));if(u){u.dataset.rte=okv?f(ch.rte,2).replace(/,/g,''):'';u.disabled=!okv}
+    EFFK.forEach(k=>{const t=$('#eft-'+k);if(t)t.innerHTML=+o[k]===+PDEF[k]?'<small class="dtag">default</small>':'<small class="ctag">changed</small>'});
+    const dirty=EFFK.some(k=>+o[k]!==+P()[k]);$('#efSave').disabled=!dirty;$('#efMsg').textContent=dirty?'Unsaved changes':'';S.pdirty=dirty;
+    const bad=ins.find(i=>i.value.trim()!==''&&!(+i.value>0&&+i.value<=100));$('#efSave').disabled=!dirty||!!bad;if(bad)$('#efMsg').textContent='Values must be between 0 and 100 %'};
+  ins.forEach(i=>i.oninput=upd);
+  $('#efReset').onclick=()=>{ins.forEach(i=>i.value=PDEF[i.dataset.k]);upd()};
+  $('#efSave').onclick=async()=>{const o=vals(),patch={};EFFK.forEach(k=>patch[k]=+o[k]);
+    if(await save('plants',S.plant,{...P(),...patch},true)){S.pdirty=false;applyData();toast('Efficiency values saved');route()}};
+}
+function bindPlants(){
+  bindEff();
+  const ap=$('#addPlant');if(ap)ap.onclick=()=>{S.editPlant='new';S.pdirty=false;route();scrollTo(0,0)};
+  const ur=$('#useRte');if(ur&&!$('#plantForm'))ur.onclick=async()=>{if(S.sample){toast('Use “Edit parameters” for the sample plant');return}if(!ur.dataset.rte){toast('Fix the efficiency values first');return}if(await save('plants',S.plant,{...P(),gRte:+ur.dataset.rte},true)){applyData();toast('Guaranteed AC RTE set to '+ur.dataset.rte+'%');route()}};
+  const ep=$('#editParams');if(ep)ep.onclick=()=>{S.editPlant='edit';S.pdirty=false;route()};
+  bindDemo();bindMail();const pd=document.querySelector('.pdet');if(pd)pd.ontoggle=()=>{S.openParams=pd.open;pd.querySelector('summary').textContent=pd.open?'Hide parameters':'Show all parameters'};if(pd&&pd.open)pd.querySelector('summary').textContent='Hide parameters';
+  const pf=$('#plantForm');if(!pf)return;
+  const read=()=>{const d=Object.fromEntries(new FormData(pf)),o={};for(const k in PDEF)o[k]=typeof PDEF[k]==='number'?(d[k]===''||d[k]==null?PDEF[k]:+d[k]):String(d[k]??'').trim();return o};
+  const useRte=e=>{if(!pf)return;pf.elements.gRte.value=e.target.dataset.rte;S.pdirty=true;const n=$('#dirtyNote');if(n)n.textContent='Unsaved changes';toast('Guaranteed AC RTE set to '+e.target.dataset.rte+'% — save to keep it')};
+  const redraw=()=>{$('#chainBox').innerHTML=chainHtml({...read(),name:read().name});const u=$('#useRte');if(u)u.onclick=useRte};
+  const u=$('#useRte');if(u)u.onclick=useRte;
+  pf.oninput=()=>{S.pdirty=true;const n=$('#dirtyNote');if(n)n.textContent='Unsaved changes';redraw()};
+  const fr=$('#formReset');if(fr)fr.onclick=()=>{EFFK.forEach(k=>{if(pf.elements[k])pf.elements[k].value=PDEF[k]});pf.oninput()};
+  const pc=$('#plantCancel');if(pc)pc.onclick=()=>{S.pdirty=false;S.editPlant=null;route()};
+  pf.onsubmit=async e=>{e.preventDefault();const o=read();
+    if(!o.name){toast('Enter a plant name');return}
+    if(!(o.mw>0&&o.mwh>0&&o.cTot>0&&o.pTot>0)){toast('Power, capacity, containers and PCS must be more than 0');return}
+    const creating=S.editPlant==='new'||S.sample,id=creating?slug(o.name):S.plant;
+    if(creating&&S.real.plants[id]){toast('A plant with this name already exists');return}
+    o.id=id;
+    const keep=$('#keepDemo')&&$('#keepDemo').checked,smp=keep?SAMPLE:null;
+    if(await save('plants',id,o,true)){
+      if(smp){let n=0;const jobs=[];
+        for(const c of SRC)for(const d of Object.values(smp.src[c]||{}))jobs.push([c,key(id,d.date),{...d,plant:id,sample:null,demo:true,at:new Date().toISOString()}]);
+        Object.values(smp.bds).forEach((b,i)=>jobs.push(['breakdowns','demo-'+i,{...b,id:'demo-'+i,plant:id,sample:null,demo:true}]));
+        for(const[c,k,d]of jobs){toast(`Copying demo data ${++n} of ${jobs.length}…`);if(!await save(c,k,d,true))break}}
+      S.pdirty=false;S.editPlant=null;applyData();setPlant(id);applyData();{const ks=dayKeys();if(ks.length){S.date=ks[ks.length-1];S.ym=S.date.slice(0,7)}}toast(keep?'Saved — demo data copied, reports are filled':'Saved — every calculation now uses these parameters');route()}};
+
+}
+
+/* ================= persistence ================= */
+async function save(col,id,data,quiet){
+  if(!db){setTimeout(persistLocal,0);
+    if(col==='plants')S.real.plants[id]=data;else if(SRC.includes(col))S.real.src[col][id]=data;else if(col==='breakdowns')S.real.bds[id]=data;else if(col==='uploads')S.real.uploads[id]=data;else if(col==='plans')S.real.plans[id]=data;
+    applyData();if(!quiet)route();return true}
+  try{await db.collection(col).doc(id).set(data);return true}
+  catch(e){toast(e.code==='invalid_argument'?'You do not have permission to change this':e.code==='quota_exceeded'?'Storage is full: '+e.message:'Could not save — try again');return false}
+}
+async function remove(col,id){
+  if(!db){setTimeout(persistLocal,0);if(col==='breakdowns')delete S.real.bds[id];else if(S.real.src[col])delete S.real.src[col][id];applyData();route();return true}
+  try{await db.collection(col).doc(id).delete();return true}catch(e){toast('Could not delete');return false}
+}
+
+/* ================= exports ================= */
+async function give(name,data){
+  if(!dl&&!window.claude){try{const a=document.createElement('a'),u=URL.createObjectURL(data instanceof Blob?data:new Blob([data]));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast('Downloaded '+name)}catch{toast('Download failed')}return}
+  if(!dl){toast('Downloads are not available in this view');return}
+  try{await dl.save({filename:name,data});toast('Saved '+name)}catch(e){if(e.code!=='declined')toast('Download failed: '+(e.message||e.code))}
+}
+const wbOut=wb=>new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})]);
+const r2=(v,d=2)=>v==null||!isFinite(v)?null:+(+v).toFixed(d);
+const fn=s=>String(s).replace(/\W+/g,'-');
+const bdRows=list=>[['Plant ID','Fault Date','Fault Start Time','Restoration Date','Restoration Time','Block','Sub Block','LC','BC','PCS No','Container No','Down Capacity (MW)','Fault Description','Root Cause','Duration (h)'],
+  ...list.map(b=>{const s=new Date(b.start),e=b.end?new Date(b.end):null;return[b.plant,ymd(s),hm(s.getHours()*60+s.getMinutes()),e?ymd(e):'',e?hm(e.getHours()*60+e.getMinutes()):'',b.block,b.sub,b.lc,b.bc,b.pcs,b.container,b.down,b.desc,b.cause,r2(durH(b))]})];
+function xDgr(){
+  if(!window.XLSX)return toast('Excel writer did not load');
+  const k=kpi(S.date),p=k.p,wb=XLSX.utils.book_new(),br=blockRows(k);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([[p.name+' — Daily Generation Report'],['Date',S.date],['Capacity',p.mw+' MW / '+p.mwh+' MWh'],[],['Parameter','Value','Unit','Formula'],...kpiRows(k).map(r=>[r[0],r2(r[1],r[3]),r[2],r[4]]),[],['Alerts'],...alertsFor(S.date).map(a=>[a.t])]),'DGR');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cycRows(k)),'Cycles');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Block','Time',...br.cols.map(c=>c[2])],...br.rows]),'96 Blocks');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(bdRows(bdsIn(S.date))),'Breakdowns');
+  give(`DGR_${fn(p.name)}_${S.date}.xlsx`,wbOut(wb));
+}
+function xMis(){
+  if(!window.XLSX)return toast('Excel writer did not load');
+  const m=monthAgg(S.ym),p=P(),wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([[p.name+' — Monthly MIS '+monthName(S.ym)],[],['Parameter','Value','Unit'],...misBody(m).map(r=>[r[0],typeof r[1]==='string'?+r[1].replace(/,/g,'')||r[1]:r[1],r[2]])]),'Summary');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Date','Import MWh','Export MWh','Aux MWh','Charge MWh','Discharge MWh','Loss MWh','AC RTE %','DC RTE %','Aux %','Cycles run','Equivalent cycles','Min SOC %','Max SOC %','SOH %','Battery %','PCS %','BOP %','Plant %','Charging cost Rs','Discharge revenue Rs','Net revenue Rs'],
+    ...m.days.map(({date,k})=>[date,r2(k.imp),r2(k.exp),r2(k.aux),r2(k.charge),r2(k.dis),r2(k.loss),r2(k.acRte),r2(k.dcRte),r2(k.auxPct),k.opCycles,r2(k.cycles,3),r2(k.socMin,1),r2(k.socMax,1),r2(k.soh),r2(k.batt),r2(k.pcs),r2(k.bop),r2(k.plant),r2(k.cost,0),r2(k.rev,0),r2(k.net,0)])]),'Daily KPIs');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Breakdown events',m.bds.length],['Total breakdown duration (h)',r2(m.downH)],['Operating hours',m.opH],['MTTR (days)',r2(m.mttr,3)],['MTBF (days)',r2(m.mtbf)],[],['MTTR = total breakdown duration ÷ number of events'],['MTBF = operating hours ÷ failure count']]),'MTTR & MTBF');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(bdRows(m.bds)),'Breakdowns');
+  give(`MIS_${fn(p.name)}_${S.ym}.xlsx`,wbOut(wb));
+}
+function xBd(){if(!window.XLSX)return toast('Excel writer did not load');const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(bdRows(bdsIn(S.ym))),'Breakdowns');give(`Breakdown_Log_${fn(P().name)}_${S.ym}.xlsx`,wbOut(wb))}
+function xTemplate(which){
+  if(!window.XLSX)return toast('Excel writer did not load');
+  const p=P(),d=$('#upDate')?.value||S.date,wb=XLSX.utils.book_new();
+  const blk=s=>[['Plant ID','Date','Block','Time',...FIELDS[s].map(x=>x[1])],...Array.from({length:96},(_,i)=>[p.id,d,i+1,blockTime(i)])];
+  const add=(s,name)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(s==='breakdowns'?[BDF.map(x=>x[1])]:blk(s)),name);
+  if(which==='all'){
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['How to use'],['Fill any of the sheets below and upload the whole workbook on the Upload data page.'],['Plant ID must match a plant in BESS parameters ('+p.id+'). Date as YYYY-MM-DD or DD-MM-YYYY.'],['Block = 1 to 96 (15-minute blocks). Several days can go in one sheet — add more rows with other dates.'],['Empty sheets are ignored. Re-uploading the same day replaces it.']]),'Read me');
+    add('meter','Meter');add('schedule','Schedule');add('scada','SCADA');add('price','Prices');add('breakdowns','Breakdowns');
+  }else add(which,which==='scada'?'SCADA':which==='price'?'Prices':which[0].toUpperCase()+which.slice(1));
+  give(`BESS_${which==='all'?'complete':which}_template.xlsx`,wbOut(wb));
+}
+function pdfDoc(title,sub){
+  const{jsPDF}=window.jspdf;const d=new jsPDF({unit:'pt',format:'a4'});
+  d.setFillColor(13,15,17);d.rect(0,0,595,62,'F');d.setTextColor(255);d.setFontSize(16);d.text(title,36,30);d.setFontSize(10);d.text(sub,36,48);d.setTextColor(0);return d;
+}
+const TS={theme:'grid',styles:{fontSize:8.5,cellPadding:3},headStyles:{fillColor:[213,219,224],textColor:20}};
+const pdfTxt=s=>String(s).replace(/₹/g,'Rs ').replace(/[−–]/g,'-').replace(/÷/g,'/').replace(/×/g,'x').replace(/Σ/g,'Sum of').replace(/≤/g,'<=').replace(/·/g,'-').replace(/→/g,'to');
+function pDgr(){
+  if(!window.jspdf)return toast('PDF writer did not load');
+  const k=kpi(S.date),p=k.p,d=pdfDoc(pdfTxt(p.name+' — Daily Generation Report'),`${S.date} - ${p.mw} MW / ${p.mwh} MWh`);
+  d.autoTable({...TS,startY:76,head:[['Parameter','Value','Unit','Formula']],body:kpiRows(k).map(r=>[r[0],f(r[1],r[3]),pdfTxt(r[2]),pdfTxt(r[4])])});
+  if(k.cyc&&k.cyc.length){const cr=cycRows(k);d.autoTable({...TS,startY:d.lastAutoTable.finalY+14,head:[cr[0]],body:cr.slice(1).map(r=>r.map(pdfTxt))})}
+  d.autoTable({...TS,startY:d.lastAutoTable.finalY+14,head:[['Alerts']],body:alertsFor(S.date).map(a=>[pdfTxt(a.t)])});
+  const bl=bdsIn(S.date);if(bl.length){const rows=bdRows(bl);d.autoTable({...TS,styles:{fontSize:7,cellPadding:2},startY:d.lastAutoTable.finalY+14,head:[rows[0]],body:rows.slice(1)})}
+  const br=blockRows(k);d.addPage();d.autoTable({...TS,styles:{fontSize:6,cellPadding:1.5},startY:36,head:[['Block','Time',...br.cols.map(c=>pdfTxt(c[2]))]],body:br.rows.map(r=>r.map((v,j)=>j===1?pdfTxt(v):j<2||br.cols[j-2][3]<0?(v??''):f(v,br.cols[j-2][3])))});
+  give(`DGR_${fn(p.name)}_${S.date}.pdf`,d.output('blob'));
+}
+function misBody(m){return[['Days reported',m.n,''],['Month import',f(m.imp,1),'MWh'],['Month export',f(m.exp,1),'MWh'],['Month auxiliary',f(m.aux,1),'MWh'],['Month loss',f(m.loss,1),'MWh'],['AC RTE',f(m.acRte,2),'%'],['DC RTE',f(m.dcRte,2),'%'],['Aux consumption',f(m.auxPct,2),'%'],['Cycles run',f(m.opCycles,0),''],['Planned cycles',f(m.planCycles,0),''],['Equivalent cycles',f(m.cycles,2),''],['Equivalent cycles this year',f(m.ytd,1),'of '+P().maxCyclesYear],['Average SOH',f(m.soh,2),'%'],['Battery availability',f(m.batt,2),'%'],['PCS availability',f(m.pcs,2),'%'],['Plant availability',f(m.plant,2),'%'],['Charging cost',f(m.cost,0),'Rs'],['Discharge revenue',f(m.rev,0),'Rs'],['Net revenue',f(m.net,0),'Rs'],['Breakdown events',m.bds.length,''],['MTTR',f(m.mttr,3),'days'],['MTBF',f(m.mtbf,2),'days']]}
+function pMis(){
+  if(!window.jspdf)return toast('PDF writer did not load');
+  const m=monthAgg(S.ym),p=P(),d=pdfDoc(pdfTxt(p.name+' — Monthly MIS'),monthName(S.ym)+` - ${p.mw} MW / ${p.mwh} MWh`);
+  d.autoTable({...TS,startY:76,head:[['Parameter','Value','Unit']],body:misBody(m)});
+  d.autoTable({...TS,startY:d.lastAutoTable.finalY+14,head:[['Date','Charge','Discharge','Aux','Loss','AC RTE %','Cycles run','Equiv.','Batt %','PCS %','Plant %']],body:m.days.map(({date,k})=>[date,f(k.charge,1),f(k.dis,1),f(k.aux,2),f(k.loss,1),f(k.acRte,2),f(k.opCycles,0),f(k.cycles,3),f(k.batt,2),f(k.pcs,2),f(k.plant,2)])});
+  if(m.bds.length){const rows=bdRows(m.bds);d.autoTable({...TS,styles:{fontSize:6.5,cellPadding:2},startY:d.lastAutoTable.finalY+14,head:[rows[0]],body:rows.slice(1)})}
+  give(`MIS_${fn(p.name)}_${S.ym}.pdf`,d.output('blob'));
+}
+function pMgmt(){
+  if(!window.jspdf)return toast('PDF writer did not load');
+  const m=monthAgg(S.ym),p=P(),d=pdfDoc(pdfTxt(p.name+' — Management Summary'),monthName(S.ym));
+  [[f(m.plant,2)+'%','Plant availability',36],[f(m.exp,0),'MWh discharged',220],[f(m.acRte,1)+'%','AC round-trip efficiency',400]].forEach(([v,l,x])=>{d.setFontSize(30);d.text(v,x,112);d.setFontSize(10);d.text(l,x,128)});
+  d.autoTable({...TS,startY:150,head:[['Parameter','Value','Unit']],body:misBody(m)});
+  const c={};m.bds.forEach(b=>{c[b.cause||'Unspecified']=(c[b.cause||'Unspecified']||0)+durH(b)});
+  d.autoTable({...TS,startY:d.lastAutoTable.finalY+14,head:[['Root cause','Breakdown hours']],body:Object.entries(c).map(([a,b])=>[a,f(b,1)])});
+  give(`Management_Summary_${fn(p.name)}_${S.ym}.pdf`,d.output('blob'));
+}
+
+/* ================= data subscriptions ================= */
+function rerender(){applyData();if(location.hash==='#live'){refreshLive();return}const busy=S.staged||S.editPlant||S.pdirty||S.editBd||document.activeElement?.closest?.('form')||location.hash==='#planner';if(!busy)route()}
+function subPlant(){
+  subs.forEach(u=>u());subs=[];
+  if(!db||!S.plant||S.sample)return;
+  const plant=S.plant;
+  for(const s of SRC){
+    subs.push(db.collection(s).where('plant','==',plant).orderBy('date','desc').limit(500).onSnapshot(q=>{
+      const o={};q.docs.forEach(x=>{o[x.id]=x.data()});S.real.src[s]=o;rerender()},()=>{}));
+  }
+  subs.push(db.collection('plans').where('plant','==',plant).limit(400).onSnapshot(q=>{const o={};q.docs.forEach(x=>{o[x.id]=x.data()});S.real.plans=o;rerender()},()=>{}));
+  subs.push(db.collection('breakdowns').where('plant','==',plant).limit(1000).onSnapshot(q=>{const o={};q.docs.forEach(x=>{o[x.id]={...x.data(),id:x.id}});S.real.bds=o;rerender()},()=>{}));
+}
+
+/* ================= standalone file: keep data in this browser ================= */
+function persistLocal(){if(db||window.claude)return;try{const mem={ops:{},site:{},log:{}};for(const t in mem)for(const k in MEM[t])if(!k.startsWith('BESS-PSS-08__')||S.real.plants['BESS-PSS-08'])mem[t][k]=MEM[t][k];
+  localStorage.setItem('bessDGR',JSON.stringify({real:S.real,mem}))}catch(e){toast('Browser storage is full — export your data')}}
+function loadLocal(){if(window.claude)return;try{const d=JSON.parse(localStorage.getItem('bessDGR')||'null');if(!d)return;
+  S.real={...S.real,...d.real,src:{...S.real.src,...(d.real.src||{})}};Object.assign(MEM.ops,d.mem?.ops||{});Object.assign(MEM.site,d.mem?.site||{});Object.assign(MEM.log,d.mem?.log||{})}catch{}}
+loadLocal();
+/* ================= start ================= */
+$('#plantSel').onchange=e=>{S.pdirty=false;S.editPlant=null;setPlant(e.target.value);route()};
+applyData();route();
+addEventListener('hashchange',()=>{S.editPlant=null;S.pdirty=false;route()});
+let rT;addEventListener('resize',()=>{clearTimeout(rT);rT=setTimeout(()=>{const v=location.hash.slice(1)||'dashboard';if(v==='dashboard'||v==='mis'){killCharts();v==='mis'?drawMis():drawDash()}},250)});
+new MutationObserver(()=>route()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+(async()=>{
+  if(!window.claude?.use)return;
+  const[u,d,w]=await Promise.all([claude.use('user'),claude.use('db'),claude.use('downloads')]);
+  dl=w;U=u;
+  if(u){S.uid=await u.id();if(await u.canEdit())S.role='admin';else{const c=await u.can('data.write');S.role=c===false?'mgmt':'om'}}
+  if(!d){route();return}
+  db=d;S.local=false;
+  const timer=setTimeout(()=>{$('#banner').hidden=false;$('#banner').textContent='Plant data can’t be reached yet — showing what is available.'},10000);
+  let first=true;
+  db.collection('plants').onSnapshot(q=>{
+    if(!q.metadata.fromCache)clearTimeout(timer);
+    const o={};q.docs.forEach(x=>{o[x.id]={...x.data(),id:x.id}});S.real.plants=o;
+    const had=S.plant;applyData();if(first||had!==S.plant||!S.sample&&!subs.length){first=false;subPlant()}rerender();
+  },()=>clearTimeout(timer));
+  db.collection('uploads').orderBy('at','desc').limit(50).onSnapshot(q=>{const o={};q.docs.forEach(x=>{o[x.id]=x.data()});S.real.uploads=o;rerender()},()=>{});
+  route();
+})();
+}
+
+</script>
+</body>
+</html>

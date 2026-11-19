@@ -15,6 +15,7 @@ function between(source, start, end) {
 const sites = [
   {id:"forecast", title:"Weather & Forecasting", tabs:[1,2,3], url:"https://re-grid-forecast.onrender.com"},
   {id:"maps", title:"Grid Maps", tabs:[7,8], url:"https://re-grid-maps.onrender.com"},
+  {id:"bess", title:"BESS operations", tabs:[], url:"https://re-grid-bess-operations.onrender.com"},
   {id:"dsm", title:"DSM & Data Processing", tabs:[4,5,6], url:"https://re-grid-dsm.onrender.com"},
 ];
 const introductions = {
@@ -68,6 +69,11 @@ for (const site of sites) {
   const nav = sites.map(other => other === site
     ? '<strong aria-current="page">' + escape(other.title) + '</strong>'
     : '<a href="' + siteUrl(other) + '">' + escape(other.title) + '</a>').join("");
+  if (site.id === "bess") {
+    writeFileSync(path.join(out, "index.html"), read("bess-operations.html"));
+    console.log("Built dist/bess");
+    continue;
+  }
   const tabCode = inline(`
 const siteTabs = ${JSON.stringify(site.tabs)};
 for (const id of siteTabs) {
