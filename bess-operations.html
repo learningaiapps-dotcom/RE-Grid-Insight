@@ -859,8 +859,8 @@ function vLive(){
    <tr><th rowspan="2">Block</th><th rowspan="2">Time</th><th rowspan="2" class="n" title="Discharging / selling power: enter a positive (+) MW value. Example: +50 MW.">Discharge schedule (+MW)</th><th rowspan="2" class="n" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW.">IEX purchase (−MW)${p.iexCode?'<br><small>'+esc(p.iexCode)+'</small>':''}</th>
    ${o.sources.map(s=>`<th class="n src">${esc(s.contract||'')}<br><b>${esc(s.label)}</b></th>`).join('')}<th rowspan="2" class="n">Total charging (MW)</th><th rowspan="2">Real-time changes</th>
    <th rowspan="2" class="n">Discharge set point (MW)</th><th rowspan="2" class="n">Charging set point (MW)</th><th rowspan="2" class="n">SOC (MWh)</th>
-   <th colspan="3" class="sitehd">Site team entries</th><th rowspan="2">Ack</th></tr>
-   <tr>${o.sources.map(()=>'<th class="n src2" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW.">Charging schedule (−MW)</th>').join('')}<th class="n sitehd">Actual MW (+dis / −chg)</th><th class="n sitehd">Actual SOC (MWh)</th><th class="sitehd">Remarks</th></tr></thead><tbody>
+   <th colspan="2" class="sitehd">Site team entries</th><th rowspan="2">Ack</th></tr>
+   <tr>${o.sources.map(()=>'<th class="n src2" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW.">Charging schedule (−MW)</th>').join('')}<th class="n sitehd">Actual SOC (MWh)</th><th class="sitehd">Remarks</th></tr></thead><tbody>
    ${rows.map(r=>{const both=r.d>0&&r.ctot>0;const heat='';
      return`<tr class="${r.i===cur?'now':ls.today&&r.i<cur||ls.past?'past':''}${r.rev>r.ack&&o.issued?' pend':''}" id="lb${r.n}"><td>${r.n}</td><td style="white-space:nowrap">${blockTime(r.i)}</td>
      <td class="n"${heat}>${hoCell(r,'d',r.b.d)}</td><td class="n">${hoCell(r,'iex',r.b.iex)}</td>
@@ -869,7 +869,7 @@ function vLive(){
      <td class="rt">${r.rev?`<span class="pill">rev ${r.rev}${r.b.at?' · '+new Date(r.b.at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false}):''}</span> `:''}${ho&&!(ls.past||(ls.today&&r.i<cur))?`<input class="ci wide" data-b="${r.n}" data-f="note" value="${esc(r.b.note||'')}" placeholder="note" aria-label="Block ${r.n} note">`:esc(r.b.note||'')}</td>
      <td class="n sp1 power-discharge">${r.dSet?operationText(r.dSet):''}</td><td class="n sp1 power-charge">${r.cSet?operationText(r.cSet,true):''}</td>
      <td class="n${r.soc<minS-.01||r.soc>maxS+.01?' short':''}${r.actual?' act':''}">${f(r.soc,1)}</td>
-     <td class="n">${siteCell(r,'amw',r.s.amw)}</td><td class="n">${siteCell(r,'asoc',r.s.asoc)}</td><td>${siteCell(r,'rem',r.s.rem,1)}</td>
+     <td class="n">${siteCell(r,'asoc',r.s.asoc)}</td><td>${siteCell(r,'rem',r.s.rem,1)}</td>
      <td>${r.rev?(r.ack>=r.rev?'<span class="okc">✓</span>':'<span class="red">Pending</span>'):''}</td></tr>`}).join('')}
    </tbody></table></div></div>
   <div class="grid2" style="margin-top:16px">
@@ -994,10 +994,10 @@ function xLiveTemplate(){
 function xLive(){
   if(!window.XLSX)return toast('Excel writer did not load');
   const o=opsDoc(),rows=liveRows(),p=P(),wb=XLSX.utils.book_new();
-  const head=['Time Block','Date','Time Stamp','Discharge Schedule (MW)','IEX Purchase (MW)',...o.sources.map(()=>'Charging Schedule (MW)'),'Total Charging (MW)','Real time changes','Discharge Set point (MW)','Charging Set point (MW)','SOC (MWh)','Actual MW','Actual SOC (MWh)','Site remarks','Acknowledged'];
+  const head=['Time Block','Date','Time Stamp','Discharge Schedule (MW)','IEX Purchase (MW)',...o.sources.map(()=>'Charging Schedule (MW)'),'Total Charging (MW)','Real time changes','Discharge Set point (MW)','Charging Set point (MW)','SOC (MWh)','Actual SOC (MWh)','Site remarks','Acknowledged'];
   const pre=n=>['','','','',n?'':p.iexCode||'',...o.sources.map(s=>n?s.label:s.contract)];
   const aoa=[[...pre(0),'','','Discharge loss',p.dLoss/100,'Charging loss',p.cLoss/100],pre(1),head,...rows.map(r=>[r.n,S.liveDate,blockTime(r.i).replace('–',' - '),operationValue(r.b.d),operationValue(r.b.iex,true),...o.sources.map(s=>operationValue(r.b.c?.[s.id],true)),operationValue(r.ctot,true),
-    (r.rev?`Rev ${r.rev}`+(r.b.o&&isNum(r.b.o.d)&&r.b.o.d!==r.b.d?` (discharge was ${r.b.o.d})`:''):'')+(r.b.note?(r.rev?' · ':'')+r.b.note:''),r2(r.dSet,1),r2(operationValue(r.cSet,true),1),r2(r.soc,1),r.s.amw??null,r.s.asoc??null,r.s.rem||'',r.rev?(r.ack>=r.rev?'Yes':'Pending'):''])];
+    (r.rev?`Rev ${r.rev}`+(r.b.o&&isNum(r.b.o.d)&&r.b.o.d!==r.b.d?` (discharge was ${r.b.o.d})`:''):'')+(r.b.note?(r.rev?' · ':'')+r.b.note:''),r2(r.dSet,1),r2(operationValue(r.cSet,true),1),r2(r.soc,1),r.s.asoc??null,r.s.rem||'',r.rev?(r.ack>=r.rev?'Yes':'Pending'):''])];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Operation sheet');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Time','Team','Block','Change','From','To'],...logList().map(l=>[fmtDT(l.at),l.team==='site'?'Site':'HO',l.block||'',l.field||'',l.from??'',l.to??''])]),'Change log');
   give(`Live_operation_${fn(p.name)}_${S.liveDate}.xlsx`,wbOut(wb));
