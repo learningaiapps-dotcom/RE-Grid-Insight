@@ -156,6 +156,9 @@ figure.ref{margin:0}figure.ref img{width:100%;height:auto;border:1px solid var(-
 .power-discharge, input.power-discharge{color:#cf2424!important}
 :root[data-theme=dark] .power-charge{color:#80baff!important}
 :root[data-theme=dark] .power-discharge{color:#ff8a8a!important}
+
+.sign-help{display:inline-block;cursor:help}
+.sign-help:hover::after,.sign-help:focus::after{content:attr(data-sign-tip);display:block;position:absolute;z-index:10;background:#17212b;color:white;border-radius:4px;padding:7px 10px;font-size:12px;font-weight:400;white-space:normal;width:190px;text-align:left;box-shadow:0 2px 8px #0003}
 </style>
 <script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
 </head>
@@ -835,7 +838,7 @@ function vLive(){
   const cb=cur>=0&&cur<96?rows[cur]:null,nx=rows.slice(Math.max(cur+1,0),Math.max(cur+1,0)+4);
   const sumD=rows.reduce((a,r)=>a+r.d/4,0),sumC=rows.reduce((a,r)=>a+r.ctot/4,0);
   const hoCell=(r,f,v)=>{const charging=f==='iex'||f.startsWith('c.');v=operationValue(v,charging);const color=charging?'power-charge':'power-discharge';const lock=!ho||(ls.past)||(ls.today&&r.i<cur);const ch=r.b.o&&f in(r.b.o)&&String(operationValue(r.b.o[f],charging)??'')!==String(v??'')?' chg':'';
-    return lock?`<span class="${color}${ch}">${v!=null?operationText(v,charging):''}</span>`:`<input class="ci ${color}${ch}" title="${charging?'Charging / buying: enter negative (-) MW, e.g. -50.':'Discharging / selling: enter positive (+) MW, e.g. +50.'}" inputmode="decimal" data-b="${r.n}" data-f="${f}" value="${v??''}" aria-label="Block ${r.n} ${f}">`};
+    return lock?`<span class="${color}${ch}">${v!=null?operationText(v,charging):''}</span>`:`<input class="ci ${color}${ch}" title="${charging?'Charging / buying: enter negative (-) MW, e.g. -50.':'Discharging / selling: enter positive (+) MW, e.g. +50.'}" inputmode="decimal" data-b="${r.n}" data-f="${f}" value="${v==null?'':v>0?'+'+v:v}" aria-label="Block ${r.n} ${f}">`};
   const f1=v=>Number(v).toLocaleString('en-IN',{maximumFractionDigits:1});
   const siteCell=(r,f,v,w)=>{const lock=!site||ls.fut||(ls.today&&r.i>cur);return lock?(f==='amw'?'<span class="'+(+v<0?'power-charge':'power-discharge')+'">'+(v==null?'':(+v>0?'+':'')+esc(v))+'</span>':esc(v??'')):`<input class="ci${w?' wide':''}${f==='amw'?(+v<0?' power-charge':' power-discharge'):''}" ${f==='rem'?'':'inputmode="decimal"'} data-b="${r.n}" data-f="${f}" value="${esc(v??'')}" aria-label="Block ${r.n} ${f}">`};
   return`<div class="bar"><label>Operating day<input type="date" id="liveDate" value="${S.liveDate}"></label>
@@ -856,11 +859,11 @@ function vLive(){
    :`<div class="nowc"><div class="lbl">${ls.fut?'Planned day':'Completed day'}</div><div class="sp"><div><span>Scheduled discharge</span><b>${operationText(sumD)}</b> MWh</div><div><span>Scheduled charging</span><b>${operationText(sumC,true)}</b> MWh</div><div><span>Real-time revisions</span><b>${nRev}</b></div></div></div>`}
   </section>
   <div class="card" style="padding:0"><div class="scroll livewrap" id="liveWrap"><table class="live"><thead>
-   <tr><th rowspan="2">Block</th><th rowspan="2">Time</th><th rowspan="2" class="n" title="Discharging / selling power: enter a positive (+) MW value. Example: +50 MW.">Discharge schedule (+MW)</th><th rowspan="2" class="n" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW.">IEX purchase (−MW)${p.iexCode?'<br><small>'+esc(p.iexCode)+'</small>':''}</th>
+   <tr><th rowspan="2">Block</th><th rowspan="2">Time</th><th rowspan="2" class="n" title="Discharging / selling power: enter a positive (+) MW value. Example: +50 MW."><span tabindex="0" class="sign-help" data-sign-tip="Discharging / selling: positive (+), e.g. +50 MW">Discharge schedule (+MW)</span></th><th rowspan="2" class="n" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW.">IEX purchase (−MW)${p.iexCode?'<br><small>'+esc(p.iexCode)+'</small>':''}</th>
    ${o.sources.map(s=>`<th class="n src">${esc(s.contract||'')}<br><b>${esc(s.label)}</b></th>`).join('')}<th rowspan="2" class="n">Total charging (MW)</th><th rowspan="2">Real-time changes</th>
    <th rowspan="2" class="n">Discharge set point (MW)</th><th rowspan="2" class="n">Charging set point (MW)</th><th rowspan="2" class="n">SOC (MWh)</th>
    <th colspan="2" class="sitehd">Site team entries</th><th rowspan="2">Ack</th></tr>
-   <tr>${o.sources.map(()=>'<th class="n src2" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW.">Charging schedule (−MW)</th>').join('')}<th class="n sitehd">Actual SOC (MWh)</th><th class="sitehd">Remarks</th></tr></thead><tbody>
+   <tr>${o.sources.map(()=>'<th class="n src2" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW."><span tabindex="0" class="sign-help" data-sign-tip="Charging / buying: negative (−), e.g. −50 MW">Charging schedule (−MW)</span></th>').join('')}<th class="n sitehd">Actual SOC (MWh)</th><th class="sitehd">Remarks</th></tr></thead><tbody>
    ${rows.map(r=>{const both=r.d>0&&r.ctot>0;const heat='';
      return`<tr class="${r.i===cur?'now':ls.today&&r.i<cur||ls.past?'past':''}${r.rev>r.ack&&o.issued?' pend':''}" id="lb${r.n}"><td>${r.n}</td><td style="white-space:nowrap">${blockTime(r.i)}</td>
      <td class="n"${heat}>${hoCell(r,'d',r.b.d)}</td><td class="n">${hoCell(r,'iex',r.b.iex)}</td>
