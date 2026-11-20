@@ -110,11 +110,11 @@ td.left{background:color-mix(in srgb,var(--ok) 16%,transparent)}td.short{backgro
 .livewrap{max-height:70vh;overflow:auto}
 table.live{font-size:13px;white-space:nowrap}table.live thead{position:sticky;top:0;z-index:2}table.live th{font-size:12px;white-space:normal;min-width:5.5em;vertical-align:bottom}
 table.live th.src{font-weight:500;font-size:11px}table.live th.sitehd{background:color-mix(in srgb,var(--chg) 18%,var(--panel2))}
-table.live td{padding:3px 6px}table.live tr.now td{background:color-mix(in srgb,var(--ok) 26%,var(--bg))}table.live tr.past td{opacity:.62}
+table.live td{padding:3px 6px}table.live tr.now td{background:var(--bg)}table.live tr.past td{opacity:.62}
 table.live tr.pend td:first-child{box-shadow:inset 4px 0 var(--alarm)}
 .ci{min-height:34px;width:6.5em;padding:4px 6px;font-size:14px;text-align:right;background:transparent}.ci.wide{width:12em;text-align:left}
-.ci.chg,span.chg{outline:2px solid #f0b400;outline-offset:-2px;background:transparent}
-td.sp1{font-weight:600}td.act{font-weight:700}td.warnc{background:color-mix(in srgb,var(--alarm) 25%,transparent)}
+.ci.chg,span.chg{outline:none;background:transparent}
+td.sp1{font-weight:600}td.act{font-weight:700}td.warnc{background:var(--bg)}
 .okc{color:var(--ok);font-weight:700}
 .logl{max-height:360px;overflow:auto}.lg{padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}.pill.s{background:color-mix(in srgb,var(--chg) 25%,var(--panel))}
 @media(max-width:900px){.livehero{grid-template-columns:minmax(0,1fr)}}@media(max-width:600px){.sp{gap:6px}.sp span,.sp small{font-size:11px}}
@@ -159,6 +159,9 @@ figure.ref{margin:0}figure.ref img{width:100%;height:auto;border:1px solid var(-
 
 .sign-help{display:inline-block;cursor:help}
 .sign-help:hover::after,.sign-help:focus::after{content:attr(data-sign-tip);display:block;position:absolute;z-index:10;background:#17212b;color:white;border-radius:4px;padding:7px 10px;font-size:12px;font-weight:400;white-space:normal;width:190px;text-align:left;box-shadow:0 2px 8px #0003}
+table.live tbody td{background:var(--bg)!important}
+table.live .ci{background:var(--bg)!important;box-shadow:none;outline:none;border-color:var(--line)}
+table.live tr.pend td:first-child{box-shadow:none}
 </style>
 <script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
 </head>
