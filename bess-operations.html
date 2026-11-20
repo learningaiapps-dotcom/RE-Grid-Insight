@@ -169,6 +169,9 @@ figure.ref{margin:0}figure.ref img{width:100%;height:auto;border:1px solid var(-
   </nav>
   <div class="who" id="roleChip">Loading…</div>
 </header>
+<details id="featureSettings" style="padding:10px max(3vw,14px)"><summary>Choose features</summary>
+<p class="muted">Select the sections and live-operation tools you want to see. This choice is saved in this browser.</p>
+<div id="featureOptions" class="form"></div><button class="sec" id="featureReset">Select all features</button></details>
 <div id="banner" class="banner" hidden></div>
 <main id="main"><div class="empty">Loading plant data…</div></main>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -414,14 +417,35 @@ function chart(id,cfg){
 /* ================= routing ================= */
 const VIEWS={live:vLive,dashboard:vDash,dgr:vDgr,mis:vMis,planner:vPlan,breakdowns:vBd,upload:vUpload,plants:vPlants};
 const NEED={upload:'om'};
+const OPTIONAL_SECTIONS={live:'Live operation',dashboard:'Dashboard',dgr:'Daily DGR',mis:'Monthly MIS',planner:'Planner',breakdowns:'Breakdowns'};
+const OPTIONAL_TOOLS={lUpBtn:'Upload schedule',lTemplate:'Schedule template',lCopy:'Copy previous day',lX:'Export operation Excel',lIssue:'Issue to site'};
+let featurePrefs={};
+try{const saved=JSON.parse(localStorage.getItem('bessFeatures')||'{}');if(saved&&typeof saved==='object')featurePrefs=saved}catch{}
+const featureOn=key=>featurePrefs[key]!==false;
+function featureControls(){
+  const groups=[['Sections',OPTIONAL_SECTIONS],['Live operation tools',OPTIONAL_TOOLS]];
+  $('#featureOptions').innerHTML=groups.map(([label,items])=>'<fieldset><legend>'+label+'</legend>'+Object.entries(items).map(([key,name])=>'<label style="display:block"><input type="checkbox" data-feature="'+key+'" '+(featureOn(key)?'checked':'')+'> '+name+'</label>').join('')+'</fieldset>').join('');
+}
+function saveFeatures(){
+  try{localStorage.setItem('bessFeatures',JSON.stringify(featurePrefs))}catch{toast('Feature choices could not be saved in this browser')}
+  route();
+}
+$('#featureOptions').onchange=e=>{
+  if(!e.target.dataset.feature)return;
+  featurePrefs[e.target.dataset.feature]=e.target.checked;saveFeatures();
+};
+$('#featureReset').onclick=()=>{featurePrefs={};featureControls();saveFeatures()};
+featureControls();
+
 function route(){
-  let v=location.hash.slice(1);if(!VIEWS[v]||(NEED[v]&&!can(NEED[v])))v='dashboard';
-  document.querySelectorAll('#tabs a').forEach(a=>{a.hidden=a.dataset.need&&!can(a.dataset.need);a.getAttribute('href')==='#'+v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
+  let v=location.hash.slice(1);if(!VIEWS[v]||(NEED[v]&&!can(NEED[v]))||!featureOn(v))v=Object.keys(VIEWS).find(key=>featureOn(key)&&(!NEED[key]||can(NEED[key])))||'plants';
+  document.querySelectorAll('#tabs a').forEach(a=>{a.hidden=(a.dataset.need&&!can(a.dataset.need))||!featureOn(a.getAttribute('href').slice(1));a.getAttribute('href')==='#'+v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
   const sel=$('#plantSel');sel.innerHTML=Object.values(S.plants).sort((a,b)=>a.name<b.name?-1:1).map(p=>`<option value="${esc(p.id)}"${p.id===S.plant?' selected':''}>${esc(p.name)}</option>`).join('')||'<option>No plant yet</option>';
   const p=P();$('#plantCap').textContent=S.plant?`${f(p.mw,0)} MW / ${f(p.mwh,0)} MWh`:'';
   $('#roleChip').textContent={admin:'Admin',om:'O&M / Scheduler',mgmt:'Management (view only)'}[S.role];
   killCharts();$('#main').innerHTML=S.plant||v==='plants'||v==='upload'?VIEWS[v]():`<div class="empty">No plant has been set up yet. ${can('admin')?'<a href="#plants">Add your first plant</a>.':'Ask the admin to add the plant.'}</div>`;
   bindView(v);fillNames();
+  Object.keys(OPTIONAL_TOOLS).forEach(id=>{const el=$('#'+id);if(el)el.hidden=!featureOn(id)});
 }
 function fillNames(){
   const els=[...document.querySelectorAll('[data-uid]')];if(!els.length||!U)return;
@@ -747,7 +771,7 @@ function vLive(){
    <button class="sec" id="lPrev" aria-label="Previous day">◀</button><button class="sec" id="lNext" aria-label="Next day">▶</button><button class="sec" id="lToday">Today</button>
    ${edit?`<div class="seg" role="group" aria-label="Team"><button class="${S.team==='ho'?'on':''}" data-team="ho">HO team</button><button class="${S.team==='site'?'on':''}" data-team="site">Site team</button></div>`:''}
    <span class="muted" id="liveStat">${useMem()?'Not shared (sample / offline)':'● Live — both teams see changes instantly'}</span><div class="grow"></div>
-   ${ho?`<button class="sec" id="lUpBtn">Upload schedule</button><input type="file" id="lUp" accept=".xlsx,.xls,.csv" hidden>${!o.issued?'<button class="sec" id="lCopy">Copy previous day</button>':''}`:''}
+   ${ho?`<button class="sec" id="lTemplate">Download schedule template</button><button class="sec" id="lUpBtn">Upload schedule</button><input type="file" id="lUp" accept=".xlsx,.xls,.csv" hidden>${!o.issued?'<button class="sec" id="lCopy">Copy previous day</button>':''}`:''}
    <button class="sec" id="lX">Export Excel</button>${ho&&!o.issued?'<button id="lIssue">Issue to site</button>':''}</div>
   <h1 style="margin-bottom:6px">Real-time operation · ${esc(p.name)} · ${new Date(S.liveDate+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</h1>
   <p class="muted" style="margin:0 0 14px">${o.issued?`Schedule issued to site ${esc(fmtDT(o.issuedAt))}${o.issuedBy?' by <span data-uid="'+esc(o.issuedBy)+'">HO</span>':''} · ${nRev} block${nRev===1?'':'s'} revised in real time`:'<b class="red">Draft — not yet issued to site.</b> HO enters or uploads the schedule, then clicks “Issue to site”.'} · Discharge set point = schedule ÷ (1 − ${p.dLoss}% loss) · Charging set point = total charging × (1 − ${p.cLoss}% loss)</p>
@@ -877,6 +901,24 @@ async function liveUpload(file){
   liveSet('ops',{sources:srcs,blocks});liveLog({kind:o.issued?'revision-file':'draft',field:`Uploaded ${file.name}: ${changed} block${changed===1?'':'s'} ${o.issued?'revised':'filled'}`});schedSync();
   toast(`${file.name}: ${changed} block${changed===1?'':'s'} ${o.issued?'revised — site will be asked to acknowledge':'loaded as draft'}`);
 }
+function xLiveTemplate(){
+  if(!window.XLSX)return toast('Excel writer did not load');
+  const sources=opsDoc().sources,wb=XLSX.utils.book_new();
+  const rows=[
+    ['','','','','',...sources.map(source=>source.contract)],
+    ['','','','','',...sources.map(source=>source.label)],
+    ['Time Block','Date','Time Stamp','Discharge Schedule (MW)','IEX Purchase (MW)',...sources.map(()=>'Charging Schedule (MW)'),'Real time changes'],
+    ...Array.from({length:96},(_,i)=>[i+1,S.liveDate,blockTime(i),'','',...sources.map(()=>''),''])
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Operation schedule');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Fill the Operation schedule sheet, then use Upload schedule in Live operation.'],
+    ['Use one operating date per workbook and retain Time Block values 1 to 96.'],
+    ['Enter discharge, IEX purchase and charging schedules in MW. Enter 0 for no operation.'],
+    ['Keep the column headings and charging-source labels unchanged.']
+  ]),'Instructions');
+  give('BESS_operation_schedule_template_'+S.liveDate+'.xlsx',wbOut(wb));
+}
 function xLive(){
   if(!window.XLSX)return toast('Excel writer did not load');
   const o=opsDoc(),rows=liveRows(),p=P(),wb=XLSX.utils.book_new();
@@ -911,7 +953,7 @@ function bindLive(){
   $('#lPrev').onclick=()=>sh(-1);$('#lNext').onclick=()=>sh(1);$('#lToday').onclick=()=>{S.liveDate=istDate();route()};
   document.querySelectorAll('[data-team]').forEach(b=>b.onclick=()=>{setTeam(b.dataset.team);route()});
   const on=(id,f)=>{const el=$(id);if(el)el.onclick=f};
-  on('#lX',xLive);on('#lCopy',liveCopyPrev);
+  on('#lTemplate',xLiveTemplate);on('#lX',xLive);on('#lCopy',liveCopyPrev);
   on('#lIssue',()=>{liveSet('ops',{issued:true,issuedAt:new Date().toISOString(),issuedBy:S.uid||null});liveLog({kind:'issue',field:'Schedule issued to site'});schedSync();toast('Issued — site team can see the schedule')});
   on('#lAck',()=>{const pend=pendingAcks(liveRows());if(!pend.length)return;liveSet('opsite',{ack:Object.fromEntries(pend.map(r=>[r.bk,r.rev]))});liveLog({kind:'ack',field:'Site acknowledged blocks '+pend.map(r=>r.n).join(', ')})});
   on('#lUpBtn',()=>$('#lUp').click());const up=$('#lUp');if(up)up.onchange=()=>up.files[0]&&liveUpload(up.files[0]);
