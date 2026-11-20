@@ -113,7 +113,7 @@ table.live th.src{font-weight:500;font-size:11px}table.live th.sitehd{background
 table.live td{padding:3px 6px}table.live tr.now td{background:color-mix(in srgb,var(--ok) 26%,var(--bg))}table.live tr.past td{opacity:.62}
 table.live tr.pend td:first-child{box-shadow:inset 4px 0 var(--alarm)}
 .ci{min-height:34px;width:6.5em;padding:4px 6px;font-size:14px;text-align:right;background:transparent}.ci.wide{width:12em;text-align:left}
-.ci.chg,span.chg{outline:2px solid #f0b400;outline-offset:-2px;background:color-mix(in srgb,#ffd84a 35%,transparent)}
+.ci.chg,span.chg{outline:2px solid #f0b400;outline-offset:-2px;background:transparent}
 td.sp1{font-weight:600}td.act{font-weight:700}td.warnc{background:color-mix(in srgb,var(--alarm) 25%,transparent)}
 .okc{color:var(--ok);font-weight:700}
 .logl{max-height:360px;overflow:auto}.lg{padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}.pill.s{background:color-mix(in srgb,var(--chg) 25%,var(--panel))}
@@ -830,12 +830,12 @@ function vLive(){
   if(!S.liveDate)S.liveDate=istDate();if(!S.team)S.team=getTeam()||'ho';
   subLive();
   const p=P(),o=opsDoc(),rows=liveRows(),ls=liveState(),cur=ls.cur,edit=can('om'),ho=edit&&S.team==='ho',site=edit&&S.team==='site';
-  const maxD=Math.max(1,...rows.map(r=>r.d)),minS=p.socTh/100*p.mwh,maxS=p.socMaxOp/100*p.mwh,pend=pendingAcks(rows);
+  const minS=p.socTh/100*p.mwh,maxS=p.socMaxOp/100*p.mwh,pend=pendingAcks(rows);
   const nRev=rows.filter(r=>r.rev).length;
   const cb=cur>=0&&cur<96?rows[cur]:null,nx=rows.slice(Math.max(cur+1,0),Math.max(cur+1,0)+4);
   const sumD=rows.reduce((a,r)=>a+r.d/4,0),sumC=rows.reduce((a,r)=>a+r.ctot/4,0);
   const hoCell=(r,f,v)=>{const charging=f==='iex'||f.startsWith('c.');v=operationValue(v,charging);const color=charging?'power-charge':'power-discharge';const lock=!ho||(ls.past)||(ls.today&&r.i<cur);const ch=r.b.o&&f in(r.b.o)&&String(operationValue(r.b.o[f],charging)??'')!==String(v??'')?' chg':'';
-    return lock?`<span class="${color}${ch}">${v!=null?operationText(v,charging):''}</span>`:`<input class="ci ${color}${ch}" inputmode="decimal" data-b="${r.n}" data-f="${f}" value="${v??''}" aria-label="Block ${r.n} ${f}">`};
+    return lock?`<span class="${color}${ch}">${v!=null?operationText(v,charging):''}</span>`:`<input class="ci ${color}${ch}" title="${charging?'Charging / buying: enter negative (-) MW, e.g. -50.':'Discharging / selling: enter positive (+) MW, e.g. +50.'}" inputmode="decimal" data-b="${r.n}" data-f="${f}" value="${v??''}" aria-label="Block ${r.n} ${f}">`};
   const f1=v=>Number(v).toLocaleString('en-IN',{maximumFractionDigits:1});
   const siteCell=(r,f,v,w)=>{const lock=!site||ls.fut||(ls.today&&r.i>cur);return lock?(f==='amw'?'<span class="'+(+v<0?'power-charge':'power-discharge')+'">'+(v==null?'':(+v>0?'+':'')+esc(v))+'</span>':esc(v??'')):`<input class="ci${w?' wide':''}${f==='amw'?(+v<0?' power-charge':' power-discharge'):''}" ${f==='rem'?'':'inputmode="decimal"'} data-b="${r.n}" data-f="${f}" value="${esc(v??'')}" aria-label="Block ${r.n} ${f}">`};
   return`<div class="bar"><label>Operating day<input type="date" id="liveDate" value="${S.liveDate}"></label>
@@ -844,7 +844,7 @@ function vLive(){
    <span class="muted" id="liveStat">${useMem()?'Not shared (sample / offline)':'● Live — both teams see changes instantly'}</span><div class="grow"></div>
    ${ho?`<button class="sec" id="lTemplate">Download schedule template</button><button class="sec" id="lUpBtn">Upload schedule</button><input type="file" id="lUp" accept=".xlsx,.xls,.csv" hidden>${!o.issued?'<button class="sec" id="lCopy">Copy previous day</button>':''}`:''}
    <button class="sec" id="lX">Export Excel</button>${ho&&!o.issued?'<button id="lIssue">Issue to site</button>':''}</div>
-  <p class="muted" style="margin:0 0 6px"><span class="power-charge">Charging / buying −</span> · <span class="power-discharge">Discharging / selling +</span></p><h1 style="margin-bottom:6px">Real-time operation · ${esc(p.name)} · ${new Date(S.liveDate+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</h1>
+  <p class="muted" style="margin:0 0 6px">Charging / buying: enter <span class="power-charge">negative (−)</span> MW · Discharging / selling: enter <span class="power-discharge">positive (+)</span> MW</p><h1 style="margin-bottom:6px">Real-time operation · ${esc(p.name)} · ${new Date(S.liveDate+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</h1>
   <p class="muted" style="margin:0 0 14px">${o.issued?`Schedule issued to site ${esc(fmtDT(o.issuedAt))}${o.issuedBy?' by <span data-uid="'+esc(o.issuedBy)+'">HO</span>':''} · ${nRev} block${nRev===1?'':'s'} revised in real time`:'<b class="red">Draft — not yet issued to site.</b> HO enters or uploads the schedule, then clicks “Issue to site”.'} · Discharge set point = schedule ÷ (1 − ${p.dLoss}% loss) · Charging set point = total charging × (1 − ${p.cLoss}% loss)</p>
   ${(()=>{const bad=rows.find(r=>r.soc<minS-.01||r.soc>maxS+.01);return bad?`<div class="al bad" style="margin:0 0 14px"><b>SOC check</b> · Projected SOC ${bad.soc<minS?'falls below the '+f(minS,1)+' MWh minimum':'rises above the '+f(maxS,1)+' MWh maximum'} at block ${bad.n} (${blockTime(bad.i)}) — the schedule cannot be met as it stands. Check SOC at 00:00 or revise.</div>`:''})()}
   ${pend.length&&o.issued?`<div class="pendbar"><b>${pend.length} real-time change${pend.length===1?'':'s'} not yet acknowledged by site:</b> ${pend.slice(0,8).map(r=>`Block ${r.n} (${blockTime(r.i)}) rev ${r.rev}`).join(' · ')}${pend.length>8?' …':''} ${site?'<button id="lAck">Acknowledge all</button>':''}</div>`:''}
@@ -856,12 +856,12 @@ function vLive(){
    :`<div class="nowc"><div class="lbl">${ls.fut?'Planned day':'Completed day'}</div><div class="sp"><div><span>Scheduled discharge</span><b>${operationText(sumD)}</b> MWh</div><div><span>Scheduled charging</span><b>${operationText(sumC,true)}</b> MWh</div><div><span>Real-time revisions</span><b>${nRev}</b></div></div></div>`}
   </section>
   <div class="card" style="padding:0"><div class="scroll livewrap" id="liveWrap"><table class="live"><thead>
-   <tr><th rowspan="2">Block</th><th rowspan="2">Time</th><th rowspan="2" class="n">Discharge schedule (MW)</th><th rowspan="2" class="n">IEX purchase (MW)${p.iexCode?'<br><small>'+esc(p.iexCode)+'</small>':''}</th>
+   <tr><th rowspan="2">Block</th><th rowspan="2">Time</th><th rowspan="2" class="n" title="Discharging / selling power: enter a positive (+) MW value. Example: +50 MW.">Discharge schedule (+MW)</th><th rowspan="2" class="n" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW.">IEX purchase (−MW)${p.iexCode?'<br><small>'+esc(p.iexCode)+'</small>':''}</th>
    ${o.sources.map(s=>`<th class="n src">${esc(s.contract||'')}<br><b>${esc(s.label)}</b></th>`).join('')}<th rowspan="2" class="n">Total charging (MW)</th><th rowspan="2">Real-time changes</th>
    <th rowspan="2" class="n">Discharge set point (MW)</th><th rowspan="2" class="n">Charging set point (MW)</th><th rowspan="2" class="n">SOC (MWh)</th>
    <th colspan="3" class="sitehd">Site team entries</th><th rowspan="2">Ack</th></tr>
-   <tr>${o.sources.map(()=>'<th class="n src2">Charging schedule (MW)</th>').join('')}<th class="n sitehd">Actual MW (+dis / −chg)</th><th class="n sitehd">Actual SOC (MWh)</th><th class="sitehd">Remarks</th></tr></thead><tbody>
-   ${rows.map(r=>{const both=r.d>0&&r.ctot>0;const heat=r.d>0?` style="background:color-mix(in srgb,#e8251a ${Math.round(12+58*r.d/maxD)}%,#ffd84a);color:#111"`:'';
+   <tr>${o.sources.map(()=>'<th class="n src2" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW.">Charging schedule (−MW)</th>').join('')}<th class="n sitehd">Actual MW (+dis / −chg)</th><th class="n sitehd">Actual SOC (MWh)</th><th class="sitehd">Remarks</th></tr></thead><tbody>
+   ${rows.map(r=>{const both=r.d>0&&r.ctot>0;const heat='';
      return`<tr class="${r.i===cur?'now':ls.today&&r.i<cur||ls.past?'past':''}${r.rev>r.ack&&o.issued?' pend':''}" id="lb${r.n}"><td>${r.n}</td><td style="white-space:nowrap">${blockTime(r.i)}</td>
      <td class="n"${heat}>${hoCell(r,'d',r.b.d)}</td><td class="n">${hoCell(r,'iex',r.b.iex)}</td>
      ${o.sources.map(s=>`<td class="n">${hoCell({...r,b:{...r.b,o:r.b.o&&r.b.o.c?{['c.'+s.id]:r.b.o.c[s.id]}:r.b.o}},'c.'+s.id,r.b.c&&r.b.c[s.id])}</td>`).join('')}
