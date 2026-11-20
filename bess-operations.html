@@ -152,6 +152,10 @@ figure.ref{margin:0}figure.ref img{width:100%;height:auto;border:1px solid var(-
 @media(max-width:900px){.chainwrap{grid-template-columns:minmax(0,1fr)}}
 
 .chk input{min-height:auto;width:20px;height:20px;margin-top:1px}
+.power-charge, input.power-charge{color:#1769d2!important}
+.power-discharge, input.power-discharge{color:#cf2424!important}
+:root[data-theme=dark] .power-charge{color:#80baff!important}
+:root[data-theme=dark] .power-discharge{color:#ff8a8a!important}
 </style>
 <script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
 </head>
@@ -796,6 +800,15 @@ function opsDoc(){const k=liveKey();if(useMem()){seedSample(k);return MEM.ops[k]
 function siteDoc(){const k=liveKey();return(useMem()?MEM.site[k]:L.site)||{plant:S.plant,date:S.liveDate,blocks:{},ack:{}}}
 function logList(){return(useMem()?(MEM.log[liveKey()]||[]):L.log).slice().sort((a,b)=>a.at<b.at?1:-1)}
 function defaultStartSoc(){const p=P(),prev=dayKeys().filter(d=>d<S.liveDate).pop(),k=prev?kpi(prev):null;return k&&isNum(k.socEnd)?+(k.socEnd/100*p.mwh).toFixed(1):+(p.socTh/100*p.mwh).toFixed(1)}
+const operationValue=(value,charging=false)=>{
+  if(value==null||value==='')return null;
+  const magnitude=Math.abs(Number(value));
+  return charging&&magnitude?-magnitude:magnitude;
+};
+const operationText=(value,charging=false)=>{
+  const signed=operationValue(value,charging);
+  return signed==null?'':(signed>0?'+':'')+f(signed,1);
+};
 function liveRows(){
   const p=P(),o=opsDoc(),st=siteDoc(),dl=(+p.dLoss||0)/100,cl=(+p.cLoss||0)/100;
   let soc=isNum(st.startSoc)?+st.startSoc:defaultStartSoc();const rows=[];
@@ -821,26 +834,26 @@ function vLive(){
   const nRev=rows.filter(r=>r.rev).length;
   const cb=cur>=0&&cur<96?rows[cur]:null,nx=rows.slice(Math.max(cur+1,0),Math.max(cur+1,0)+4);
   const sumD=rows.reduce((a,r)=>a+r.d/4,0),sumC=rows.reduce((a,r)=>a+r.ctot/4,0);
-  const hoCell=(r,f,v)=>{const lock=!ho||(ls.past)||(ls.today&&r.i<cur);const ch=r.b.o&&f in(r.b.o)&&String(r.b.o[f]??'')!==String(v??'')?' chg':'';
-    return lock?`<span class="${ch}">${v?f1(v):''}</span>`:`<input class="ci${ch}" inputmode="decimal" data-b="${r.n}" data-f="${f}" value="${v??''}" aria-label="Block ${r.n} ${f}">`};
+  const hoCell=(r,f,v)=>{const charging=f==='iex'||f.startsWith('c.');v=operationValue(v,charging);const color=charging?'power-charge':'power-discharge';const lock=!ho||(ls.past)||(ls.today&&r.i<cur);const ch=r.b.o&&f in(r.b.o)&&String(operationValue(r.b.o[f],charging)??'')!==String(v??'')?' chg':'';
+    return lock?`<span class="${color}${ch}">${v!=null?operationText(v,charging):''}</span>`:`<input class="ci ${color}${ch}" inputmode="decimal" data-b="${r.n}" data-f="${f}" value="${v??''}" aria-label="Block ${r.n} ${f}">`};
   const f1=v=>Number(v).toLocaleString('en-IN',{maximumFractionDigits:1});
-  const siteCell=(r,f,v,w)=>{const lock=!site||ls.fut||(ls.today&&r.i>cur);return lock?esc(v??''):`<input class="ci${w?' wide':''}" ${f==='rem'?'':'inputmode="decimal"'} data-b="${r.n}" data-f="${f}" value="${esc(v??'')}" aria-label="Block ${r.n} ${f}">`};
+  const siteCell=(r,f,v,w)=>{const lock=!site||ls.fut||(ls.today&&r.i>cur);return lock?(f==='amw'?'<span class="'+(+v<0?'power-charge':'power-discharge')+'">'+(v==null?'':(+v>0?'+':'')+esc(v))+'</span>':esc(v??'')):`<input class="ci${w?' wide':''}${f==='amw'?(+v<0?' power-charge':' power-discharge'):''}" ${f==='rem'?'':'inputmode="decimal"'} data-b="${r.n}" data-f="${f}" value="${esc(v??'')}" aria-label="Block ${r.n} ${f}">`};
   return`<div class="bar"><label>Operating day<input type="date" id="liveDate" value="${S.liveDate}"></label>
    <button class="sec" id="lPrev" aria-label="Previous day">◀</button><button class="sec" id="lNext" aria-label="Next day">▶</button><button class="sec" id="lToday">Today</button>
    ${edit?`<div class="seg" role="group" aria-label="Team"><button class="${S.team==='ho'?'on':''}" data-team="ho">HO team</button><button class="${S.team==='site'?'on':''}" data-team="site">Site team</button></div>`:''}
    <span class="muted" id="liveStat">${useMem()?'Not shared (sample / offline)':'● Live — both teams see changes instantly'}</span><div class="grow"></div>
    ${ho?`<button class="sec" id="lTemplate">Download schedule template</button><button class="sec" id="lUpBtn">Upload schedule</button><input type="file" id="lUp" accept=".xlsx,.xls,.csv" hidden>${!o.issued?'<button class="sec" id="lCopy">Copy previous day</button>':''}`:''}
    <button class="sec" id="lX">Export Excel</button>${ho&&!o.issued?'<button id="lIssue">Issue to site</button>':''}</div>
-  <h1 style="margin-bottom:6px">Real-time operation · ${esc(p.name)} · ${new Date(S.liveDate+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</h1>
+  <p class="muted" style="margin:0 0 6px"><span class="power-charge">Charging / buying −</span> · <span class="power-discharge">Discharging / selling +</span></p><h1 style="margin-bottom:6px">Real-time operation · ${esc(p.name)} · ${new Date(S.liveDate+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</h1>
   <p class="muted" style="margin:0 0 14px">${o.issued?`Schedule issued to site ${esc(fmtDT(o.issuedAt))}${o.issuedBy?' by <span data-uid="'+esc(o.issuedBy)+'">HO</span>':''} · ${nRev} block${nRev===1?'':'s'} revised in real time`:'<b class="red">Draft — not yet issued to site.</b> HO enters or uploads the schedule, then clicks “Issue to site”.'} · Discharge set point = schedule ÷ (1 − ${p.dLoss}% loss) · Charging set point = total charging × (1 − ${p.cLoss}% loss)</p>
   ${(()=>{const bad=rows.find(r=>r.soc<minS-.01||r.soc>maxS+.01);return bad?`<div class="al bad" style="margin:0 0 14px"><b>SOC check</b> · Projected SOC ${bad.soc<minS?'falls below the '+f(minS,1)+' MWh minimum':'rises above the '+f(maxS,1)+' MWh maximum'} at block ${bad.n} (${blockTime(bad.i)}) — the schedule cannot be met as it stands. Check SOC at 00:00 or revise.</div>`:''})()}
   ${pend.length&&o.issued?`<div class="pendbar"><b>${pend.length} real-time change${pend.length===1?'':'s'} not yet acknowledged by site:</b> ${pend.slice(0,8).map(r=>`Block ${r.n} (${blockTime(r.i)}) rev ${r.rev}`).join(' · ')}${pend.length>8?' …':''} ${site?'<button id="lAck">Acknowledge all</button>':''}</div>`:''}
   <section class="livehero">
    ${cb?`<div class="nowc"><div class="lbl">Now · Block ${cb.n} · ${blockTime(cb.i)} IST · <span id="cd"></span></div>
-     <div class="sp"><div><span>Discharge set point</span><b>${f(cb.dSet,1)}</b> MW<small>schedule ${f(cb.d,1)} MW</small></div><div><span>Charging set point</span><b>${f(cb.cSet,1)}</b> MW<small>total charging ${f(cb.ctot,1)} MW</small></div><div><span>Projected SOC end of block</span><b class="${cb.soc<minS-.01||cb.soc>maxS+.01?'red':''}">${f(cb.soc,1)}</b> MWh<small>${f(cb.soc/p.mwh*100,1)}% · ${cb.actual?'actual':'projected'}</small></div></div>
+     <div class="sp"><div><span>Discharge set point</span><b class="power-discharge">${operationText(cb.dSet)}</b> MW<small>schedule ${operationText(cb.d)} MW</small></div><div><span>Charging set point</span><b class="power-charge">${operationText(cb.cSet,true)}</b> MW<small>total charging ${operationText(cb.ctot,true)} MW</small></div><div><span>Projected SOC end of block</span><b class="${cb.soc<minS-.01||cb.soc>maxS+.01?'red':''}">${f(cb.soc,1)}</b> MWh<small>${f(cb.soc/p.mwh*100,1)}% · ${cb.actual?'actual':'projected'}</small></div></div>
      ${cb.rev?`<div class="muted">Revised ${cb.rev}×${cb.b.note?' — '+esc(cb.b.note):''}</div>`:''}</div>
-    <div class="nextc"><div class="lbl">Next blocks</div>${nx.map(r=>`<div class="nx${r.rev>r.ack?' pend':''}"><b>${r.n}</b><span>${blockTime(r.i)}</span><span>${r.dSet?'Discharge '+f(r.dSet,1)+' MW':r.cSet?'Charge '+f(r.cSet,1)+' MW':'Idle'}</span>${r.rev?`<span class="pill">rev ${r.rev}</span>`:''}</div>`).join('')||'<p class="muted">End of day.</p>'}</div>`
-   :`<div class="nowc"><div class="lbl">${ls.fut?'Planned day':'Completed day'}</div><div class="sp"><div><span>Scheduled discharge</span><b>${f(sumD,1)}</b> MWh</div><div><span>Scheduled charging</span><b>${f(sumC,1)}</b> MWh</div><div><span>Real-time revisions</span><b>${nRev}</b></div></div></div>`}
+    <div class="nextc"><div class="lbl">Next blocks</div>${nx.map(r=>`<div class="nx${r.rev>r.ack?' pend':''}"><b>${r.n}</b><span>${blockTime(r.i)}</span><span class="${r.dSet?'power-discharge':'power-charge'}">${r.dSet?'Discharge '+operationText(r.dSet)+' MW':r.cSet?'Charge '+operationText(r.cSet,true)+' MW':'Idle'}</span>${r.rev?`<span class="pill">rev ${r.rev}</span>`:''}</div>`).join('')||'<p class="muted">End of day.</p>'}</div>`
+   :`<div class="nowc"><div class="lbl">${ls.fut?'Planned day':'Completed day'}</div><div class="sp"><div><span>Scheduled discharge</span><b>${operationText(sumD)}</b> MWh</div><div><span>Scheduled charging</span><b>${operationText(sumC,true)}</b> MWh</div><div><span>Real-time revisions</span><b>${nRev}</b></div></div></div>`}
   </section>
   <div class="card" style="padding:0"><div class="scroll livewrap" id="liveWrap"><table class="live"><thead>
    <tr><th rowspan="2">Block</th><th rowspan="2">Time</th><th rowspan="2" class="n">Discharge schedule (MW)</th><th rowspan="2" class="n">IEX purchase (MW)${p.iexCode?'<br><small>'+esc(p.iexCode)+'</small>':''}</th>
@@ -852,9 +865,9 @@ function vLive(){
      return`<tr class="${r.i===cur?'now':ls.today&&r.i<cur||ls.past?'past':''}${r.rev>r.ack&&o.issued?' pend':''}" id="lb${r.n}"><td>${r.n}</td><td style="white-space:nowrap">${blockTime(r.i)}</td>
      <td class="n"${heat}>${hoCell(r,'d',r.b.d)}</td><td class="n">${hoCell(r,'iex',r.b.iex)}</td>
      ${o.sources.map(s=>`<td class="n">${hoCell({...r,b:{...r.b,o:r.b.o&&r.b.o.c?{['c.'+s.id]:r.b.o.c[s.id]}:r.b.o}},'c.'+s.id,r.b.c&&r.b.c[s.id])}</td>`).join('')}
-     <td class="n${both?' warnc':''}" title="${both?'Charging and discharging in the same block':''}">${r.ctot?f(r.ctot,1):''}</td>
+     <td class="n power-charge${both?' warnc':''}" title="${both?'Charging and discharging in the same block':''}">${r.ctot?operationText(r.ctot,true):''}</td>
      <td class="rt">${r.rev?`<span class="pill">rev ${r.rev}${r.b.at?' · '+new Date(r.b.at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false}):''}</span> `:''}${ho&&!(ls.past||(ls.today&&r.i<cur))?`<input class="ci wide" data-b="${r.n}" data-f="note" value="${esc(r.b.note||'')}" placeholder="note" aria-label="Block ${r.n} note">`:esc(r.b.note||'')}</td>
-     <td class="n sp1">${r.dSet?f(r.dSet,1):''}</td><td class="n sp1">${r.cSet?f(r.cSet,1):''}</td>
+     <td class="n sp1 power-discharge">${r.dSet?operationText(r.dSet):''}</td><td class="n sp1 power-charge">${r.cSet?operationText(r.cSet,true):''}</td>
      <td class="n${r.soc<minS-.01||r.soc>maxS+.01?' short':''}${r.actual?' act':''}">${f(r.soc,1)}</td>
      <td class="n">${siteCell(r,'amw',r.s.amw)}</td><td class="n">${siteCell(r,'asoc',r.s.asoc)}</td><td>${siteCell(r,'rem',r.s.rem,1)}</td>
      <td>${r.rev?(r.ack>=r.rev?'<span class="okc">✓</span>':'<span class="red">Pending</span>'):''}</td></tr>`}).join('')}
@@ -888,11 +901,12 @@ function liveLog(e){
 const FN={d:'Discharge schedule',iex:'IEX purchase',note:'Note',amw:'Actual MW',asoc:'Actual SOC',rem:'Remark'};
 function liveEdit(el){
   const n=+el.dataset.b,f=el.dataset.f,raw=el.value.trim(),bk='b'+n,p=P();
-  const txt=f==='note'||f==='rem',v=txt?raw:(raw===''?null:+raw.replace(/,/g,''));
+  const txt=f==='note'||f==='rem';let v=txt?raw:(raw===''?null:+raw.replace(/,/g,''));
   if(!txt&&raw!==''&&!isFinite(v)){toast('Enter a number');return}
   const now=new Date().toISOString();
   if(f==='d'||f==='iex'||f==='note'||f.startsWith('c.')){
     const o=opsDoc(),b=o.blocks[bk]||{},src=f.startsWith('c.')?f.slice(2):null,cur=src?(b.c||{})[src]:b[f];
+    if(!txt&&v!=null){v=Math.abs(v);el.value=operationValue(v,f==='iex'||!!src)}
     if(String(cur??'')===String(v??''))return;
     if(!txt&&v!=null&&(v<0||v>p.mw*1.25)){toast(`Enter 0 – ${p.mw} MW`);el.value=cur??'';return}
     const patch={at:now,by:S.uid||null};if(src)patch.c={[src]:v};else patch[f]=v;
@@ -934,7 +948,7 @@ function parseOps(wb){
     const out={date:null,sources:srcs,blocks:{}};
     for(const r of rows.slice(hi+1)){if(!r||!isNum(r[iB]))continue;const n=+r[iB];if(n<1||n>96)continue;
       if(!out.date&&iDt>=0)out.date=parseDate(r[iDt]);
-      const num=j=>j>=0&&isNum(r[j])?+r[j]:null;
+      const num=j=>j>=0&&isNum(r[j])?Math.abs(+r[j]):null;
       out.blocks[n]={d:num(iD),iex:num(iX),c:iC.map(num),note:iN>=0&&r[iN]!=null?String(r[iN]):''}}
     if(Object.keys(out.blocks).length)return out;
   }
@@ -972,7 +986,7 @@ function xLiveTemplate(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
     ['Fill the Operation schedule sheet, then use Upload schedule in Live operation.'],
     ['Use one operating date per workbook and retain Time Block values 1 to 96.'],
-    ['Enter discharge, IEX purchase and charging schedules in MW. Enter 0 for no operation.'],
+    ['Discharge / selling is positive (+). Charging / IEX purchase is negative (-). All schedule values are MW. Use 0 for no operation.'],
     ['Keep the column headings and charging-source labels unchanged.']
   ]),'Instructions');
   give('BESS_operation_schedule_template_'+S.liveDate+'.xlsx',wbOut(wb));
@@ -982,8 +996,8 @@ function xLive(){
   const o=opsDoc(),rows=liveRows(),p=P(),wb=XLSX.utils.book_new();
   const head=['Time Block','Date','Time Stamp','Discharge Schedule (MW)','IEX Purchase (MW)',...o.sources.map(()=>'Charging Schedule (MW)'),'Total Charging (MW)','Real time changes','Discharge Set point (MW)','Charging Set point (MW)','SOC (MWh)','Actual MW','Actual SOC (MWh)','Site remarks','Acknowledged'];
   const pre=n=>['','','','',n?'':p.iexCode||'',...o.sources.map(s=>n?s.label:s.contract)];
-  const aoa=[[...pre(0),'','','Discharge loss',p.dLoss/100,'Charging loss',p.cLoss/100],pre(1),head,...rows.map(r=>[r.n,S.liveDate,blockTime(r.i).replace('–',' - '),r.b.d??null,r.b.iex??null,...o.sources.map(s=>r.b.c&&isNum(r.b.c[s.id])?+r.b.c[s.id]:null),r.ctot||null,
-    (r.rev?`Rev ${r.rev}`+(r.b.o&&isNum(r.b.o.d)&&r.b.o.d!==r.b.d?` (discharge was ${r.b.o.d})`:''):'')+(r.b.note?(r.rev?' · ':'')+r.b.note:''),r2(r.dSet,1),r2(r.cSet,1),r2(r.soc,1),r.s.amw??null,r.s.asoc??null,r.s.rem||'',r.rev?(r.ack>=r.rev?'Yes':'Pending'):''])];
+  const aoa=[[...pre(0),'','','Discharge loss',p.dLoss/100,'Charging loss',p.cLoss/100],pre(1),head,...rows.map(r=>[r.n,S.liveDate,blockTime(r.i).replace('–',' - '),operationValue(r.b.d),operationValue(r.b.iex,true),...o.sources.map(s=>operationValue(r.b.c?.[s.id],true)),operationValue(r.ctot,true),
+    (r.rev?`Rev ${r.rev}`+(r.b.o&&isNum(r.b.o.d)&&r.b.o.d!==r.b.d?` (discharge was ${r.b.o.d})`:''):'')+(r.b.note?(r.rev?' · ':'')+r.b.note:''),r2(r.dSet,1),r2(operationValue(r.cSet,true),1),r2(r.soc,1),r.s.amw??null,r.s.asoc??null,r.s.rem||'',r.rev?(r.ack>=r.rev?'Yes':'Pending'):''])];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Operation sheet');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Time','Team','Block','Change','From','To'],...logList().map(l=>[fmtDT(l.at),l.team==='site'?'Site':'HO',l.block||'',l.field||'',l.from??'',l.to??''])]),'Change log');
   give(`Live_operation_${fn(p.name)}_${S.liveDate}.xlsx`,wbOut(wb));
