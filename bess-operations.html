@@ -167,6 +167,7 @@ figure.ref{margin:0}figure.ref img{width:100%;height:auto;border:1px solid var(-
     <a href="#upload" data-need="om">Upload data</a>
     <a href="#plants">BESS parameters</a>
   </nav>
+  <button id="shareOpen" class="sec" type="button">Share</button>
   <div class="who" id="roleChip">Loading…</div>
 </header>
 <details id="featureSettings" style="padding:10px max(3vw,14px)"><summary>Choose features</summary>
@@ -174,7 +175,16 @@ figure.ref{margin:0}figure.ref img{width:100%;height:auto;border:1px solid var(-
 <div id="featureOptions" class="form"></div><button class="sec" id="featureReset">Select all features</button></details>
 <div id="banner" class="banner" hidden></div>
 <main id="main"><div class="empty">Loading plant data…</div></main>
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<dialog id="shareDialog" style="width:min(850px,95vw);max-height:90vh;overflow:auto;background:var(--bg);color:var(--ink);border:1px solid var(--line)">
+<form method="dialog" style="float:right"><button class="sec">Close</button></form>
+<h2>Share selected information</h2>
+<p>Choose a day and tick the information to include. Plant name and date appear in the report. Preview the report before sharing it.</p>
+<label>Report date<input type="date" id="shareDate"></label>
+<div id="shareFields" class="form" style="margin-top:12px"></div>
+<div class="bar"><button class="sec" id="sharePreview">Preview</button><button class="sec" id="shareDownload">Download report</button><button id="shareSend">Share report</button></div>
+<div id="shareStatus" role="status" class="muted"></div><div id="shareResult"></div>
+</dialog>
+<div id="toast class="toast" role="status" aria-live="polite"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -528,6 +538,53 @@ function drawDash(){
     options:{scales:{x:{grid:{display:false}},y:{beginAtZero:false,suggestedMin:95,suggestedMax:100,grid:{color:css('--line')}}}}});
   chart('cET',{type:'bar',data:{labels:dl2,datasets:[{label:'Charged',data:m.days.map(x=>x.k.charge),backgroundColor:css('--chg')},{label:'Discharged',data:m.days.map(x=>x.k.dis),backgroundColor:css('--dis')}]}});
 }
+
+/* ================= selected-information sharing ================= */
+let shareSnapshot=null;
+function shareLoad(){
+  const date=$('#shareDate').value,k=kpi(date);
+  shareSnapshot=k?{date,plant:P().name,sample:S.sample,metrics:kpiRows(k),blocks:null}:null;
+  // blockRows uses the report date for the price source.
+  if(k){
+    const old=S.date;
+    try{S.date=date;shareSnapshot.blocks=blockRows(k)}finally{S.date=old}
+  }
+  $('#shareFields').innerHTML=k
+    ?'<fieldset><legend>Daily information</legend>'+shareSnapshot.metrics.map((r,i)=>'<label style="display:block"><input type="checkbox" data-share-metric="'+i+'"> '+esc(r[0])+'</label>').join('')+'</fieldset>'+
+     '<fieldset><legend>15-minute information</legend>'+shareSnapshot.blocks.cols.map((r,i)=>'<label style="display:block"><input type="checkbox" data-share-block="'+i+'"> '+esc(r[2])+'</label>').join('')+'</fieldset>'
+    :'<p>No data available for this day.</p>';
+  $('#shareResult').replaceChildren();$('#shareStatus').textContent='';
+}
+function shareReport(){
+  if(!shareSnapshot)return null;
+  const metricIndexes=[...document.querySelectorAll('[data-share-metric]:checked')].map(el=>Number(el.dataset.shareMetric));
+  const blockIndexes=[...document.querySelectorAll('[data-share-block]:checked')].map(el=>Number(el.dataset.shareBlock));
+  if(!metricIndexes.length&&!blockIndexes.length){$('#shareStatus').textContent='Tick at least one item to share.';return null}
+  const snap=shareSnapshot,table=(heads,rows)=>'<div style="overflow:auto"><table><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(value=>'<td>'+esc(value??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+  const metrics=metricIndexes.map(i=>snap.metrics[i]);
+  const body='<h1>'+esc(snap.plant)+'</h1><p>'+esc(snap.date)+(snap.sample?' · Sample data':'')+'</p>'+
+    (metrics.length?table(['Information','Value','Unit'],metrics.map(r=>[r[0],r[1]==null?'—':f(r[1],r[3]),r[2]])):'')+
+    (blockIndexes.length?table(['Block','Time',...blockIndexes.map(i=>snap.blocks.cols[i][2])],snap.blocks.rows.map(row=>[row[0],row[1],...blockIndexes.map(i=>row[i+2])])):'');
+  return {body,html:'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>BESS shared report</title><style>body{font:16px/1.5 system-ui;margin:24px;color:#14202b;background:white}table{border-collapse:collapse;margin:16px 0}th,td{border:1px solid #ccd4dc;padding:8px;text-align:left}</style><body>'+body+'</body></html>',name:'BESS_selected_report_'+snap.date+'.html'};
+}
+$('#shareOpen').onclick=()=>{
+  $('#shareDate').value=location.hash==='#live'?(S.liveDate||S.date):S.date;
+  shareLoad();$('#shareDialog').showModal();
+};
+$('#shareDate').onchange=shareLoad;
+$('#shareFields').onchange=()=>{$('#shareResult').replaceChildren();$('#shareStatus').textContent=''};
+$('#sharePreview').onclick=()=>{const report=shareReport();if(report)$('#shareResult').innerHTML=report.body};
+$('#shareDownload').onclick=()=>{const report=shareReport();if(report){give(report.name,new Blob([report.html],{type:'text/html'}));$('#shareStatus').textContent='Send the downloaded report to your colleague.'}};
+$('#shareSend').onclick=async()=>{
+  const report=shareReport();if(!report)return;
+  const file=new File([report.html],report.name,{type:'text/html'});
+  if(navigator.canShare?.({files:[file]})){
+    try{await navigator.share({files:[file],title:'BESS selected report'});$('#shareStatus').textContent='Report passed to your selected sharing app.'}
+    catch(error){$('#shareStatus').textContent=error.name==='AbortError'?'Sharing cancelled.':'Sharing could not open. Use Download report.'}
+  }else{
+    give(report.name,file);$('#shareStatus').textContent='Downloaded the report. Attach it to your company email or Teams message.';
+  }
+};
 
 /* ================= cycle table ================= */
 function cycNet(k,x){if(!k.netBlk)return null;let t=0;for(const[a,b]of[[x.c0,x.c1],[x.d0,x.d1]])if(a!=null)for(let i=a;i<=b;i++)t+=k.netBlk[i]||0;return t}
