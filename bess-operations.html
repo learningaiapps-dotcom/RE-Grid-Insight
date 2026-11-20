@@ -815,15 +815,16 @@ const operationText=(value,charging=false)=>{
   const signed=operationValue(value,charging);
   return signed==null?'':(signed>0?'+':'')+f(signed,1);
 };
+const iexValue=b=>b.iex==null||b.iex===''?null:b.iexSigned?Number(b.iex):-Math.abs(Number(b.iex));
 function liveRows(){
   const p=P(),o=opsDoc(),st=siteDoc(),dl=(+p.dLoss||0)/100,cl=(+p.cLoss||0)/100;
   let soc=isNum(st.startSoc)?+st.startSoc:defaultStartSoc();const rows=[];
   for(let i=0;i<96;i++){
     const bk='b'+(i+1),b=o.blocks[bk]||{},s=st.blocks[bk]||{};
-    const d=isNum(b.d)?+b.d:0,iex=isNum(b.iex)?+b.iex:0,cs=o.sources.map(x=>isNum(b.c&&b.c[x.id])?+b.c[x.id]:0);
-    const ctot=iex+cs.reduce((a,v)=>a+v,0),dSet=dl<1?d/(1-dl):d,cSet=ctot*(1-cl);
+    const d=isNum(b.d)?+b.d:0,iex=iexValue(b)||0,cs=o.sources.map(x=>isNum(b.c&&b.c[x.id])?+b.c[x.id]:0);
+    const ctot=Math.max(-iex,0)+cs.reduce((a,v)=>a+v,0),dtotal=d+Math.max(iex,0),dSet=dl<1?dtotal/(1-dl):dtotal,cSet=ctot*(1-cl);
     let actual=false;if(isNum(s.asoc)){soc=+s.asoc;actual=true}else soc=soc+cSet/4-dSet/4;
-    rows.push({i,n:i+1,bk,b,s,d,iex,cs,ctot,dSet,cSet,soc,actual,rev:b.rev||0,ack:(st.ack||{})[bk]||0});
+    rows.push({i,n:i+1,bk,b,s,d,dtotal,iex,cs,ctot,dSet,cSet,soc,actual,rev:b.rev||0,ack:(st.ack||{})[bk]||0});
   }
   return rows;
 }
@@ -839,9 +840,9 @@ function vLive(){
   const minS=p.socTh/100*p.mwh,maxS=p.socMaxOp/100*p.mwh,pend=pendingAcks(rows);
   const nRev=rows.filter(r=>r.rev).length;
   const cb=cur>=0&&cur<96?rows[cur]:null,nx=rows.slice(Math.max(cur+1,0),Math.max(cur+1,0)+4);
-  const sumD=rows.reduce((a,r)=>a+r.d/4,0),sumC=rows.reduce((a,r)=>a+r.ctot/4,0);
-  const hoCell=(r,f,v)=>{const charging=f==='iex'||f.startsWith('c.');v=operationValue(v,charging);const color=charging?'power-charge':'power-discharge';const lock=!ho||(ls.past)||(ls.today&&r.i<cur);const ch=r.b.o&&f in(r.b.o)&&String(operationValue(r.b.o[f],charging)??'')!==String(v??'')?' chg':'';
-    return lock?`<span class="${color}${ch}">${v!=null?operationText(v,charging):''}</span>`:`<input class="ci ${color}${ch}" title="${charging?'Charging / buying: enter negative (-) MW, e.g. -50.':'Discharging / selling: enter positive (+) MW, e.g. +50.'}" inputmode="decimal" data-b="${r.n}" data-f="${f}" value="${v==null?'':v>0?'+'+v:v}" aria-label="Block ${r.n} ${f}">`};
+  const sumD=rows.reduce((a,r)=>a+r.dtotal/4,0),sumC=rows.reduce((a,r)=>a+r.ctot/4,0);
+  const hoCell=(r,f,v)=>{const charging=f==='iex'?Number(v)<0:f.startsWith('c.');v=f==='iex'?v:operationValue(v,charging);const color=charging?'power-charge':'power-discharge';const lock=!ho||(ls.past)||(ls.today&&r.i<cur);const ch=r.b.o&&f in(r.b.o)&&String(operationValue(r.b.o[f],charging)??'')!==String(v??'')?' chg':'';
+    return lock?`<span class="${color}${ch}">${v!=null?operationText(v,charging):''}</span>`:`<input class="ci ${color}${ch}" title="${f==='iex'?'IEX: buying is negative (-); selling is positive (+).':charging?'Charging / buying: enter negative (-) MW, e.g. -50.':'Discharging / selling: enter positive (+) MW, e.g. +50.'}" inputmode="decimal" data-b="${r.n}" data-f="${f}" value="${v==null?'':v>0?'+'+v:v}" aria-label="Block ${r.n} ${f}">`};
   const f1=v=>Number(v).toLocaleString('en-IN',{maximumFractionDigits:1});
   const siteCell=(r,f,v,w)=>{const lock=!site||ls.fut||(ls.today&&r.i>cur);return lock?(f==='amw'?'<span class="'+(+v<0?'power-charge':'power-discharge')+'">'+(v==null?'':(+v>0?'+':'')+esc(v))+'</span>':esc(v??'')):`<input class="ci${w?' wide':''}${f==='amw'?(+v<0?' power-charge':' power-discharge'):''}" ${f==='rem'?'':'inputmode="decimal"'} data-b="${r.n}" data-f="${f}" value="${esc(v??'')}" aria-label="Block ${r.n} ${f}">`};
   return`<div class="bar"><label>Operating day<input type="date" id="liveDate" value="${S.liveDate}"></label>
@@ -856,22 +857,22 @@ function vLive(){
   ${pend.length&&o.issued?`<div class="pendbar"><b>${pend.length} real-time change${pend.length===1?'':'s'} not yet acknowledged by site:</b> ${pend.slice(0,8).map(r=>`Block ${r.n} (${blockTime(r.i)}) rev ${r.rev}`).join(' · ')}${pend.length>8?' …':''} ${site?'<button id="lAck">Acknowledge all</button>':''}</div>`:''}
   <section class="livehero">
    ${cb?`<div class="nowc"><div class="lbl">Now · Block ${cb.n} · ${blockTime(cb.i)} IST · <span id="cd"></span></div>
-     <div class="sp"><div><span>Discharge set point</span><b class="power-discharge">${operationText(cb.dSet)}</b> MW<small>schedule ${operationText(cb.d)} MW</small></div><div><span>Charging set point</span><b class="power-charge">${operationText(cb.cSet,true)}</b> MW<small>total charging ${operationText(cb.ctot,true)} MW</small></div><div><span>Projected SOC end of block</span><b class="${cb.soc<minS-.01||cb.soc>maxS+.01?'red':''}">${f(cb.soc,1)}</b> MWh<small>${f(cb.soc/p.mwh*100,1)}% · ${cb.actual?'actual':'projected'}</small></div></div>
+     <div class="sp"><div><span>Discharge set point</span><b class="power-discharge">${operationText(cb.dSet)}</b> MW<small>total schedule ${operationText(cb.dtotal)} MW</small></div><div><span>Charging set point</span><b class="power-charge">${operationText(cb.cSet,true)}</b> MW<small>total charging ${operationText(cb.ctot,true)} MW</small></div><div><span>Projected SOC end of block</span><b class="${cb.soc<minS-.01||cb.soc>maxS+.01?'red':''}">${f(cb.soc,1)}</b> MWh<small>${f(cb.soc/p.mwh*100,1)}% · ${cb.actual?'actual':'projected'}</small></div></div>
      ${cb.rev?`<div class="muted">Revised ${cb.rev}×${cb.b.note?' — '+esc(cb.b.note):''}</div>`:''}</div>
     <div class="nextc"><div class="lbl">Next blocks</div>${nx.map(r=>`<div class="nx${r.rev>r.ack?' pend':''}"><b>${r.n}</b><span>${blockTime(r.i)}</span><span class="${r.dSet?'power-discharge':'power-charge'}">${r.dSet?'Discharge '+operationText(r.dSet)+' MW':r.cSet?'Charge '+operationText(r.cSet,true)+' MW':'Idle'}</span>${r.rev?`<span class="pill">rev ${r.rev}</span>`:''}</div>`).join('')||'<p class="muted">End of day.</p>'}</div>`
    :`<div class="nowc"><div class="lbl">${ls.fut?'Planned day':'Completed day'}</div><div class="sp"><div><span>Scheduled discharge</span><b>${operationText(sumD)}</b> MWh</div><div><span>Scheduled charging</span><b>${operationText(sumC,true)}</b> MWh</div><div><span>Real-time revisions</span><b>${nRev}</b></div></div></div>`}
   </section>
   <div class="card" style="padding:0"><div class="scroll livewrap" id="liveWrap"><table class="live"><thead>
-   <tr><th rowspan="2">Block</th><th rowspan="2">Time</th><th rowspan="2" class="n" title="Discharging / selling power: enter a positive (+) MW value. Example: +50 MW."><span tabindex="0" class="sign-help" data-sign-tip="Discharging / selling: positive (+), e.g. +50 MW">Discharge schedule (+MW)</span></th><th rowspan="2" class="n" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW.">IEX purchase (−MW)${p.iexCode?'<br><small>'+esc(p.iexCode)+'</small>':''}</th>
-   ${o.sources.map(s=>`<th class="n src">${esc(s.contract||'')}<br><b>${esc(s.label)}</b></th>`).join('')}<th rowspan="2" class="n">Total charging (MW)</th><th rowspan="2">Real-time changes</th>
+   <tr><th rowspan="2">Block</th><th rowspan="2">Time</th><th rowspan="2" class="n" title="Discharging / selling power: enter a positive (+) MW value. Example: +50 MW."><span tabindex="0" class="sign-help" data-sign-tip="Discharging / selling: positive (+), e.g. +50 MW">Discharge schedule (+MW)</span></th><th rowspan="2" class="n" title="IEX buying is negative (-). IEX selling is positive (+).">IEX buy (−) / sell (+) MW${p.iexCode?'<br><small>'+esc(p.iexCode)+'</small>':''}</th>
+   ${o.sources.map(s=>`<th class="n src">${esc(s.contract||'')}<br><b>${esc(s.label)}</b></th>`).join('')}<th rowspan="2" class="n">Total charging (−MW)</th><th rowspan="2" class="n">Total discharging (+MW)</th><th rowspan="2">Real-time changes</th>
    <th rowspan="2" class="n">Discharge set point (MW)</th><th rowspan="2" class="n">Charging set point (MW)</th><th rowspan="2" class="n">SOC (MWh)</th>
    <th colspan="2" class="sitehd">Site team entries</th><th rowspan="2">Ack</th></tr>
    <tr>${o.sources.map(()=>'<th class="n src2" title="Charging / buying power: enter a negative (-) MW value. Example: -50 MW."><span tabindex="0" class="sign-help" data-sign-tip="Charging / buying: negative (−), e.g. −50 MW">Charging schedule (−MW)</span></th>').join('')}<th class="n sitehd">Actual SOC (MWh)</th><th class="sitehd">Remarks</th></tr></thead><tbody>
-   ${rows.map(r=>{const both=r.d>0&&r.ctot>0;const heat='';
+   ${rows.map(r=>{const both=r.dtotal>0&&r.ctot>0;const heat='';
      return`<tr class="${r.i===cur?'now':ls.today&&r.i<cur||ls.past?'past':''}${r.rev>r.ack&&o.issued?' pend':''}" id="lb${r.n}"><td>${r.n}</td><td style="white-space:nowrap">${blockTime(r.i)}</td>
-     <td class="n"${heat}>${hoCell(r,'d',r.b.d)}</td><td class="n">${hoCell(r,'iex',r.b.iex)}</td>
+     <td class="n"${heat}>${hoCell(r,'d',r.b.d)}</td><td class="n">${hoCell(r,'iex',iexValue(r.b))}</td>
      ${o.sources.map(s=>`<td class="n">${hoCell({...r,b:{...r.b,o:r.b.o&&r.b.o.c?{['c.'+s.id]:r.b.o.c[s.id]}:r.b.o}},'c.'+s.id,r.b.c&&r.b.c[s.id])}</td>`).join('')}
-     <td class="n power-charge${both?' warnc':''}" title="${both?'Charging and discharging in the same block':''}">${r.ctot?operationText(r.ctot,true):''}</td>
+     <td class="n power-charge${both?' warnc':''}" title="${both?'Charging and discharging in the same block':''}">${r.ctot?operationText(r.ctot,true):''}</td><td class="n power-discharge">${r.dtotal?operationText(r.dtotal):''}</td>
      <td class="rt">${r.rev?`<span class="pill">rev ${r.rev}${r.b.at?' · '+new Date(r.b.at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false}):''}</span> `:''}${ho&&!(ls.past||(ls.today&&r.i<cur))?`<input class="ci wide" data-b="${r.n}" data-f="note" value="${esc(r.b.note||'')}" placeholder="note" aria-label="Block ${r.n} note">`:esc(r.b.note||'')}</td>
      <td class="n sp1 power-discharge">${r.dSet?operationText(r.dSet):''}</td><td class="n sp1 power-charge">${r.cSet?operationText(r.cSet,true):''}</td>
      <td class="n${r.soc<minS-.01||r.soc>maxS+.01?' short':''}${r.actual?' act':''}">${f(r.soc,1)}</td>
@@ -904,18 +905,18 @@ function liveLog(e){
   if(useMem()){(MEM.log[k]=MEM.log[k]||[]).push(rec);if(!S.sample)persistLocal();return}
   enqueue(()=>db.collection('oplog').add(rec));
 }
-const FN={d:'Discharge schedule',iex:'IEX purchase',note:'Note',amw:'Actual MW',asoc:'Actual SOC',rem:'Remark'};
+const FN={d:'Discharge schedule',iex:'IEX buy / sell',note:'Note',amw:'Actual MW',asoc:'Actual SOC',rem:'Remark'};
 function liveEdit(el){
   const n=+el.dataset.b,f=el.dataset.f,raw=el.value.trim(),bk='b'+n,p=P();
   const txt=f==='note'||f==='rem';let v=txt?raw:(raw===''?null:+raw.replace(/,/g,''));
   if(!txt&&raw!==''&&!isFinite(v)){toast('Enter a number');return}
   const now=new Date().toISOString();
   if(f==='d'||f==='iex'||f==='note'||f.startsWith('c.')){
-    const o=opsDoc(),b=o.blocks[bk]||{},src=f.startsWith('c.')?f.slice(2):null,cur=src?(b.c||{})[src]:b[f];
-    if(!txt&&v!=null){v=Math.abs(v);el.value=operationValue(v,f==='iex'||!!src)}
+    const o=opsDoc(),b=o.blocks[bk]||{},src=f.startsWith('c.')?f.slice(2):null,cur=src?(b.c||{})[src]:f==='iex'?iexValue(b):b[f];
+    if(!txt&&v!=null){if(f!=='iex')v=Math.abs(v);el.value=f==='iex'?v:operationValue(v,!!src)}
     if(String(cur??'')===String(v??''))return;
-    if(!txt&&v!=null&&(v<0||v>p.mw*1.25)){toast(`Enter 0 – ${p.mw} MW`);el.value=cur??'';return}
-    const patch={at:now,by:S.uid||null};if(src)patch.c={[src]:v};else patch[f]=v;
+    if(!txt&&v!=null&&((f!=='iex'&&v<0)||Math.abs(v)>p.mw*1.25)){toast(`Enter 0 – ${p.mw} MW`);el.value=cur??'';return}
+    const patch={at:now,by:S.uid||null};if(f==='iex')patch.iexSigned=true;if(src)patch.c={[src]:v};else patch[f]=v;
     const rt=o.issued&&!txt;
     if(rt){patch.rev=(b.rev||0)+1;if(!b.o)patch.o={d:b.d??null,iex:b.iex??null,c:{...(b.c||{})}}}
     liveSet('ops',{blocks:{[bk]:patch}});
@@ -932,14 +933,14 @@ function liveEdit(el){
 }
 function schedSync(){ // the live schedule also feeds the DGR / planner schedule (MW -> MWh per block)
   clearTimeout(L.syncT);L.syncT=setTimeout(()=>{if(useMem()&&S.sample)return;
-    const rows=liveRows(),cols={sch:rows.map(r=>+(r.ctot/4).toFixed(4)),sdis:rows.map(r=>+(r.d/4).toFixed(4))};
+    const rows=liveRows(),cols={sch:rows.map(r=>+(r.ctot/4).toFixed(4)),sdis:rows.map(r=>+(r.dtotal/4).toFixed(4))};
     save('schedule',key(S.plant,S.liveDate),{plant:S.plant,date:S.liveDate,cols,n:96,agg:buildAgg(cols),at:new Date().toISOString(),by:S.uid||null,file:'Live operation sheet'},true)},2500);
 }
 async function liveCopyPrev(){
   const prev=ymd(new Date(new Date(S.liveDate+'T00:00').getTime()-864e5)),pk=key(S.plant,prev);let src=null;
   if(useMem())src=MEM.ops[pk];else{try{const s=await db.collection('ops').doc(pk).get();if(s.exists)src=s.data()}catch{}}
   if(!src){toast('No sheet found for '+prev);return}
-  const blocks={};for(const[k,b]of Object.entries(src.blocks||{}))blocks[k]={d:b.d??null,iex:b.iex??null,c:{...(b.c||{})},note:''};
+  const blocks={};for(const[k,b]of Object.entries(src.blocks||{}))blocks[k]={d:b.d??null,iex:b.iex??null,iexSigned:!!b.iexSigned,c:{...(b.c||{})},note:''};
   liveSet('ops',{sources:src.sources||defSources(),blocks,issued:false});liveLog({kind:'draft',field:'Copied schedule from '+prev});schedSync();toast('Copied '+prev+' — check and issue');
 }
 function parseOps(wb){
@@ -955,7 +956,7 @@ function parseOps(wb){
     for(const r of rows.slice(hi+1)){if(!r||!isNum(r[iB]))continue;const n=+r[iB];if(n<1||n>96)continue;
       if(!out.date&&iDt>=0)out.date=parseDate(r[iDt]);
       const num=j=>j>=0&&isNum(r[j])?Math.abs(+r[j]):null;
-      out.blocks[n]={d:num(iD),iex:num(iX),c:iC.map(num),note:iN>=0&&r[iN]!=null?String(r[iN]):''}}
+      out.blocks[n]={d:num(iD),iex:iX>=0&&isNum(r[iX])?(/buy|sell/.test(h[iX])?+r[iX]:-Math.abs(+r[iX])):null,c:iC.map(num),note:iN>=0&&r[iN]!=null?String(r[iN]):''}}
     if(Object.keys(out.blocks).length)return out;
   }
   return null;
@@ -970,7 +971,7 @@ async function liveUpload(file){
       if(used>=0){srcs[used]={...srcs[used],...s};m=srcs[used]}else{m={id:'s'+srcs.length,...s};srcs.push(m)}}return m.id});
   const now=new Date().toISOString(),blocks={};let changed=0;
   for(let n=1;n<=96;n++){const u=x.blocks[n];if(!u)continue;const b=o.blocks['b'+n]||{};
-    const nb={d:u.d,iex:u.iex,c:Object.fromEntries(map.map((id,j)=>[id,u.c[j]]))};
+    const nb={d:u.d,iex:u.iex,iexSigned:true,c:Object.fromEntries(map.map((id,j)=>[id,u.c[j]]))};
     const diff=String(b.d??'')!==String(nb.d??'')||String(b.iex??'')!==String(nb.iex??'')||map.some(id=>String((b.c||{})[id]??'')!==String(nb.c[id]??''));
     if(!diff&&!(u.note&&u.note!==b.note))continue;changed++;
     const patch={...nb,at:now,by:S.uid||null};if(u.note)patch.note=u.note;
@@ -985,14 +986,14 @@ function xLiveTemplate(){
   const rows=[
     ['','','','',P().iexCode||'',...sources.map(source=>source.contract)],
     ['','','','','',...sources.map(source=>source.label)],
-    ['Time Block','Date','Time Stamp','Discharge Schedule (MW)','IEX Purchase (MW)',...sources.map(()=>'Charging Schedule (MW)'),'Real time changes'],
+    ['Time Block','Date','Time Stamp','Discharge Schedule (MW)','IEX Buy (-) / Sell (+) (MW)',...sources.map(()=>'Charging Schedule (MW)'),'Real time changes'],
     ...Array.from({length:96},(_,i)=>[i+1,S.liveDate,blockTime(i),'','',...sources.map(()=>''),''])
   ];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Operation schedule');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
     ['Fill the Operation schedule sheet, then use Upload schedule in Live operation.'],
     ['Use one operating date per workbook and retain Time Block values 1 to 96.'],
-    ['Discharge / selling is positive (+). Charging / IEX purchase is negative (-). All schedule values are MW. Use 0 for no operation.'],
+    ['Discharge is positive (+). Charging is negative (-). IEX buying is negative (-); IEX selling is positive (+). All values are MW. Use 0 for no operation.'],
     ['Keep the column headings and charging-source labels unchanged.']
   ]),'Instructions');
   give('BESS_operation_schedule_template_'+S.liveDate+'.xlsx',wbOut(wb));
@@ -1000,9 +1001,9 @@ function xLiveTemplate(){
 function xLive(){
   if(!window.XLSX)return toast('Excel writer did not load');
   const o=opsDoc(),rows=liveRows(),p=P(),wb=XLSX.utils.book_new();
-  const head=['Time Block','Date','Time Stamp','Discharge Schedule (MW)','IEX Purchase (MW)',...o.sources.map(()=>'Charging Schedule (MW)'),'Total Charging (MW)','Real time changes','Discharge Set point (MW)','Charging Set point (MW)','SOC (MWh)','Actual SOC (MWh)','Site remarks','Acknowledged'];
+  const head=['Time Block','Date','Time Stamp','Discharge Schedule (MW)','IEX Buy (-) / Sell (+) (MW)',...o.sources.map(()=>'Charging Schedule (MW)'),'Total Charging (MW)','Total Discharging (MW)','Real time changes','Discharge Set point (MW)','Charging Set point (MW)','SOC (MWh)','Actual SOC (MWh)','Site remarks','Acknowledged'];
   const pre=n=>['','','','',n?'':p.iexCode||'',...o.sources.map(s=>n?s.label:s.contract)];
-  const aoa=[[...pre(0),'','','Discharge loss',p.dLoss/100,'Charging loss',p.cLoss/100],pre(1),head,...rows.map(r=>[r.n,S.liveDate,blockTime(r.i).replace('–',' - '),operationValue(r.b.d),operationValue(r.b.iex,true),...o.sources.map(s=>operationValue(r.b.c?.[s.id],true)),operationValue(r.ctot,true),
+  const aoa=[[...pre(0),'','','Discharge loss',p.dLoss/100,'Charging loss',p.cLoss/100],pre(1),head,...rows.map(r=>[r.n,S.liveDate,blockTime(r.i).replace('–',' - '),operationValue(r.b.d),iexValue(r.b),...o.sources.map(s=>operationValue(r.b.c?.[s.id],true)),operationValue(r.ctot,true),r.dtotal,
     (r.rev?`Rev ${r.rev}`+(r.b.o&&isNum(r.b.o.d)&&r.b.o.d!==r.b.d?` (discharge was ${r.b.o.d})`:''):'')+(r.b.note?(r.rev?' · ':'')+r.b.note:''),r2(r.dSet,1),r2(operationValue(r.cSet,true),1),r2(r.soc,1),r.s.asoc??null,r.s.rem||'',r.rev?(r.ack>=r.rev?'Yes':'Pending'):''])];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Operation sheet');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Time','Team','Block','Change','From','To'],...logList().map(l=>[fmtDT(l.at),l.team==='site'?'Site':'HO',l.block||'',l.field||'',l.from??'',l.to??''])]),'Change log');
