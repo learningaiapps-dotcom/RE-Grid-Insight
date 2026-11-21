@@ -529,6 +529,15 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 #p9 .qc-pill[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
 </style>
 <h1>QCA performance comparison</h1>
+<div class="card">
+  <div class="tools">
+    <button type="button" id="qc_mode_qca" aria-pressed="true">Compare QCAs</button>
+    <button type="button" id="qc_mode_plant" aria-pressed="false">Compare plants</button>
+  </div>
+  <p class="note">Use “Send to performance comparison” after processing an NRPC, WRPC or SRPC file. Import each plant or QCA schedule separately.</p>
+  <div id="qc_regional"></div>
+</div>
+<div id="qc_qca_view">
 <p class="sub">Compare forecasting agencies (QCAs) on the same plant and the same period: who costs you the least DSM per unit generated, whether each one schedules too high or too low, and in which bands its deviations fall. Files are processed in this browser only.</p>
 
 <div class="card">
@@ -585,6 +594,13 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
     <button type="button" class="alt" id="qc_pdf">Print / save as PDF</button>
   </div>
   <div id="qc_res"></div>
+</div></div>
+<div id="qc_plant_view" class="card hide">
+  <h2>Plant comparison</h2>
+  <p class="note">Select at least two imported plants. DSM is simulated using each plant’s mapped AvC and rate, and the app’s RPC bands for its plant type and date. Only common blocks are compared.</p>
+  <div id="qc_plant_select"></div>
+  <button type="button" id="qc_plant_go">Compare selected plants</button>
+  <div id="qc_plant_results" aria-live="polite"></div>
 </div>
 </div>
 </div>
@@ -2454,7 +2470,7 @@ function buildDays(res,m,agg){
   const red=(arr,mode)=>!arr.length?null:mode==="sum"?arr.reduce((x,y)=>x+y,0):mode==="avg"?avg(arr):arr[0];
   const days=[...by.keys()].sort().map(date=>{
     const cells=by.get(date);
-    const rows=cells.map(c=>{const s=red(c.s,agg),a=red(c.a,agg);if(s==null)missS++;if(a==null)missA++;return {s:s||0,a:a||0,v:red(c.v,"first")||0,p:red(c.p,"first")||0,pub:c.pub.length?c.pub.reduce((x,y)=>x+y,0):null}});
+    const rows=cells.map(c=>{const s=red(c.s,agg),a=red(c.a,agg);if(s==null)missS++;if(a==null)missA++;return {s:s||0,a:a||0,missing:s==null||a==null,v:red(c.v,"first")||0,p:red(c.p,"first")||0,pub:c.pub.length?c.pub.reduce((x,y)=>x+y,0):null}});
     return {date,rows,count:cells.filter(c=>c.s.length||c.a.length).length};
   });
   return {days,missS,missA};
@@ -2495,7 +2511,7 @@ function sendUI(p,res){
   const card=g(p+"_card");let box=g(p+"_snd");
   if(!box){box=document.createElement("div");box.id=p+"_snd";box.className="card";box.style.cssText="margin-top:14px;background:var(--bg)";card.appendChild(box)}
   const S=SRC[res.region],sel=(id,def,none)=>`<select id="${p}_${id}">${none?'<option value="">(none: use the value typed in the DSM engine)</option>':""}${S.opts.map(o=>`<option value="${o[0]}"${o[0]===def?" selected":""}>${o[1]}</option>`).join("")}</select>`;
-  box.innerHTML=`<b>Send this data to the QCA DSM engine for analysis</b>
+  box.innerHTML=`<b>Send this data for DSM analysis or comparison</b>
    <p class="note" style="margin:4px 0 8px">Choose which columns are the schedule, the actual generation, the available capacity and the price. The defaults are a guess: please check them against your files.</p>
    <div class="row">
     <label class="f">SPV / plant name<input id="${p}_sn" value="${esc(res.plant)}"></label>
@@ -2506,20 +2522,26 @@ function sendUI(p,res){
     <label class="f">Price per block from${sel("p",S.def.p,true)}</label>
     <label class="f" style="flex:0 1 200px">Several rows in one block<select id="${p}_ag"><option value="sum">Add them up</option><option value="avg">Average them</option><option value="first">Use the first row</option></select></label>
    </div>
-   <div class="tools" style="margin-top:10px"><button id="${p}_send">Send to QCA DSM engine and analyse</button><span class="note" id="${p}_smsg"></span></div>`;
-  g(p+"_send").onclick=()=>{
+   <div class="tools" style="margin-top:10px"><button id="${p}_send">Send to QCA DSM engine and analyse</button><button type="button" class="alt" id="${p}_compare">Send to performance comparison</button><span class="note" id="${p}_smsg"></span></div>`;
+  const send=forComparison=>{
     const r=window.KDRES&&window.KDRES[p];if(!r)return;
     const m={s:g(p+"_s").value,a:g(p+"_a").value,v:g(p+"_v").value,p:g(p+"_p").value},name=g(p+"_sn").value.trim();
     if(!name)return g(p+"_smsg").textContent="Enter a plant name.";
     if(m.s===m.a)return g(p+"_smsg").textContent="Schedule and actual cannot come from the same column.";
     const b=buildDays(r,m,g(p+"_ag").value);
     if(!b.days.length)return g(p+"_smsg").textContent="No data to send.";
+    if(forComparison){
+      window.dispatchEvent(new CustomEvent("regional-comparison",{detail:{name,type:g(p+"_ty").value,region:r.region,days:b.days}}));
+      return;
+    }
     if(r.region==="SRPC"&&(b.missS||b.missA||r.rows.some(row=>!(row[m.v]>0)||!(row[m.p]>0)))){
       return g(p+"_smsg").textContent="QCA requires a complete set of 96 blocks per imported date, with schedule, actual generation, positive AvC and a positive rate. Check the file and mappings.";
     }
     g(p+"_smsg").textContent="";
     dsmReceive({name,type:g(p+"_ty").value,region:r.region,days:b.days,missS:b.missS,missA:b.missA,source:r.region});
   };
+  g(p+"_send").onclick=()=>send(false);
+  g(p+"_compare").onclick=()=>send(true);
 }
 window.KDHOOK=sendUI;
 
@@ -3004,6 +3026,7 @@ const qmsg=(t,e)=>{g("qc_msg").textContent=t;g("qc_msg").className=e?"err":"note
 /* ---------- plant ---------- */
 function spvFillQ(){
   const cur=g("qc_spv").value;
+  if(actSrc==="regional"&&regionalActual)return;
   g("qc_spv").innerHTML=spvs.map(x=>`<option>${esc(x.name)}</option>`).join("");
   const eng=document.getElementById("dspv");
   if(cur&&spvs.some(x=>x.name===cur))g("qc_spv").value=cur;else if(eng&&spvs.some(x=>x.name===eng.value))g("qc_spv").value=eng.value;
@@ -3059,6 +3082,87 @@ const span=m=>{const d=daysOf(m);return d.length?`${d.length} day(s), ${d[0]} to
 
 /* ---------- actual generation ---------- */
 let actSrc="eng",actFile=null,actSynth=null;
+let regionalActual=null;
+const regionalImports=[];
+const plantKey=name=>name.trim().toLowerCase();
+function showMode(plant){
+  g("qc_mode_qca").setAttribute("aria-pressed",String(!plant));
+  g("qc_mode_plant").setAttribute("aria-pressed",String(plant));
+  g("qc_qca_view").classList.toggle("hide",plant);
+  g("qc_plant_view").classList.toggle("hide",!plant);
+}
+g("qc_mode_qca").onclick=()=>showMode(false);
+g("qc_mode_plant").onclick=()=>showMode(true);
+function drawRegional(){
+  g("qc_regional").innerHTML=regionalImports.map((item,i)=>`<div class="tools"><span>${esc(item.name)} · ${item.region} · Import ${i+1} · ${item.rows.size} valid blocks</span> <button type="button" class="alt" data-import="${i}">Use in QCA comparison</button></div>`).join("");
+  g("qc_plant_select").innerHTML=regionalImports.map((item,i)=>`<label style="display:block"><input type="checkbox" value="${i}"> ${esc(item.name)} · ${item.region} · Import ${i+1}</label>`).join("");
+}
+window.addEventListener("regional-comparison",event=>{
+  const item=event.detail;
+  item.rows=new Map();
+  item.days.forEach(day=>day.rows.forEach((row,i)=>{
+    if(!row.missing)item.rows.set(day.date+"|"+(i+1),row);
+  }));
+  regionalImports.push(item);
+  g("t9").click();
+  drawRegional();
+});
+g("qc_regional").onclick=event=>{
+  const button=event.target.closest("[data-import]");
+  if(!button)return;
+  const item=regionalImports[+button.dataset.import];
+  if(!item.rows.size)return;
+  showMode(false);
+  if(regionalActual!==item && (!regionalActual || plantKey(regionalActual.name)!==plantKey(item.name))){
+    qcas.length=0;
+    regionalActual=item;
+    actSynth=null;
+    const saved=spvs.find(sp=>plantKey(sp.name)===plantKey(item.name));
+    const select=g("qc_spv");
+    if(!saved && !Array.from(select.options).some(option=>option.value===item.name))select.add(new Option(item.name,item.name));
+    select.value=saved?saved.name:item.name;
+    g("qc_type").value=item.type;
+    g("qc_ppa").value=saved?.ppa||"";
+    g("qc_avc").value=saved?.avc||"";
+    g("qc_rule").value="rpc";
+    ruleNote();
+    setSrc("regional");
+  }else{actSynth=null;setSrc("regional")}
+  if(qcas.some(q=>q.regional===item))return qmsg("This import is already in the schedule list.");
+  if(qcas.length>=6)return qmsg("Up to 6 QCAs can be compared.",true);
+  const m=new Map([...item.rows].map(([key,row])=>[key,row.s]));
+  const q={id:++qid,name:"QCA · Import "+(+button.dataset.import+1),fixed:"Regional schedule for "+item.name,map:{m,bad:0,dup:0},ok:true,regional:item};
+  qcaStatus(q);qcas.push(q);drawList();qmsg("Schedule added. Rename it to identify the QCA.");
+};
+g("qc_plant_go").onclick=()=>{
+  const target=g("qc_plant_results");
+  const items=[...g("qc_plant_select").querySelectorAll(":checked")].map(el=>regionalImports[+el.value]);
+  if(items.length<2||new Set(items.map(item=>plantKey(item.name))).size!==items.length){
+    target.textContent="Select two or more different plants, with one import per plant.";return;
+  }
+  const keys=[...items[0].rows.keys()].filter(key=>items.every(item=>item.rows.has(key)));
+  if(!keys.length){target.textContent="The selected plants have no matching dates and blocks.";return}
+  const output=[];
+  for(const item of items){
+    let sched=0,act=0,pay=0,recv=0,error=0;
+    const byDate=new Map();
+    for(const key of keys){
+      const row=item.rows.get(key),date=key.slice(0,10);
+      if(!(row.v>0)||!(row.p>0)){target.textContent=item.name+" needs a positive mapped AvC and rate in every common block.";return}
+      if(!byDate.has(date))byDate.set(date,[]);
+      byDate.get(date).push(row);error+=Math.abs(row.s-row.a);
+    }
+    for(const [date,rows] of byDate){
+      const cfg=rpcPublishedConfig(item.type,date);
+      if(!cfg){target.textContent="RPC bands are unavailable for "+date+".";return}
+      const {sum}=dCompute(rows,0,0,"slice",cfg);
+      sched+=sum.sched;act+=sum.act;pay+=sum.pay;recv+=sum.recv;
+    }
+    const net=pay-recv;
+    output.push([item.name,item.region,sched.toFixed(2),act.toFixed(2),net.toFixed(2),act>0?(net/(act*1000)).toFixed(4):"N/A",(error/keys.length).toFixed(2)]);
+  }
+  target.innerHTML=`<p>${keys.length.toLocaleString("en-IN")} matching 15-minute blocks</p><div style="overflow-x:auto"><table><thead><tr>${["Plant","Region","Scheduled (MWh)","Actual (MWh)","Net DSM (₹)","DSM (₹/unit)","MAE (MW)"].map(label=>`<th>${label}</th>`).join("")}</tr></thead><tbody>${output.map(row=>`<tr>${row.map(value=>`<td>${esc(value)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+};
 function setSrc(s){actSrc=s;g("qc_src_eng").setAttribute("aria-pressed",String(s==="eng"));g("qc_src_file").setAttribute("aria-pressed",String(s==="file"));g("qc_actfile").classList.toggle("hide",s!=="file");actNote()}
 g("qc_src_eng").onclick=()=>{actSynth=null;setSrc("eng")};g("qc_src_file").onclick=()=>{actSynth=null;setSrc("file")};
 function engGroup(){
@@ -3068,6 +3172,7 @@ function engGroup(){
 }
 function actualMap(){
   if(actSynth)return actSynth;
+  if(actSrc==="regional"&&regionalActual)return regionalActual.rows;
   if(actSrc==="eng"){
     const gr=engGroup();if(!gr)return null;const m=new Map();
     gr.days.forEach(d=>{if(!d.date)return;d.rows.forEach((r,i)=>m.set(d.date+"|"+(i+1),{a:r.a,v:r.v||0,p:r.p||0}))});
@@ -3078,6 +3183,7 @@ function actualMap(){
   return readSeries(actFile,ci,{v:+g("qc_vcol").value,p:+g("qc_pcol").value}).m;
 }
 function actNote(){
+  if(actSrc==="regional"&&regionalActual){g("qc_actmsg").textContent="Actual generation from "+regionalActual.name+" · "+span(regionalActual.rows);return}
   const m=actualMap();
   if(actSynth){g("qc_actmsg").innerHTML=`<span class="qc-ok">Sample actual generation: ${span(m)}.</span>`;return}
   if(actSrc==="eng"){
@@ -3171,9 +3277,11 @@ let last=null;
 g("qc_go").onclick=()=>{try{compare()}catch(x){qmsg("The comparison failed: "+x.message,true)}};
 function compare(){
   const act=actualMap();
+  if(actSrc==="regional"&&regionalActual&&plantKey(g("qc_spv").value)!==plantKey(regionalActual.name))return qmsg("Select the plant that matches the imported actual generation.",true);
   if(!act||!act.size)return qmsg("Choose the actual generation first (step 2).",true);
   const list=qcas.filter(q=>q.ok&&q.map&&q.map.m.size);
   if(list.length<2)return qmsg("Add at least two QCA schedules with readable data (step 3).",true);
+  if(list.some(q=>q.regional&&plantKey(q.regional.name)!==plantKey(g("qc_spv").value)))return qmsg("Every imported schedule must belong to the selected plant.",true);
   const names=list.map(q=>q.name.trim()||"QCA");if(new Set(names).size!==names.length)return qmsg("Give every QCA a different name.",true);
   const ppa=+g("qc_ppa").value,avc=+g("qc_avc").value,from=g("qc_from").value,to=g("qc_to").value;
   /* blocks covered by the actual data and by every QCA */
