@@ -74,7 +74,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <div id="task-home" hidden></div>
 <div id="task-workspace" class="wrap">
 <p><a class="task-back" href="index.html?view=full">← All tools</a></p>
-<div class="tabs"><button id="t1" class="on">Weather data</button><button id="t2">Solar forecast correction</button><button id="t3">Wind forecast correction</button><button id="t4">DSM calculator</button><button id="t5">QCA DSM engine &amp; analysis</button><button id="t6">NRPC, WRPC &amp; SRPC imports</button><button id="t7">ISTS pooling stations map</button><button id="t8">India RE plants map</button></div>
+<div class="tabs"><button id="t1" class="on">Weather data</button><button id="t2">Solar forecast correction</button><button id="t3">Wind forecast correction</button><button id="t4">DSM calculator</button><button id="t5">QCA DSM engine &amp; analysis</button><button id="t6">NRPC, WRPC &amp; SRPC imports</button><button id="t9">QCA performance comparison</button><button id="t7">ISTS pooling stations map</button><button id="t8">India RE plants map</button></div>
 <div id="steps" class="note" style="margin:-6px 0 14px"><b>Workflow:</b> <button class="alt" data-go="t6" style="padding:4px 10px">1. Plant region and regional import</button> → <button class="alt" data-go="t5-1" style="padding:4px 10px">2. QCA DSM engine</button> → <button class="alt" data-go="t5-3" style="padding:4px 10px">3. Deviation analysis &amp; RCA</button> → <button class="alt" data-go="t5-4" style="padding:4px 10px">4. Weather model comparison</button></div>
 <div id="p1">
 <h1>Solar &amp; wind in 96 time blocks</h1>
@@ -497,6 +497,96 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 </div>
 
 </div>
+<div id="p9" class="hide">
+<style>
+#p9 .qc-q{display:grid;grid-template-columns:minmax(140px,1fr) minmax(200px,1.6fr) minmax(170px,1fr) minmax(150px,1.2fr) auto;gap:10px;align-items:end;padding:10px 0;border-top:1px solid var(--line)}
+#p9 .qc-q:first-child{border-top:0}
+#p9 .qc-ok{color:#15803d;font-weight:600;font-size:13px}
+#p9 .qc-warn{color:#b45309;font-weight:600;font-size:13px}
+#p9 .qc-dot{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none;vertical-align:-1px;margin-right:6px}
+#p9 .qc-best{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;align-items:center}
+#p9 .qc-best h2{margin:0;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+#p9 .qc-big{font-size:26px;font-weight:700;margin:4px 0}
+#p9 .qc-save{background:var(--bg);border-radius:8px;padding:12px 14px}
+#p9 .qc-save b{display:block;font-size:22px}
+#p9 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+#p9 th,#p9 td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+#p9 th:first-child,#p9 td:first-child,#p9 .qc-l{text-align:left}
+#p9 thead th{background:var(--bg);font-size:13px}
+#p9 .qc-pu{display:grid;grid-template-columns:90px 1fr 80px;gap:10px;align-items:center;margin:8px 0;font-size:14px;max-width:760px}
+#p9 .qc-trk{height:24px;background:var(--bg);border-radius:5px}
+#p9 .qc-trk div{height:24px;border-radius:5px}
+#p9 .qc-dv{display:grid;grid-template-columns:90px 1fr 1fr 230px;gap:0 10px;align-items:center;padding:5px 0;min-width:820px}
+#p9 .qc-side{display:flex;height:30px}
+#p9 .qc-side.l{justify-content:flex-end;border-right:2px solid var(--ink)}
+#p9 .qc-side div{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;overflow:hidden;white-space:nowrap}
+#p9 .qc-tag{font-size:13px;font-weight:600;line-height:1.35;padding:6px 10px;border-radius:7px}
+#p9 .qc-leg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--mute);margin:10px 0}
+#p9 .qc-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#p9 .qc-concl{background:var(--bg);border-radius:8px;padding:12px 14px;line-height:1.55;margin:0 0 10px}
+#p9 .qc-why li{margin:6px 0;line-height:1.5}
+#p9 .qc-pill{padding:7px 14px}
+#p9 .qc-pill[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style>
+<h1>QCA performance comparison</h1>
+<p class="sub">Compare forecasting agencies (QCAs) on the same plant and the same period: who costs you the least DSM per unit generated, whether each one schedules too high or too low, and in which bands its deviations fall. Files are processed in this browser only.</p>
+
+<div class="card">
+  <h2 style="margin:0 0 10px;font-size:17px">1 · Plant, period and band rule</h2>
+  <div class="row">
+    <label class="f">Plant (your saved SPVs)<select id="qc_spv"></select></label>
+    <label class="f" style="flex:0 1 150px">PPA rate (₹/kWh)<input id="qc_ppa" type="number" step="0.01" min="0"></label>
+    <label class="f" style="flex:0 1 170px">AvC (MW) if not in the data<input id="qc_avc" type="number" step="0.1" min="0"></label>
+    <label class="f" style="flex:0 1 150px">Plant type<select id="qc_type"><option value="solar">Solar</option><option value="wind">Wind</option><option value="hybrid">Hybrid</option></select></label>
+    <label class="f" style="flex:0 1 160px">From (optional)<input id="qc_from" type="date"></label>
+    <label class="f" style="flex:0 1 160px">To (optional)<input id="qc_to" type="date"></label>
+    <label class="f">DSM band rule (same for every QCA)<select id="qc_rule"><option value="plant">This plant's own bands (from the QCA DSM engine)</option><option value="rpc">RPC published (CERC DSM 2024, by plant type and date)</option></select></label>
+  </div>
+  <p class="note" id="qc_rulenote" style="margin:8px 0 0"></p>
+</div>
+
+<div class="card">
+  <h2 style="margin:0 0 10px;font-size:17px">2 · Actual generation (one source, shared by every QCA)</h2>
+  <div class="tools" style="margin-bottom:6px">
+    <button type="button" class="alt qc-pill" id="qc_src_eng" aria-pressed="true">Use data loaded in the QCA DSM engine</button>
+    <button type="button" class="alt qc-pill" id="qc_src_file" aria-pressed="false">Upload an actual-generation file</button>
+  </div>
+  <div id="qc_actfile" class="row hide" style="margin-top:6px">
+    <label class="f" style="flex:2 1 280px">File (CSV or Excel): date, block or time, actual MW; AvC and price optional<input id="qc_af" type="file" accept=".csv,.xlsx,.xls"></label>
+    <label class="f">Actual column<select id="qc_acol"></select></label>
+    <label class="f">AvC column<select id="qc_vcol"></select></label>
+    <label class="f">Price column<select id="qc_pcol"></select></label>
+  </div>
+  <p id="qc_actmsg" class="note" style="margin:8px 0 0"></p>
+</div>
+
+<div class="card">
+  <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:baseline">
+    <h2 style="margin:0;font-size:17px">3 · Schedules from each QCA</h2>
+    <span class="note">2 to 6 QCAs · one file each: date, block or time, schedule (MW)</span>
+  </div>
+  <div id="qc_list" style="margin-top:8px"></div>
+  <div class="tools" style="margin-top:10px">
+    <button type="button" class="alt" id="qc_add">+ Add QCA schedule</button>
+    <button type="button" class="alt" id="qc_addeng">Add the schedule loaded in the QCA DSM engine</button>
+    <button type="button" class="alt" id="qc_sample">Try with sample data</button>
+  </div>
+  <p class="note" style="margin:4px 0 0">Only the dates and blocks that the actual data and every QCA cover are compared, so no QCA is helped or hurt by missing days.</p>
+</div>
+
+<div class="tools">
+  <button type="button" id="qc_go">Compare QCAs</button>
+  <span id="qc_msg" class="note" role="status"></span>
+</div>
+
+<div id="qc_out" class="hide">
+  <div class="tools">
+    <button type="button" class="alt" id="qc_xl">Download Excel</button>
+    <button type="button" class="alt" id="qc_pdf">Print / save as PDF</button>
+  </div>
+  <div id="qc_res"></div>
+</div>
+</div>
 </div>
 <div id="tipbox"></div>
 
@@ -504,7 +594,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <script>
 // ===== Tabs =====
 const dl=(n,t)=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/csv"}));a.download=n;a.click()};
-["1","2","3","4","5","6","7","8"].forEach(n=>{$("t"+n).onclick=()=>["1","2","3","4","5","6","7","8"].forEach(m=>{$("p"+m).classList.toggle("hide",m!==n);$("t"+m).classList.toggle("on",m===n)})});
+["1","2","3","4","5","6","7","8","9"].forEach(n=>{$("t"+n).onclick=()=>["1","2","3","4","5","6","7","8","9"].forEach(m=>{$("p"+m).classList.toggle("hide",m!==n);$("t"+m).classList.toggle("on",m===n)})});
 
 // ===== Forecast correction =====
 const LOSSES=[["soil","Soiling",2],["trf","Transformer",1],["cab","Cable",1],["dc","DC-side",2],["inv","Inverter",2]];
@@ -2893,6 +2983,342 @@ Object.assign(GL,{
  compl:"Share of the blocks in which the plant was generating or scheduled and stayed inside the chosen limit (a % of available capacity).",
  nmae:"Normalised mean absolute error: the average size of the miss, as a % of the plant's available capacity. Lower is better and it lets you compare plants of different sizes.",
  kcal:"Scale factor: how much the model's power estimate had to be multiplied to match your actual output on average. Close to 1 means your capacity and performance-ratio assumptions are about right."});
+})();
+</script>
+<script id="kd-qcacmp">
+// ===== QCA performance comparison (tab 9): same plant, same actual generation, several QCA schedules =====
+(function(){
+const g=id=>document.getElementById(id);
+if(!g("p9"))return;
+const COL=["#674268","#2a73a0","#c4761c","#2f8f6f","#8f2d22","#4a5568"];
+const UNDER=["#f3c48a","#e5a259","#d9822b","#b25c1c","#8f3a12"],OVER=["#a9cbe6","#7aaed6","#4f8fc0","#2f6c9e","#1e4f7a"];
+const pickShades=(pal,n)=>Array.from({length:n},(_,i)=>pal[n===1?2:Math.round(i*(pal.length-1)/(n-1))]);
+const darkText=c=>["#f3c48a","#e5a259","#a9cbe6","#7aaed6"].includes(c);
+const lakh=x=>(x/1e5).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const money=x=>Math.abs(x)>=1e7?"₹ "+(x/1e7).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})+" crore":"₹ "+lakh(x)+" lakh";
+const puTxt=o=>o.net>=0?`${o.pu.toFixed(1)} paise per unit`:`net gain of ${Math.abs(o.pu).toFixed(1)} paise per unit`;
+const n0=x=>Math.round(x).toLocaleString("en-IN");
+const pct=(a,b)=>b>0?Math.round(a/b*100):0;
+const qmsg=(t,e)=>{g("qc_msg").textContent=t;g("qc_msg").className=e?"err":"note"};
+
+/* ---------- plant ---------- */
+function spvFillQ(){
+  const cur=g("qc_spv").value;
+  g("qc_spv").innerHTML=spvs.map(x=>`<option>${esc(x.name)}</option>`).join("");
+  const eng=document.getElementById("dspv");
+  if(cur&&spvs.some(x=>x.name===cur))g("qc_spv").value=cur;else if(eng&&spvs.some(x=>x.name===eng.value))g("qc_spv").value=eng.value;
+  spvLoadQ();
+}
+const curSpv=()=>spvs.find(x=>x.name===g("qc_spv").value)||spvs[0];
+function spvLoadQ(){
+  const x=curSpv();if(!x)return;
+  g("qc_ppa").value=x.ppa||"";g("qc_avc").value=x.avc||"";
+  g("qc_type").value=(x.plant&&x.plant.type)||"solar";
+  ruleNote();
+}
+function cfgFor(date){
+  if(g("qc_rule").value==="rpc")return rpcPublishedConfig(g("qc_type").value,date);
+  const x=curSpv();return (x&&x.cfg)||dfltCfg();
+}
+function limitsText(cfg){return cfg.limits.map((l,i)=>`Band ${i+1} up to ${l}%`).join(", ")+`, Band ${cfg.limits.length+1} beyond ${cfg.limits[cfg.limits.length-1]}% of AvC`}
+function ruleNote(){
+  const c=g("qc_rule").value==="rpc"?null:cfgFor("");
+  g("qc_rulenote").textContent=c?`Bands: ${limitsText(c)}. Shortfall charged ${payRates(c).map((p,i)=>p+dsmRates(c)[i]).join(" / ")}%, excess paid ${ovrRates(c).join(" / ")}%.`
+    :"RPC published WS seller bands (16 Sep 2024 to 31 Mar 2027): solar 10% / 15% of AvC before 1 Apr 2026 and 5% / 10% from then (wind +5%). Shortfall charged 100 / 110 / 200%, excess paid 100 / 90 / 0%.";
+}
+g("qc_spv").onchange=spvLoadQ;g("qc_rule").onchange=ruleNote;
+g("t9").addEventListener("click",()=>{spvFillQ();if(typeof dPublished!=="undefined"&&dPublished)g("qc_rule").value="rpc";ruleNote();actNote()});
+
+/* ---------- reading files ---------- */
+function sheetInfo(aoa){
+  const h=dHead(aoa);if(!h||!h.H)return null;
+  const H=h.H,F=re=>H.findIndex(x=>re.test(x));
+  const di=F(/date|day|timestamp/),bi=F(/block|slot|blk/),ti=H.findIndex((x,i)=>/time/.test(x)&&i!==di);
+  const num=h.body.slice(0,200),cols=[];
+  h.first.forEach((name,i)=>{if([di,bi,ti].includes(i))return;
+    const ok=num.filter(r=>r[i]!==""&&r[i]!=null&&!isNaN(parseFloat(String(r[i]).replace(/,/g,"")))).length;
+    if(ok>=Math.min(5,num.length))cols.push({i,name:String(name).trim()||("Column "+(i+1))})});
+  return {body:h.body,H,di,bi,ti,cols};
+}
+const colPick=(info,re,not)=>{const c=info.cols.find(c=>re.test(info.H[c.i])&&!(not&&not.test(info.H[c.i])));return c?c.i:-1};
+function readSeries(info,ci,extra){
+  /* -> Map "date|block" -> value (extra: {v,p} column indexes for the actual file) */
+  const m=new Map();let bad=0,dup=0,nodate=0;
+  info.body.forEach(r=>{
+    const d=info.di>=0?dDate(r[info.di]):null;if(!d){nodate++;return}
+    const b=dBlockFrom(r,info.bi,info.ti,info.di);if(!(b>=1&&b<=96)){bad++;return}
+    const n=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?null:v};
+    const v=n(r[ci]);if(v==null){bad++;return}
+    const k=d+"|"+b;if(m.has(k))dup++;
+    m.set(k,extra?{a:v,v:extra.v>=0?(n(r[extra.v])||0):0,p:extra.p>=0?(n(r[extra.p])||0):0}:v);
+  });
+  return {m,bad,dup,nodate};
+}
+const daysOf=m=>{const s=new Set();m.forEach((_,k)=>s.add(k.slice(0,10)));return [...s].sort()};
+const span=m=>{const d=daysOf(m);return d.length?`${d.length} day(s), ${d[0]} to ${d[d.length-1]}`:"no dated rows"};
+
+/* ---------- actual generation ---------- */
+let actSrc="eng",actFile=null,actSynth=null;
+function setSrc(s){actSrc=s;g("qc_src_eng").setAttribute("aria-pressed",String(s==="eng"));g("qc_src_file").setAttribute("aria-pressed",String(s==="file"));g("qc_actfile").classList.toggle("hide",s!=="file");actNote()}
+g("qc_src_eng").onclick=()=>{actSynth=null;setSrc("eng")};g("qc_src_file").onclick=()=>{actSynth=null;setSrc("file")};
+function engGroup(){
+  if(typeof dData==="undefined"||!dData)return null;
+  if(dData.names[0]==="")return dData.groups[""];
+  const n=dData.names.find(x=>x.toLowerCase()===g("qc_spv").value.toLowerCase())||dData.names[0];return dData.groups[n];
+}
+function actualMap(){
+  if(actSynth)return actSynth;
+  if(actSrc==="eng"){
+    const gr=engGroup();if(!gr)return null;const m=new Map();
+    gr.days.forEach(d=>{if(!d.date)return;d.rows.forEach((r,i)=>m.set(d.date+"|"+(i+1),{a:r.a,v:r.v||0,p:r.p||0}))});
+    return m;
+  }
+  if(!actFile)return null;
+  const ci=+g("qc_acol").value;if(!(ci>=0))return null;
+  return readSeries(actFile,ci,{v:+g("qc_vcol").value,p:+g("qc_pcol").value}).m;
+}
+function actNote(){
+  const m=actualMap();
+  if(actSynth){g("qc_actmsg").innerHTML=`<span class="qc-ok">Sample actual generation: ${span(m)}.</span>`;return}
+  if(actSrc==="eng"){
+    const gr=engGroup();
+    g("qc_actmsg").innerHTML=!gr?`No data is loaded in the QCA DSM engine yet. Import it from the NRPC, WRPC &amp; SRPC tab or upload it in the QCA DSM engine, or upload an actual-generation file here.`
+      :m&&m.size?`<span class="qc-ok">Using the engine data: ${span(m)}.</span>`:`The engine data has no dates, so it cannot be matched to QCA schedules. Upload an actual-generation file with a date column.`;
+    return;
+  }
+  g("qc_actmsg").innerHTML=!actFile?"Choose a file.":m&&m.size?`<span class="qc-ok">${span(m)}.</span>`:`<span class="err">No dated rows with a number in the chosen column.</span>`;
+}
+const colOpts=(info,sel,none)=>(none?`<option value="-1">(none)</option>`:"")+info.cols.map(c=>`<option value="${c.i}"${c.i===sel?" selected":""}>${esc(c.name)}</option>`).join("");
+g("qc_af").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    const info=sheetInfo(await dRead(f));
+    if(!info||info.di<0||!info.cols.length){actFile=null;g("qc_actmsg").innerHTML=`<span class="err">The file needs a header row with a date column, a block or time column and at least one number column.</span>`;return}
+    actFile=info;
+    const a=colPick(info,/actual|act|gen|inject|meter|export/,/sched|avc|avail|price|rate/);
+    g("qc_acol").innerHTML=colOpts(info,a>=0?a:info.cols[0].i);
+    g("qc_vcol").innerHTML=colOpts(info,colPick(info,/avc|avail|capacity/),true);
+    g("qc_pcol").innerHTML=colOpts(info,colPick(info,/price|tariff|rate|ppa/),true);
+    actNote();
+  }catch(x){actFile=null;g("qc_actmsg").innerHTML=`<span class="err">${esc(x.message)}</span>`}
+};
+["qc_acol","qc_vcol","qc_pcol"].forEach(id=>g(id).onchange=actNote);
+
+/* ---------- QCA schedules ---------- */
+let qcas=[],qid=0;
+function addQca(name){if(qcas.length>=6)return qmsg("Up to 6 QCAs can be compared.",true);qcas.push({id:++qid,name:name||("QCA "+String.fromCharCode(65+qcas.length)),info:null,col:-1,map:null,status:"Choose a file.",ok:false});drawList()}
+function qcaStatus(q){
+  if(!q.map){return}
+  const r=q.map;q.ok=r.m.size>0;
+  q.status=q.ok?`${n0(r.m.size)} blocks · ${span(r.m)}`+(r.dup?` · ${r.dup} duplicate(s), last kept`:"")+(r.bad?` · ${r.bad} row(s) unreadable`:""):"No dated rows with a number in the chosen column.";
+}
+function drawList(){
+  g("qc_list").innerHTML=qcas.length?qcas.map((q,i)=>`<div class="qc-q" data-q="${q.id}">
+    <label class="f"><span><span class="qc-dot" style="background:${COL[i]}" aria-hidden="true"></span>QCA name</span><input class="qc-name" value="${esc(q.name)}"></label>
+    ${q.fixed?`<div class="note" style="padding-bottom:9px">${esc(q.fixed)}</div>`:`<label class="f">Schedule file (CSV or Excel)<input class="qc-file" type="file" accept=".csv,.xlsx,.xls"></label>`}
+    <label class="f">Schedule column<select class="qc-col"${q.info?"":" disabled"}>${q.info?colOpts(q.info,q.col):"<option>–</option>"}</select></label>
+    <div class="${q.ok?"qc-ok":q.map?"qc-warn":"note"}" style="padding-bottom:9px">${esc(q.status)}</div>
+    <button type="button" class="alt qc-rm" aria-label="Remove ${esc(q.name)}">Remove</button></div>`).join("")
+    :`<p class="note">No QCA added yet. Click “+ Add QCA schedule”.</p>`;
+}
+g("qc_list").addEventListener("input",e=>{const row=e.target.closest(".qc-q");if(!row||!e.target.matches(".qc-name"))return;const q=qcas.find(x=>x.id===+row.dataset.q);if(q)q.name=e.target.value});
+g("qc_list").addEventListener("click",e=>{const b=e.target.closest(".qc-rm");if(!b)return;const id=+b.closest(".qc-q").dataset.q;qcas=qcas.filter(x=>x.id!==id);drawList()});
+g("qc_list").addEventListener("change",async e=>{
+  const row=e.target.closest(".qc-q");if(!row)return;const q=qcas.find(x=>x.id===+row.dataset.q);if(!q)return;
+  if(e.target.matches(".qc-file")){
+    const f=e.target.files[0];if(!f)return;
+    try{
+      const info=sheetInfo(await dRead(f));
+      if(!info||info.di<0||!info.cols.length){q.info=null;q.map=null;q.ok=false;q.status="The file needs a header row with a date column, a block or time column and a schedule column.";drawList();return}
+      q.info=info;q.file=f.name;
+      const c=colPick(info,/sched|forecast|fcst|declar|qca|dc\b|\bdc|mw/,/actual|avc|avail|price|rate/);
+      q.col=c>=0?c:info.cols[0].i;q.map=readSeries(info,q.col);qcaStatus(q);
+      if(/^QCA [A-F]$/.test(q.name)){const stem=f.name.replace(/\.[^.]+$/,"");if(stem.length<=24)q.name=stem}
+    }catch(x){q.info=null;q.map=null;q.ok=false;q.status=x.message}
+    drawList();
+  }else if(e.target.matches(".qc-col")&&q.info){q.col=+e.target.value;q.map=readSeries(q.info,q.col);qcaStatus(q);drawList()}
+});
+g("qc_add").onclick=()=>addQca();
+g("qc_addeng").onclick=()=>{
+  const gr=engGroup();if(!gr)return qmsg("No data is loaded in the QCA DSM engine yet.",true);
+  const m=new Map();gr.days.forEach(d=>{if(d.date)d.rows.forEach((r,i)=>m.set(d.date+"|"+(i+1),r.s))});
+  if(!m.size)return qmsg("The engine data has no dates, so its schedule cannot be compared.",true);
+  if(qcas.length>=6)return qmsg("Up to 6 QCAs can be compared.",true);
+  const q={id:++qid,name:"Current QCA",fixed:"Schedule from the data loaded in the QCA DSM engine",info:null,col:-1,map:{m,bad:0,dup:0},ok:true,status:""};
+  qcaStatus(q);qcas.push(q);drawList();qmsg("");
+};
+
+/* ---------- sample ---------- */
+g("qc_sample").onclick=()=>{
+  const start=new Date(Date.now()-14*864e5),am=new Map(),qs=[new Map(),new Map(),new Map()];
+  const avc=100,bias=[0.01,0.06,-0.06],noise=[0.05,0.08,0.11];
+  for(let d=0;d<14;d++){
+    const dt=new Date(start.getTime()+d*864e5).toISOString().slice(0,10),cloud=0.75+0.25*Math.cos(d*1.7);
+    for(let b=1;b<=96;b++){
+      const h=(b-.5)/4,x=h>6&&h<18?Math.sin(Math.PI*(h-6)/12):0,clear=90*x,a=+(clear*(cloud+0.08*Math.sin(b/5+d))).toFixed(2);
+      am.set(dt+"|"+b,{a:Math.max(a,0),v:avc,p:0});
+      qs.forEach((m,k)=>{const s=x?clear*(0.88+bias[k])+noise[k]*90*Math.sin(b*(k+1.3)+d*2.1)*x:0;m.set(dt+"|"+b,+Math.max(s,0).toFixed(2))});
+    }
+  }
+  actSynth=am;setSrc("eng");
+  qcas=["QCA A","QCA B","QCA C"].map((n,k)=>{const q={id:++qid,name:n,fixed:"Sample schedule (made up)",info:null,col:-1,map:{m:qs[k],bad:0,dup:0},ok:true,status:""};qcaStatus(q);return q});
+  if(!(+g("qc_ppa").value>0))g("qc_ppa").value=2.5;
+  drawList();actNote();qmsg("Sample data loaded: 14 days, AvC 100 MW. Click Compare QCAs.");
+};
+
+/* ---------- compare ---------- */
+let last=null;
+g("qc_go").onclick=()=>{try{compare()}catch(x){qmsg("The comparison failed: "+x.message,true)}};
+function compare(){
+  const act=actualMap();
+  if(!act||!act.size)return qmsg("Choose the actual generation first (step 2).",true);
+  const list=qcas.filter(q=>q.ok&&q.map&&q.map.m.size);
+  if(list.length<2)return qmsg("Add at least two QCA schedules with readable data (step 3).",true);
+  const names=list.map(q=>q.name.trim()||"QCA");if(new Set(names).size!==names.length)return qmsg("Give every QCA a different name.",true);
+  const ppa=+g("qc_ppa").value,avc=+g("qc_avc").value,from=g("qc_from").value,to=g("qc_to").value;
+  /* blocks covered by the actual data and by every QCA */
+  const byDate=new Map();let total=0,kept=0;
+  act.forEach((r,k)=>{const d=k.slice(0,10);if((from&&d<from)||(to&&d>to))return;total++;
+    if(list.every(q=>q.map.m.has(k))){kept++;if(!byDate.has(d))byDate.set(d,[]);byDate.get(d).push(+k.slice(11))}});
+  if(!kept)return qmsg("The actual data and the QCA schedules have no date and block in common"+(from||to?" inside the dates you chose":"")+". Check that the files cover the same days.",true);
+  const dates=[...byDate.keys()].sort();
+  const cfgs=new Map();for(const d of dates){const c=cfgFor(d);if(!c)return qmsg(`RPC published bands are available from 16 Sep 2024 to 31 Mar 2027. ${d} is outside that period: choose dates inside it or use the plant's own bands.`,true);cfgs.set(d,c)}
+  const k1=cfgs.get(dates[0]).limits.length;if(dates.some(d=>cfgs.get(d).limits.length!==k1))return qmsg("The band rule changes inside the period. Compare each period separately with the From and To dates.",true);
+  const limitsChange=dates.some(d=>cfgs.get(d).limits.join()!==cfgs.get(dates[0]).limits.join());
+  if(!(ppa>0)&&[...act.values()].some(r=>!(r.p>0)))return qmsg("Enter the PPA rate: some blocks have no price of their own.",true);
+  if(!(avc>0)&&[...act.values()].some(r=>!(r.v>0)&&r.a>0))return qmsg("Enter the AvC (MW): the actual data does not give it for every block.",true);
+  const nb=k1+1;
+  const res=list.map((q,qi)=>{
+    const o={name:q.name.trim(),color:COL[qcas.indexOf(q)%COL.length],sched:0,act:0,pay:0,recv:0,loss:0,u:Array(nb).fill(0),o:Array(nb).fill(0),none:0,night:0,payBand:Array(nb).fill(0),recBand:Array(nb).fill(0),days:[]};
+    for(const d of dates){
+      const bl=byDate.get(d).sort((a,b)=>a-b),rows=bl.map(b=>{const r=act.get(d+"|"+b);return {s:q.map.m.get(d+"|"+b),a:r.a,v:r.v,p:r.p}});
+      const out=dCompute(rows,ppa,avc,"slice",cfgs.get(d)),s=out.sum;
+      o.sched+=s.sched;o.act+=s.act;o.pay+=s.pay;o.recv+=s.recv;o.loss+=s.loss||0;
+      out.blocks.forEach(b=>{const li=b.sl.reduce((m,x,j)=>Math.abs(x)>1e-9?j:m,-1);b.pb.forEach((x,j)=>o.payBand[j]+=x);b.rb.forEach((x,j)=>o.recBand[j]+=x);if(!(b.s>0)&&!(b.a>0)){o.night++;return}if(li<0||Math.abs(b.dev)<1e-9){o.none++;return}(b.dev<0?o.u:o.o)[li]++});
+      o.days.push({date:d,net:s.pay-s.recv});
+    }
+    o.net=o.pay-o.recv;o.pu=o.act>0?o.net/(o.act*1000)*100:NaN;o.bias=o.act>0?(o.sched-o.act)/o.act*100:0;
+    o.ut=o.u.reduce((a,b)=>a+b,0);o.ot=o.o.reduce((a,b)=>a+b,0);
+    const sh=o.ut+o.ot?o.ut/(o.ut+o.ot)*100:50;o.share=sh;
+    o.tend=sh>=55?"over":sh<=45?"under":"bal";
+    return o;
+  });
+  if(res.some(o=>!(o.act>0)))return qmsg("The actual generation in the common blocks is zero, so DSM cost per unit cannot be worked out.",true);
+  res.sort((a,b)=>a.pu-b.pu);
+  last={res,dates,cfg:cfgs.get(dates[0]),limitsChange,kept,total,left:total-kept,spv:g("qc_spv").value,rule:g("qc_rule").value,ppa,avc};
+  render(last);
+  qmsg(`Compared ${res.length} QCAs on ${n0(kept)} common blocks (${dates.length} day(s), ${dates[0]} to ${dates[dates.length-1]}).`+(last.left?` ${n0(last.left)} block(s) of actual data were left out because not every QCA covers them.`:""));
+}
+
+/* ---------- words ---------- */
+const tendWord={over:"Over-schedules",under:"Under-schedules",bal:"Balanced"};
+function tendLine(o){return o.tend==="over"?`${pct(o.ut,o.ut+o.ot)}% of blocks under-injected`:o.tend==="under"?`${pct(o.ot,o.ut+o.ot)}% of blocks over-injected`:`${pct(o.ut,o.ut+o.ot)}% under · ${pct(o.ot,o.ut+o.ot)}% over`}
+function conclusion(L){
+  const r=L.res,best=r[0],worst=r[r.length-1],save=worst.net-best.net,yr=save/L.dates.length*365;
+  const t=r.map(o=>`${esc(o.name)} ${o.tend==="over"?"over-schedules":o.tend==="under"?"under-schedules":"is balanced"}`).join(", ");
+  return `<b>Conclusion.</b> ${esc(best.name)} had the lowest DSM cost: ${puTxt(best)} (net ${best.net>=0?"charge":"gain"} ${money(Math.abs(best.net))}). `+
+    (r.length>1?`It was ${money(save)} better than ${esc(worst.name)} over ${L.dates.length} day(s), about ${money(yr)} a year at this rate. `:"")+
+    `Scheduling tendency: ${t}.`;
+}
+function whyList(L,o){
+  const nb=L.cfg.limits.length+1,top=nb-1,lim=L.cfg.limits[top-1],tot=o.ut+o.ot,c=L.cfg;
+  const topRate=payRates(c)[top]+dsmRates(c)[top],topRec=ovrRates(c)[top];
+  const out=[];
+  if(o.tend==="over")out.push(`Over-schedules: ${n0(o.ut)} of ${n0(tot)} deviating blocks (${pct(o.ut,tot)}%) were under-injection; ${n0(o.u[top])} of them reached Band ${nb} (beyond ${lim}% of AvC), charged at ${topRate}%.`);
+  else if(o.tend==="under")out.push(`Under-schedules: ${n0(o.ot)} of ${n0(tot)} deviating blocks (${pct(o.ot,tot)}%) were over-injection; ${n0(o.o[top])} of them reached Band ${nb} (beyond ${lim}% of AvC), where the extra energy is paid at ${topRec}%.`);
+  else out.push(`Balanced: ${n0(o.ut)} blocks under-injected and ${n0(o.ot)} over-injected (${pct(o.ut,tot)}% / ${pct(o.ot,tot)}%).`);
+  if((o.tend==="over"&&o.bias<-1)||(o.tend==="under"&&o.bias>1))out.push(`Note: by block count it ${o.tend==="over"?"over-schedules":"under-schedules"}, but in total energy it scheduled ${o.bias<0?"less":"more"} than the plant generated, so its ${o.tend==="over"?"shortfalls are many but small":"surpluses are many but small"} while a few large deviations go the other way.`);
+  out.push(`Scheduled ${n0(o.sched)} MWh against ${n0(o.act)} MWh generated: ${Math.abs(o.bias).toFixed(1)}% ${o.bias>=0?"more":"less"} than the plant produced.`);
+  const tb=o.payBand[top];if(o.pay>0)out.push(`Band ${nb} under-injection blocks cost ${money(tb)}, ${pct(tb,o.pay)}% of this QCA's total charge.`);
+  if(o.night)out.push(`${n0(o.night)} night or no-generation blocks (no schedule, no output, small auxiliary drawl) are left out of the block counts; they are the same for every QCA. Their charges are still in the totals.`);
+  if(o.days.length>1){const w=o.days.reduce((a,b)=>b.net>a.net?b:a);out.push(`Costliest day: ${w.date}, net ${w.net>=0?"charge":"gain"} ${money(Math.abs(w.net))}.`)}
+  return out;
+}
+
+/* ---------- render ---------- */
+let focus=0;
+function render(L){
+  const r=L.res,best=r[0],worst=r[r.length-1],nb=L.cfg.limits.length+1,save=worst.net-best.net;
+  const bn=Array.from({length:nb},(_,j)=>j===0?`up to ${L.cfg.limits[0]}%`:j<nb-1?`${L.cfg.limits[j-1]}–${L.cfg.limits[j]}%`:`beyond ${L.cfg.limits[nb-2]}%`);
+  const c=L.cfg,uC=pickShades(UNDER,nb),oC=pickShades(OVER,nb);
+  const ruleTxt=L.rule==="rpc"?"RPC published bands":"the plant's own bands";
+  const maxPu=Math.max(...r.map(o=>o.pu),0.01),maxSide=Math.max(...r.map(o=>Math.max(o.ut,o.ot)),1);
+  const seg=(n,col)=>`<div style="width:${(n/maxSide*100).toFixed(2)}%;background:${col};color:${darkText(col)?"#2b1d00":"#fff"}" title="${n0(n)} blocks">${n/maxSide>0.07?n0(n):""}</div>`;
+  const tagCol={over:["#fff1e0","#7a3d00"],under:["#e6f0f8","#173f63"],bal:["#e8f4ef","#1b5b3c"]};
+  focus=Math.min(focus,r.length-1);
+  g("qc_res").innerHTML=`
+  <div class="card"><div class="qc-best">
+    <div style="grid-column:span 2"><h2>Lowest DSM cost this period</h2>
+      <div class="qc-big"><span class="qc-dot" style="background:${best.color}" aria-hidden="true"></span>${esc(best.name)} · ${puTxt(best)}</div>
+      <p class="note" style="margin:0;font-size:14px">${esc(L.spv)} · ${L.dates[0]} to ${L.dates[L.dates.length-1]} (${L.dates.length} day(s), ${n0(L.kept)} common blocks) · ${ruleTxt}: ${limitsText(c)}${L.limitsChange?" (the limits change inside the period)":""}.</p></div>
+    ${r.length>1?`<div class="qc-save"><span class="note">Better than ${esc(worst.name)} by</span><b>${money(save)}</b><span class="note">≈ ${money(save/L.dates.length*365)} a year at this rate</span></div>`:""}
+  </div></div>
+
+  <div class="card"><h2 style="margin:0 0 10px;font-size:17px">Side-by-side</h2>
+  <div class="scroll" style="max-height:none"><table><thead><tr><th>Rank</th><th class="qc-l">QCA</th><th>DSM cost<br><span class="note">paise / unit</span></th><th>Net DSM<br><span class="note">₹ lakh</span></th><th>Payable<br><span class="note">₹ lakh</span></th><th>Receivable<br><span class="note">₹ lakh</span></th><th>Schedule<br><span class="note">MWh</span></th><th>Actual<br><span class="note">MWh</span></th><th>Bias<br><span class="note">sched vs actual</span></th></tr></thead><tbody>
+  ${r.map((o,i)=>`<tr><td class="qc-l"><b>${i+1}</b></td><td class="qc-l"><b><span class="qc-dot" style="background:${o.color}" aria-hidden="true"></span>${esc(o.name)}</b></td><td><b>${o.pu.toFixed(1)}</b></td><td>${lakh(o.net)}</td><td>${lakh(o.pay)}</td><td>${lakh(o.recv)}</td><td>${n0(o.sched)}</td><td>${n0(o.act)}</td><td>${o.bias>=0?"+":""}${o.bias.toFixed(1)}%</td></tr>`).join("")}
+  </tbody></table></div>
+  <p class="note" style="margin:8px 0 0">DSM cost per unit = net DSM (payable incl. DSM penalty − receivable) ÷ actual generation; a negative value is a net gain. Bias above 0 means the QCA scheduled more energy than the plant generated.</p></div>
+
+  <div class="card"><h2 style="margin:0 0 6px;font-size:17px">DSM cost per unit</h2>
+  ${r.map(o=>`<div class="qc-pu" role="img" aria-label="${esc(o.name)}: ${o.pu.toFixed(1)} paise per unit"><b>${esc(o.name)}</b><div class="qc-trk"><div style="width:${Math.max(o.pu/maxPu*100,0).toFixed(1)}%;background:${o.color}"></div></div><span style="text-align:right">${o.pu.toFixed(1)} p${o.pu<0?" (gain)":""}</span></div>`).join("")}</div>
+
+  <div class="card"><h2 style="margin:0 0 4px;font-size:17px">Where the blocks fell: direction and band (number of blocks)</h2>
+  <p class="note" style="margin:0 0 10px">Left: under-injection (actual below schedule), so the QCA scheduled too high. Right: over-injection (actual above schedule), so the QCA scheduled too low. Bands are % of AvC: ${bn.map((x,j)=>`Band ${j+1} ${x}`).join(", ")}.</p>
+  <div style="overflow-x:auto">
+    <div class="qc-dv" style="font-size:13px;font-weight:600;color:var(--mute)"><span></span><span style="text-align:right;padding-right:8px">◀ Under-injection · scheduled too high</span><span style="padding-left:8px">Over-injection · scheduled too low ▶</span><span>Tendency</span></div>
+    ${r.map(o=>`<div class="qc-dv"><b style="font-size:14px">${esc(o.name)}</b>
+      <div class="qc-side l" role="img" aria-label="${esc(o.name)} under-injection blocks: ${o.u.map((n,j)=>"band "+(j+1)+" "+n).join(", ")}">${o.u.map((n,j)=>({n,j})).reverse().map(x=>seg(x.n,uC[x.j])).join("")}</div>
+      <div class="qc-side" style="margin-left:-10px" role="img" aria-label="${esc(o.name)} over-injection blocks: ${o.o.map((n,j)=>"band "+(j+1)+" "+n).join(", ")}">${o.o.map((n,j)=>seg(n,oC[j])).join("")}</div>
+      <span class="qc-tag" style="background:${tagCol[o.tend][0]};color:${tagCol[o.tend][1]}">${tendWord[o.tend]} · ${tendLine(o)}</span></div>`).join("")}
+  </div>
+  <div class="qc-leg">${uC.map((cl,j)=>`<span><i style="background:${cl}"></i>Under · Band ${j+1} (${payRates(c)[j]+dsmRates(c)[j]}%)</span>`).join("")}${oC.map((cl,j)=>`<span><i style="background:${cl}"></i>Over · Band ${j+1} (paid ${ovrRates(c)[j]}%)</span>`).join("")}</div>
+  <div class="scroll" style="max-height:none"><table><thead>
+    <tr><th rowspan="2" class="qc-l">QCA</th><th colspan="${nb+1}" style="text-align:center;color:#b45309">Under-injection blocks</th><th colspan="${nb+1}" style="text-align:center;color:#2f6c9e">Over-injection blocks</th><th rowspan="2">No deviation</th><th rowspan="2">Night / no generation</th></tr>
+    <tr>${bn.map((_,j)=>`<th>Band ${j+1}</th>`).join("")}<th>Total</th>${bn.map((_,j)=>`<th>Band ${j+1}</th>`).join("")}<th>Total</th></tr></thead><tbody>
+    ${r.map(o=>`<tr><td class="qc-l"><b>${esc(o.name)}</b></td>${o.u.map((n,j)=>`<td${j===nb-1?' style="font-weight:700;color:#b45309"':""}>${n0(n)}</td>`).join("")}<td><b>${n0(o.ut)}</b></td>${o.o.map((n,j)=>`<td${j===nb-1?' style="font-weight:700;color:#2f6c9e"':""}>${n0(n)}</td>`).join("")}<td><b>${n0(o.ot)}</b></td><td>${n0(o.none)}</td><td>${n0(o.night)}</td></tr>`).join("")}
+  </tbody></table></div>
+  <p class="note" style="margin:8px 0 0">Each block is counted once, in the highest band its deviation reached. Night and no-generation blocks (no schedule and no output) are counted separately and left out of the tendency, because they are the same for every QCA.</p></div>
+
+  <div class="card"><div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0;font-size:17px">Why each QCA cost what it did</h2>
+    <div class="tools" style="margin:0" role="group" aria-label="Choose a QCA">${r.map((o,i)=>`<button type="button" class="alt qc-pill qc-f" data-i="${i}" aria-pressed="${i===focus}">${esc(o.name)}</button>`).join("")}</div></div>
+  <p class="qc-concl">${conclusion(L)}</p>
+  <ul class="qc-why" id="qc_why">${whyList(L,r[focus]).map(x=>`<li>${x}</li>`).join("")}</ul></div>`;
+  g("qc_out").classList.remove("hide");
+}
+g("qc_res").addEventListener("click",e=>{const b=e.target.closest(".qc-f");if(!b||!last)return;focus=+b.dataset.i;
+  g("qc_res").querySelectorAll(".qc-f").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+  g("qc_why").innerHTML=whyList(last,last.res[focus]).map(x=>`<li>${x}</li>`).join("")});
+
+/* ---------- downloads ---------- */
+const plain=h=>{const d=document.createElement("div");d.innerHTML=h;return d.textContent};
+g("qc_xl").onclick=()=>{
+  if(!last)return;const L=last,r=L.res,nb=L.cfg.limits.length+1;
+  const sum=[["Rank","QCA","DSM cost (paise/unit)","Net DSM (₹)","Payable incl. DSM penalty (₹)","Receivable (₹)","Revenue loss (₹)","Schedule (MWh)","Actual (MWh)","Bias (%)","Tendency"]]
+    .concat(r.map((o,i)=>[i+1,o.name,+o.pu.toFixed(2),+o.net.toFixed(2),+o.pay.toFixed(2),+o.recv.toFixed(2),+o.loss.toFixed(2),+o.sched.toFixed(3),+o.act.toFixed(3),+o.bias.toFixed(2),tendWord[o.tend]]));
+  const hb=Array.from({length:nb},(_,j)=>"Band "+(j+1));
+  const bands=[["QCA",...hb.map(x=>"Under "+x),"Under total",...hb.map(x=>"Over "+x),"Over total","No deviation","Night / no generation"]].concat(r.map(o=>[o.name,...o.u,o.ut,...o.o,o.ot,o.none,o.night]));
+  const daily=[["Date",...r.map(o=>o.name+" net DSM (₹)")]].concat(L.dates.map((d,i)=>[d,...r.map(o=>+o.days[i].net.toFixed(2))]));
+  const notes=[["QCA performance comparison"],["Plant",L.spv],["Period",L.dates[0]+" to "+L.dates[L.dates.length-1]],["Common blocks",L.kept],["Band rule",(L.rule==="rpc"?"RPC published: ":"Plant's own bands: ")+limitsText(L.cfg)],[""],[plain(conclusion(L))],[""]]
+    .concat(...r.map(o=>[[o.name],...whyList(L,o).map(x=>["  "+plain(x)])]));
+  const fn=`qca_comparison_${(L.spv||"plant").replace(/[^\w-]+/g,"_")}_${L.dates[0]}_${L.dates[L.dates.length-1]}`;
+  if(typeof XLSX==="undefined"){dl(fn+".csv",sum.map(r=>r.map(x=>/[",]/.test(String(x))?`"${String(x).replace(/"/g,'""')}"`:x).join(",")).join("\n"));return}
+  const wb=XLSX.utils.book_new(),add=(a,n)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),n);
+  add(sum,"Summary");add(bands,"Blocks by band");add(daily,"Daily net DSM");add(notes,"Conclusion");
+  XLSX.writeFile(wb,fn+".xlsx");
+};
+g("qc_pdf").onclick=()=>{
+  if(!last)return;
+  const css=[...document.querySelectorAll("style")].map(s=>s.textContent).join("\n");
+  const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>QCA performance comparison – ${esc(last.spv)}</title><style>${css}
+  body{background:#fff;color:#17212b;margin:24px;font-family:system-ui,sans-serif}#p9 .qc-f{display:none}.card{break-inside:avoid}@media print{body{margin:0}}</style></head>
+  <body><div id="p9"><h1>QCA performance comparison</h1>${g("qc_res").innerHTML.replace(/<ul class="qc-why"[\s\S]*?<\/ul>/,last.res.map(o=>`<h3>${esc(o.name)}</h3><ul class="qc-why">${whyList(last,o).map(x=>`<li>${x}</li>`).join("")}</ul>`).join(""))}</div><script>setTimeout(()=>print(),400)<\/script></body></html>`;
+  const w=window.open("","_blank");
+  if(w){w.document.open();w.document.write(html);w.document.close()}
+  else dl(`qca_comparison_${last.spv}.html`,html);
+};
+
+drawList();
 })();
 </script>
 <script type="text/plain" id="re_d_plants">
