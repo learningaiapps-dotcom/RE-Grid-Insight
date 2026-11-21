@@ -9,6 +9,7 @@ One web page (`index.html`) with eight tabs:
 6. NRPC & WRPC data (Khavda): extract and convert NRPC Excel and WRPC ZIP/CSV data
 7. ISTS pooling stations map: CTUIL pooling stations of 400 kV and above (status as on 31-Oct-2026), with existing and planned lines and spare capacity
 8. India RE plants map: 341 wind and solar plants (70,287 MW) in the NR, WR and SR regions, by state, district and type, with the average 96-block generation of each region
+9. QCA performance comparison: compare 2 to 6 QCA schedules for one plant against the same actual generation and band rule — DSM cost in paise per unit, net DSM, payable and receivable, bias, under- and over-injection blocks by band, scheduling tendency, conclusion, Excel and PDF
 
 ## The workflow (one connected app)
 1. **Plant region**: tab 6 suggests NRPC or WRPC from the plant location (by state).
@@ -19,6 +20,13 @@ One web page (`index.html`) with eight tabs:
 
 Everything is calculated in your own browser. Uploaded files are never sent to a server.
 Saved runs and SPV settings stay in that browser only.
+
+## QCA performance comparison (tab 9)
+- **Actual generation**: the data loaded in the QCA DSM engine (for example from the NRPC / WRPC / SRPC import), or an uploaded file with date, block or time and actual MW (AvC and price optional).
+- **QCA schedules**: one CSV or Excel file per QCA with date, block or time and schedule MW (pick the column if the guess is wrong), or the schedule already loaded in the engine.
+- Only the dates and blocks that the actual data and every QCA cover are compared. Each QCA runs through the same DSM engine (`dCompute`) with the plant's own bands or the RPC published bands.
+- DSM cost per unit = (payable incl. DSM penalty − receivable) ÷ actual generation. Negative = net gain.
+- Each block is counted once, in the highest band its deviation reached. Night or no-generation blocks (no schedule, no output) are counted separately and left out of the scheduling tendency: over-schedules when 55% or more of deviating blocks are under-injection, under-schedules when 45% or fewer.
 
 ## Open it
 * Online: the GitHub Pages address of this repository (see below).

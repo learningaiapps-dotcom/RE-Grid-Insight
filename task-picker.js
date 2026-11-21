@@ -9,6 +9,7 @@
       ["dsm", "t4", "DSM calculator", "Check settlement for a time block"],
       ["qca", "t5", "QCA DSM & analysis", "Calculate and review deviations"],
       ["imports", "t6", "NRPC, WRPC & SRPC imports", "Extract and prepare regional data"],
+      ["qcacmp", "t9", "QCA performance comparison", "Compare DSM cost and scheduling of QCAs"],
     ]],
     ["Maps", [
       ["ists", "t7", "ISTS pooling stations", "Explore grid connection points"],

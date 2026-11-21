@@ -16,7 +16,7 @@ const sites = [
   {id:"forecast", title:"Weather & Forecasting", tabs:[1,2,3], url:"https://re-grid-forecast.onrender.com"},
   {id:"maps", title:"Grid Maps", tabs:[7,8], url:"https://re-grid-maps.onrender.com"},
   {id:"bess", title:"BESS operations", tabs:[], url:"https://re-grid-bess-operations.onrender.com"},
-  {id:"dsm", title:"DSM & Data Processing", tabs:[4,5,6], url:"https://re-grid-dsm.onrender.com"},
+  {id:"dsm", title:"DSM & Data Processing", tabs:[4,5,6,9], url:"https://re-grid-dsm.onrender.com"},
 ];
 const introductions = {
   forecast: "Check 15-minute weather forecasts or refine generation estimates with your plant data.",
@@ -32,6 +32,7 @@ const tools = {
   6: ["NRPC, WRPC & SRPC imports", "Prepare regional files for QCA analysis"],
   7: ["ISTS pooling stations", "Explore grid connection points"],
   8: ["India renewable plants", "Browse solar and wind plants by region"],
+  9: ["QCA performance comparison", "Compare DSM cost and scheduling of QCAs"],
 };
 const workflow = between(html, '<div id="steps"', '<div id="p1">');
 const forecast = between(html, '<div id="p1">', '<div id="p7"');
@@ -42,7 +43,7 @@ const sharedDsm = shared.slice(0, shared.indexOf("function diffChart"));
 const chartAndExcel = between(html, '<script src="vendor/chart', '<style>');
 const chart = chartAndExcel.slice(0, chartAndExcel.indexOf('<script src="vendor/xlsx'));
 const head = between(html, '<style>', '<link rel="stylesheet" href="task-home.css">');
-const prelude = between(html, 'const dl=', '["1","2","3","4","5","6","7","8"].forEach');
+const prelude = between(html, 'const dl=', '["1","2","3","4","5","6","7","8","9"].forEach');
 const baseWeather = between(weather, '// name, Open-Meteo', 'let results=') +
   between(weather, 'async function geocode', 'function llOK');
 const dsmTime = between(html, 'const hhmm=', '\n\nfunction sample');
@@ -122,7 +123,7 @@ for (const id of siteTabs) {
       .replace('← All tools', '← All forecasting tools');
     writeFileSync(path.join(out, "mobile.html"), mobile);
   }
-  const query = {weather:1,solar:2,wind:3,dsm:4,qca:5,imports:6,ists:7,plants:8};
+  const query = {weather:1,solar:2,wind:3,dsm:4,qca:5,imports:6,ists:7,plants:8,qcacmp:9};
   const start = inline(`
 const requestedTab = ${JSON.stringify(query)}[new URLSearchParams(location.search).get("task")];
 document.getElementById("t" + (siteTabs.includes(requestedTab) ? requestedTab : siteTabs[0])).click();
