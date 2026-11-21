@@ -551,6 +551,8 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
     <label class="f" style="flex:0 1 160px">To (optional)<input id="qc_to" type="date"></label>
     <label class="f">DSM band rule (same for every QCA)<select id="qc_rule"><option value="plant">This plant's own bands (from the QCA DSM engine)</option><option value="rpc">RPC published (CERC DSM 2024, by plant type and date)</option></select></label>
   </div>
+  <div class="row" id="qc_capacity_inputs"></div>
+  <p class="note">Installed and registered capacities provide context. Deviation bands use available capacity (AvC) for each block.</p>
   <p class="note" id="qc_rulenote" style="margin:8px 0 0"></p>
 </div>
 
@@ -2507,6 +2509,25 @@ function dsmReceive(pl){
   if(dCur)dm(note+" Calculated. Open 'Deviation analysis & RCA' to see where and why the limits were crossed.");
 }
 window.dsmReceive=dsmReceive;
+const comparisonCapacityFields=[
+  ["solarMW","Solar capacity (MW)"],["windMW","Wind capacity (MW)"],
+  ["hybridMW","Hybrid capacity (MW)"],["bessMW","BESS power capacity (MW)"],
+  ["bessMWh","BESS energy capacity (MWh)"]
+];
+function comparisonCapacityInputs(prefix,capacity){
+  return comparisonCapacityFields.map(([key,label])=>{
+    const value=Number(capacity?.[key]);
+    return `<label class="f">${label}<input id="${prefix}_cap_${key}" type="number" min="0" step="any" value="${capacity?.[key]!=null&&capacity[key]!==""&&Number.isFinite(value)&&value>=0?value:""}"></label>`;
+  }).join("");
+}
+function readComparisonCapacity(prefix){
+  return Object.fromEntries(comparisonCapacityFields.map(([key])=>{
+    const raw=g(prefix+"_cap_"+key).value;
+    const value=Number(raw);
+    return [key,raw!==""&&Number.isFinite(value)&&value>=0?value:null];
+  }));
+}
+const capacityText=value=>value==null?"—":Number(value).toLocaleString("en-IN");
 function sendUI(p,res){
   const card=g(p+"_card");let box=g(p+"_snd");
   if(!box){box=document.createElement("div");box.id=p+"_snd";box.className="card";box.style.cssText="margin-top:14px;background:var(--bg)";card.appendChild(box)}
@@ -2516,6 +2537,7 @@ function sendUI(p,res){
    <div class="row">
     <label class="f">SPV / plant name<input id="${p}_sn" value="${esc(res.plant)}"></label>
     <label class="f" style="flex:0 1 170px">Plant type<select id="${p}_ty"><option value="solar">Solar</option><option value="wind">Wind</option><option value="hybrid">Hybrid (solar + wind)</option></select></label>
+    ${comparisonCapacityInputs(p,spvs.find(sp=>sp.name.toLowerCase()===res.plant.toLowerCase())?.plant)}
     <label class="f">Schedule from${sel("s",S.def.s,false)}</label>
     <label class="f">Actual generation from${sel("a",S.def.a,false)}</label>
     <label class="f">Available capacity (AvC) from${sel("v",S.def.v,true)}</label>
@@ -2531,7 +2553,7 @@ function sendUI(p,res){
     const b=buildDays(r,m,g(p+"_ag").value);
     if(!b.days.length)return g(p+"_smsg").textContent="No data to send.";
     if(forComparison){
-      window.dispatchEvent(new CustomEvent("regional-comparison",{detail:{name,type:g(p+"_ty").value,region:r.region,days:b.days}}));
+      window.dispatchEvent(new CustomEvent("regional-comparison",{detail:{name,type:g(p+"_ty").value,region:r.region,days:b.days,capacity:readComparisonCapacity(p)}}));
       return;
     }
     if(r.region==="SRPC"&&(b.missS||b.missA||r.rows.some(row=>!(row[m.v]>0)||!(row[m.p]>0)))){
@@ -3037,6 +3059,7 @@ function spvLoadQ(){
   const x=curSpv();if(!x)return;
   g("qc_ppa").value=x.ppa||"";g("qc_avc").value=x.avc||"";
   g("qc_type").value=(x.plant&&x.plant.type)||"solar";
+  g("qc_capacity_inputs").innerHTML=comparisonCapacityInputs("qc",x.plant);
   ruleNote();
 }
 function cfgFor(date){
@@ -3122,6 +3145,7 @@ g("qc_regional").onclick=event=>{
     if(!saved && !Array.from(select.options).some(option=>option.value===item.name))select.add(new Option(item.name,item.name));
     select.value=saved?saved.name:item.name;
     g("qc_type").value=item.type;
+    g("qc_capacity_inputs").innerHTML=comparisonCapacityInputs("qc",item.capacity);
     g("qc_ppa").value=saved?.ppa||"";
     g("qc_avc").value=saved?.avc||"";
     g("qc_rule").value="rpc";
@@ -3159,9 +3183,9 @@ g("qc_plant_go").onclick=()=>{
       sched+=sum.sched;act+=sum.act;pay+=sum.pay;recv+=sum.recv;
     }
     const net=pay-recv;
-    output.push([item.name,item.region,sched.toFixed(2),act.toFixed(2),net.toFixed(2),act>0?(net/(act*1000)).toFixed(4):"N/A",(error/keys.length).toFixed(2)]);
+    output.push([item.name,item.region,...comparisonCapacityFields.map(([key])=>capacityText(item.capacity?.[key])),sched.toFixed(2),act.toFixed(2),net.toFixed(2),act>0?(net/(act*1000)).toFixed(4):"N/A",(error/keys.length).toFixed(2)]);
   }
-  target.innerHTML=`<p>${keys.length.toLocaleString("en-IN")} matching 15-minute blocks</p><div style="overflow-x:auto"><table><thead><tr>${["Plant","Region","Scheduled (MWh)","Actual (MWh)","Net DSM (₹)","DSM (₹/unit)","MAE (MW)"].map(label=>`<th>${label}</th>`).join("")}</tr></thead><tbody>${output.map(row=>`<tr>${row.map(value=>`<td>${esc(value)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  target.innerHTML=`<p>${keys.length.toLocaleString("en-IN")} matching 15-minute blocks</p><div style="overflow-x:auto"><table><thead><tr>${["Plant","Region",...comparisonCapacityFields.map(([,label])=>label),"Scheduled (MWh)","Actual (MWh)","Net DSM (₹)","DSM (₹/unit)","MAE (MW)"].map(label=>`<th>${label}</th>`).join("")}</tr></thead><tbody>${output.map(row=>`<tr>${row.map(value=>`<td>${esc(value)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 };
 function setSrc(s){actSrc=s;g("qc_src_eng").setAttribute("aria-pressed",String(s==="eng"));g("qc_src_file").setAttribute("aria-pressed",String(s==="file"));g("qc_actfile").classList.toggle("hide",s!=="file");actNote()}
 g("qc_src_eng").onclick=()=>{actSynth=null;setSrc("eng")};g("qc_src_file").onclick=()=>{actSynth=null;setSrc("file")};
@@ -3313,7 +3337,7 @@ function compare(){
   });
   if(res.some(o=>!(o.act>0)))return qmsg("The actual generation in the common blocks is zero, so DSM cost per unit cannot be worked out.",true);
   res.sort((a,b)=>a.pu-b.pu);
-  last={res,dates,cfg:cfgs.get(dates[0]),limitsChange,kept,total,left:total-kept,spv:g("qc_spv").value,rule:g("qc_rule").value,ppa,avc};
+  last={res,dates,cfg:cfgs.get(dates[0]),limitsChange,kept,total,left:total-kept,spv:g("qc_spv").value,rule:g("qc_rule").value,ppa,avc,capacity:readComparisonCapacity("qc")};
   render(last);
   qmsg(`Compared ${res.length} QCAs on ${n0(kept)} common blocks (${dates.length} day(s), ${dates[0]} to ${dates[dates.length-1]}).`+(last.left?` ${n0(last.left)} block(s) of actual data were left out because not every QCA covers them.`:""));
 }
@@ -3362,6 +3386,10 @@ function render(L){
     ${r.length>1?`<div class="qc-save"><span class="note">Better than ${esc(worst.name)} by</span><b>${money(save)}</b><span class="note">≈ ${money(save/L.dates.length*365)} a year at this rate</span></div>`:""}
   </div></div>
 
+  <div class="card"><h2 style="margin:0 0 10px;font-size:17px">Plant capacities</h2>
+    <div class="row">${comparisonCapacityFields.map(([key,label])=>`<div><b>${label}</b><br>${capacityText(L.capacity[key])}</div>`).join("")}</div>
+    <p class="note">Deviation bands use block-wise AvC.</p>
+  </div>
   <div class="card"><h2 style="margin:0 0 10px;font-size:17px">Side-by-side</h2>
   <div class="scroll" style="max-height:none"><table><thead><tr><th>Rank</th><th class="qc-l">QCA</th><th>DSM cost<br><span class="note">paise / unit</span></th><th>Net DSM<br><span class="note">₹ lakh</span></th><th>Payable<br><span class="note">₹ lakh</span></th><th>Receivable<br><span class="note">₹ lakh</span></th><th>Schedule<br><span class="note">MWh</span></th><th>Actual<br><span class="note">MWh</span></th><th>Bias<br><span class="note">sched vs actual</span></th></tr></thead><tbody>
   ${r.map((o,i)=>`<tr><td class="qc-l"><b>${i+1}</b></td><td class="qc-l"><b><span class="qc-dot" style="background:${o.color}" aria-hidden="true"></span>${esc(o.name)}</b></td><td><b>${o.pu.toFixed(1)}</b></td><td>${lakh(o.net)}</td><td>${lakh(o.pay)}</td><td>${lakh(o.recv)}</td><td>${n0(o.sched)}</td><td>${n0(o.act)}</td><td>${o.bias>=0?"+":""}${o.bias.toFixed(1)}%</td></tr>`).join("")}
