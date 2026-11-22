@@ -1,1 +1,45 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RE Grid Insight | My sites</title><style>body{font:16px system-ui;background:#f4f6f8;color:#183133}main{max-width:760px;margin:6vh auto;background:white;padding:2rem;border-radius:14px}label,li{display:block;margin:1em 0}input,button{font:inherit;padding:.55em;margin:.25em}button{cursor:pointer}a{color:#08665c}</style><main><h1>RE Grid Insight</h1><section id="login"><label>Email <input id="email" type="email" autocomplete="email"></label><label>Password <input id="password" type="password"></label><button data-action="login">Sign in</button><button data-action="signup">Create account</button><details><summary>Forgot password?</summary><button data-action="recover">Email recovery code</button><label>Recovery code <input id="code"></label><p>Enter your new password in the password field above.</p><button data-action="reset">Set new password</button></details></section><section id="home" hidden><h2>My sites</h2><div id="sites"></div><div id="admin"></div><button data-action="logout">Sign out</button></section><p role="status" id="message"></p></main><script src="/account.js"></script></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RE Grid Insight | Sign in</title>
+<link rel="stylesheet" href="/account.css">
+</head>
+<body>
+<main class="layout">
+  <header class="welcome">
+    <p class="brand">RE Grid Insight</p>
+    <div>
+      <h1>Welcome to<br>RE Grid Insight</h1>
+      <p>Renewable energy forecasts, grid maps, DSM analysis, and battery operations.</p>
+    </div>
+  </header>
+  <div class="workspace">
+    <section id="login" aria-labelledby="login-title">
+      <header class="intro"><h2 id="login-title">Sign in</h2><p>Use your email to access your workspace.</p></header>
+      <form id="credentials">
+        <label for="email">Email address</label>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email" required>
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+        <button id="submit" class="primary" type="submit">Sign in</button>
+      </form>
+      <p class="switch"><span id="switch-prompt">New to RE Grid Insight?</span> <button id="switch-mode" type="button" class="link">Create account</button></p>
+      <details id="recovery">
+        <summary>Forgot password?</summary>
+        <button data-action="recover" type="button">Email recovery code</button>
+        <label for="code">Recovery code</label>
+        <input id="code" autocomplete="one-time-code">
+        <label for="new-password">New password</label>
+        <input id="new-password" type="password" autocomplete="new-password">
+        <button data-action="reset" type="button">Set new password</button>
+      </details>
+    </section>
+    <section id="home" hidden><h2>My sites</h2><div id="sites"></div><div id="admin"></div><button data-action="logout" type="button">Sign out</button></section>
+    <p role="status" id="message"></p>
+  </div>
+</main>
+<script src="/account.js"></script>
+</body>
+</html>

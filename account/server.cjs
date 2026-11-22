@@ -47,7 +47,17 @@ http.createServer(async(req,res)=>{
       }
     }
     if(req.method!=='GET'){res.writeHead(405);return res.end()}
-    if(p==='/'||p==='/account.js'){res.setHeader('Content-Type',p==='/'?'text/html':'text/javascript');return res.end(await fs.readFile(path.join(__dirname,p==='/'?'index.html':'account.js')))}
+    const publicAsset = {
+      '/': ['index.html', 'text/html'],
+      '/account.js': ['account.js', 'text/javascript'],
+      '/account.css': ['account.css', 'text/css'],
+      '/renewable.webp': ['renewable.webp', 'image/webp']
+    };
+    if (Object.hasOwn(publicAsset,p)) {
+      const [filename,type] = publicAsset[p];
+      res.setHeader('Content-Type',type);
+      return res.end(await fs.readFile(path.join(__dirname,filename)));
+    }
     if(!token){res.writeHead(401);return res.end('Sign in at the portal home page.')}
     const user=await api('/auth/v1/user',token);
     const admin=await api('/rest/v1/rpc/regrid_admin',token,'POST',{});
