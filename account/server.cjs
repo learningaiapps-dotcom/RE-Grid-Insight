@@ -1,3 +1,4 @@
+const {createHash,randomBytes}=require('node:crypto');
 const http=require('node:http');
 const fs=require('node:fs/promises');
 const path=require('node:path');
@@ -29,7 +30,7 @@ http.createServer(async(req,res)=>{
   try{
     if(req.method==='POST'){
       if(req.headers.origin!=='https://'+req.headers.host || req.headers['content-type']!=='application/json'){res.writeHead(403);return res.end()}
-      let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>(p==='/operator-share'?24000:8192)){res.writeHead(413);return res.end()}}
+      let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>(['/operator-share','/operator-guest-link'].includes(p)?24000:8192)){res.writeHead(413);return res.end()}}
       const b=JSON.parse(raw);
       if(p==='/logout'){cookie('',0);if(token)await api('/auth/v1/logout?scope=local',token,'POST',{});return json({})}
       if(['/signup','/login','/recover'].includes(p)){
@@ -42,8 +43,15 @@ http.createServer(async(req,res)=>{
         const session=await api('/auth/v1/verify',null,'POST',{type:'recovery',email:b.email,token:b.code});
         await api('/auth/v1/user',session.access_token,'PUT',{password:b.password});return json({});
       }
+      if(p==='/operator-guest-data'){
+        if(typeof b.link!=='string'||! /^[a-f0-9]{64}$/.test(b.link)){res.writeHead(404);return json([])}
+        const digest=createHash('sha256').update(b.link).digest('hex');
+        const rows=await api('/rest/v1/rpc/regrid_operator_guest_read',null,'POST',{digest});
+        if(!rows.length)res.statusCode=404;
+        return json(rows);
+      }
       if(!token){res.writeHead(401);return res.end()}
-      if(p==='/operator-share'){
+      if(p==='/operator-share'||p==='/operator-guest-link'){
         const {plant,day,label,schedule}=b;
         const recipients=Array.isArray(b.recipients)?[...new Set(b.recipients)]:null;
         if(typeof plant!=='string'||!plant||plant.length>120||!/^\d{4}-\d{2}-\d{2}$/.test(day)
@@ -52,6 +60,14 @@ http.createServer(async(req,res)=>{
           ||(b.recipients!==undefined&&(!recipients||recipients.length>30||!recipients.every(email=>
             typeof email==='string'&&email.length<=254&&/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(email)&&email===email.toLowerCase())))){
           res.writeHead(400);return res.end('Invalid schedule or email list.');
+        }
+        if(p==='/operator-guest-link'){
+          const link=b.revoke===true?null:randomBytes(32).toString('hex');
+          const digest=link?createHash('sha256').update(link).digest('hex'):null;
+          const expires=await api('/rest/v1/rpc/regrid_operator_guest_change',token,'POST',{
+            plant_id:plant,operating_day:day,plant_label:label,blocks:schedule,digest
+          });
+          return json({link,expires});
         }
         const params=new URLSearchParams({plant:'eq.'+plant,day:'eq.'+day});
         const path='/rest/v1/regrid_operator_sheets';
@@ -90,9 +106,9 @@ http.createServer(async(req,res)=>{
     if(p==='/operator-data')return json(await api('/rest/v1/rpc/regrid_operator_schedule',token,'POST',{}));
     if(p==='/operator-recipients'){
       const plant=url.searchParams.get('plant'),day=url.searchParams.get('day');
-      const params=new URLSearchParams({owner:'eq.'+user.id,plant:'eq.'+plant,day:'eq.'+day,select:'recipients'});
+      const params=new URLSearchParams({owner:'eq.'+user.id,plant:'eq.'+plant,day:'eq.'+day,select:'recipients,guest_expires'});
       const list=await api('/rest/v1/regrid_operator_sheets?'+params,token);
-      return json(list[0]?.recipients||[]);
+      return json({emails:list[0]?.recipients||[],guestActive:Date.parse(list[0]?.guest_expires)>Date.now()});
     }
     const admin=await api('/rest/v1/rpc/regrid_admin',token,'POST',{});
     if(p==='/me')return json({email:user.email,admin,access:await api('/rest/v1/regrid_access?user_id=eq.'+user.id,token),requests:admin?await api('/rest/v1/rpc/regrid_requests',token,'POST',{}):[]});
