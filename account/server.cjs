@@ -73,15 +73,31 @@ http.createServer(async(req,res)=>{
     if(!file.startsWith(root+path.sep)){res.writeHead(403);return res.end()}
     const data=await fs.readFile(file);res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');res.end(data);
   }catch(e){
-    const signupErrors={
-      weak_password:'Choose a stronger password with at least 6 characters.',
-      email_address_invalid:'Enter a valid email address.',
-      email_address_not_authorized:'Confirmation email could not be sent to this address. Contact the RE Grid Insight administrator.',
-      over_email_send_rate_limit:'Too many confirmation emails were requested. Try again later.'
+    const weakPassword='Use a stronger password with at least 6 characters.';
+    const authErrors={
+      '/signup':{
+        weak_password:weakPassword,
+        email_address_invalid:'Enter a valid email address.',
+        email_address_not_authorized:'Confirmation email could not be sent to this address. Contact the RE Grid Insight administrator.',
+        over_email_send_rate_limit:'Too many confirmation emails were requested. Try again later.'
+      },
+      '/login':{
+        weak_password:weakPassword,
+        invalid_credentials:'Email address or password is incorrect. Try again or select Forgot password.',
+        email_not_confirmed:'Confirm your email using the link in your inbox, then sign in again.',
+        email_address_invalid:'Enter a valid email address.',
+        over_request_rate_limit:'Too many sign-in attempts. Wait a few minutes and try again.'
+      }
     };
-    if(req.method==='POST' && p==='/signup' && Object.hasOwn(signupErrors,e.authCode)){
-      res.statusCode=e.status;
-      return json({message:signupErrors[e.authCode]});
+    if(req.method==='POST' && Object.hasOwn(authErrors,p)){
+      const errors=authErrors[p];
+      const message=Object.hasOwn(errors,e.authCode)?errors[e.authCode]
+        :p==='/login' && e.status===429?errors.over_request_rate_limit
+        :p==='/login'?'Sign-in is temporarily unavailable. Try again shortly.':null;
+      if(message){
+        res.statusCode=e.status>=400&&e.status<500?e.status:503;
+        return json({message});
+      }
     }
     res.writeHead(e.code==='ENOENT'?404:e.status>=400&&e.status<500?e.status:503);res.end('Unable to complete request. Check your login or try again.')}
 }).listen(process.env.PORT||3000);
