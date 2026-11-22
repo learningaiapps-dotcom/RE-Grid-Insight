@@ -22,8 +22,8 @@
         <label for="email">Email address</label>
         <input id="email" type="email" placeholder="you@example.com" autocomplete="email" required>
         <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" aria-describedby="password-hint" required>
-        <small id="password-hint" hidden>Use at least 6 characters.</small>
+        <input id="password" type="password" autocomplete="current-password" aria-describedby="password-hint" minlength="6" required>
+        <small id="password-hint">Use at least 6 characters.</small>
         <button id="submit" class="primary" type="submit">Sign in</button>
       </form>
       <p class="switch"><span id="switch-prompt">New to RE Grid Insight?</span> <button id="switch-mode" type="button" class="link">Create account</button></p>

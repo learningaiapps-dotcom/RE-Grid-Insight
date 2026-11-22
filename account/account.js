@@ -38,9 +38,6 @@ function setMode(register) {
   el('switch-prompt').textContent = signup ? 'Already have an account?' : 'New to RE Grid Insight?';
   el('switch-mode').textContent = signup ? 'Sign in' : 'Create account';
   el('password').autocomplete = signup ? 'new-password' : 'current-password';
-  if (signup) el('password').minLength = 6;
-  else el('password').removeAttribute('minlength');
-  el('password-hint').hidden = !signup;
   el('recovery').hidden = signup;
   el('message').textContent = '';
 }
@@ -61,6 +58,11 @@ async function complete(action) {
   })[action] || '';
 }
 el('switch-mode').onclick = () => setMode(!signup);
+el('credentials').addEventListener('invalid', event => {
+  if (event.target === el('password') && event.target.validity.tooShort) {
+    el('message').textContent = 'Enter a password with at least 6 characters.';
+  }
+}, true);
 el('credentials').onsubmit = async event => {
   event.preventDefault();
   const submit = el('submit');
