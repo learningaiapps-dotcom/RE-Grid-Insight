@@ -37,3 +37,12 @@ a { color: #145741; }
   .layout { grid-template-columns: 1fr; }
   .welcome { min-height: 20rem; gap: 2rem; }
 }
+
+.operator { max-width: 76rem; margin: auto; padding: clamp(1rem, 4vw, 3rem); }
+.operator h1 { font-size: clamp(2rem, 5vw, 3rem); }
+.operator select { font: inherit; max-width: 100%; padding: .65rem; }
+.operator-scroll { overflow-x: auto; }
+.operator table { width: 100%; border-collapse: collapse; background: white; }
+.operator th, .operator td { padding: .65rem; text-align: right; border-bottom: 1px solid #d8e5dc; }
+.operator th { background: #e6efe9; }
+.operator tr.current { background: #d9eee3; font-weight: 700; }

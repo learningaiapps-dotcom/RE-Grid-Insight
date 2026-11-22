@@ -16,7 +16,7 @@ async function render(){
   for(const [site,title] of Object.entries({dsm:'DSM',forecast:'Forecast',maps:'Maps',bess:'BESS Operations'})){
     const row=document.createElement('p'),status=u.access.find(a=>a.site===site)?.status;
     row.append(title+' — ');
-    if(u.admin||status==='approved'){const a=document.createElement('a');a.href='/'+site+'/';a.textContent='Open site';row.append(a)}
+    if(u.admin||status==='approved'){const a=document.createElement('a');a.href='/'+site+'/'+(site==='bess'?'#live':'');a.textContent='Open site';row.append(a)}
     else if(status)row.append(status);
     else row.append(button('Request access',async()=>{await post('request',{site});await render()}));
     el('sites').append(row);
