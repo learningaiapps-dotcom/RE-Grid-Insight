@@ -115,3 +115,14 @@ services:
     plan: free
     buildCommand: node --check feeds/server.cjs
     startCommand: node feeds/server.cjs
+  - type: web
+    name: re-grid-accounts
+    runtime: node
+    plan: free
+    buildCommand: RE_GRID_DSM_URL=/dsm/ RE_GRID_BESS_URL=/bess/ RE_GRID_MAPS_URL=/maps/ RE_GRID_FORECAST_URL=/forecast/ node scripts/build-sites.cjs
+    startCommand: node account/server.cjs
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
