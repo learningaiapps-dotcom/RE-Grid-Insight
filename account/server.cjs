@@ -5,8 +5,9 @@ const sites=['dsm','maps','forecast','bess'];
 const base=process.env.SUPABASE_URL;
 const key=process.env.SUPABASE_PUBLISHABLE_KEY;
 if(!base?.startsWith('https://') || !key) throw Error('Configure Supabase project URL and publishable key');
-async function api(route,token,method='GET',body){
+async function api(route,token,method='GET',body,prefer){
   const headers={apikey:key,'Content-Type':'application/json'};
+  if(prefer) headers.Prefer=prefer;
   if(token) headers.Authorization='Bearer '+token;
   const r=await fetch(base+route,{method,headers,body:body&&JSON.stringify(body),signal:AbortSignal.timeout(10000)});
   if(!r.ok){
@@ -28,7 +29,7 @@ http.createServer(async(req,res)=>{
   try{
     if(req.method==='POST'){
       if(req.headers.origin!=='https://'+req.headers.host || req.headers['content-type']!=='application/json'){res.writeHead(403);return res.end()}
-      let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>8192){res.writeHead(413);return res.end()}}
+      let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>(p==='/operator-share'?24000:8192)){res.writeHead(413);return res.end()}}
       const b=JSON.parse(raw);
       if(p==='/logout'){cookie('',0);if(token)await api('/auth/v1/logout?scope=local',token,'POST',{});return json({})}
       if(['/signup','/login','/recover'].includes(p)){
@@ -42,6 +43,27 @@ http.createServer(async(req,res)=>{
         await api('/auth/v1/user',session.access_token,'PUT',{password:b.password});return json({});
       }
       if(!token){res.writeHead(401);return res.end()}
+      if(p==='/operator-share'){
+        const {plant,day,label,schedule}=b;
+        const recipients=Array.isArray(b.recipients)?[...new Set(b.recipients)]:null;
+        if(typeof plant!=='string'||!plant||plant.length>120||!/^\d{4}-\d{2}-\d{2}$/.test(day)
+          ||typeof label!=='string'||!label||label.length>160||!Array.isArray(schedule)||schedule.length!==96
+          ||!schedule.every(row=>Array.isArray(row)&&row.length===5&&row.every(Number.isFinite))
+          ||(b.recipients!==undefined&&(!recipients||recipients.length>30||!recipients.every(email=>
+            typeof email==='string'&&email.length<=254&&/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(email)&&email===email.toLowerCase())))){
+          res.writeHead(400);return res.end('Invalid schedule or email list.');
+        }
+        const params=new URLSearchParams({plant:'eq.'+plant,day:'eq.'+day});
+        const path='/rest/v1/regrid_operator_sheets';
+        if(recipients){
+          const changes={label,recipients,schedule,updated_at:new Date().toISOString()};
+          const updated=await api(path+'?'+params,token,'PATCH',changes,'return=representation');
+          if(!updated.length)await api(path,token,'POST',{plant,day,label,recipients,schedule});
+        }else{
+          await api(path+'?'+params,token,'PATCH',{label,schedule,updated_at:new Date().toISOString()});
+        }
+        return json({});
+      }
       if(!sites.includes(b.site)){res.writeHead(400);return res.end()}
       if(p==='/request'){await api('/rest/v1/regrid_access',token,'POST',{site:b.site});return json({})}
       if(p==='/decision'&&['approved','revoked'].includes(b.status)&&/^[a-f0-9-]{36}$/.test(b.uid)){
@@ -52,6 +74,8 @@ http.createServer(async(req,res)=>{
     if(req.method!=='GET'){res.writeHead(405);return res.end()}
     const publicAsset = {
       '/': ['index.html', 'text/html'],
+      '/operator': ['operator.html', 'text/html'],
+      '/operator.js': ['operator.js', 'text/javascript'],
       '/account.js': ['account.js', 'text/javascript'],
       '/account.css': ['account.css', 'text/css'],
       '/renewable.webp': ['renewable.webp', 'image/webp']
@@ -63,6 +87,13 @@ http.createServer(async(req,res)=>{
     }
     if(!token){res.writeHead(401);return res.end('Sign in at the portal home page.')}
     const user=await api('/auth/v1/user',token);
+    if(p==='/operator-data')return json(await api('/rest/v1/rpc/regrid_operator_schedule',token,'POST',{}));
+    if(p==='/operator-recipients'){
+      const plant=url.searchParams.get('plant'),day=url.searchParams.get('day');
+      const params=new URLSearchParams({owner:'eq.'+user.id,plant:'eq.'+plant,day:'eq.'+day,select:'recipients'});
+      const list=await api('/rest/v1/regrid_operator_sheets?'+params,token);
+      return json(list[0]?.recipients||[]);
+    }
     const admin=await api('/rest/v1/rpc/regrid_admin',token,'POST',{});
     if(p==='/me')return json({email:user.email,admin,access:await api('/rest/v1/regrid_access?user_id=eq.'+user.id,token),requests:admin?await api('/rest/v1/rpc/regrid_requests',token,'POST',{}):[]});
     const [,site,...parts]=p.split('/');

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BESS live schedule | RE Grid Insight</title>
+<link rel="stylesheet" href="/account.css">
+</head>
+<body>
+<main class="operator">
+  <h1>BESS live schedule</h1>
+  <p>Read-only · All block times in IST</p>
+  <label for="sheets">Shared schedule</label>
+  <select id="sheets" hidden></select>
+  <p role="status" id="operator-status">Loading shared schedules…</p>
+  <p id="operator-login" hidden><a href="/">Sign in</a> with the email the schedule owner added, then open <strong>View shared BESS schedules</strong>.</p>
+  <div class="operator-scroll"><table id="operator-table" hidden>
+    <thead><tr><th>Block</th><th>Time</th><th>IEX (MW)</th><th>Charging (−MW)</th><th>Discharging (+MW)</th><th>Charge set point (−MW)</th><th>Discharge set point (+MW)</th></tr></thead>
+    <tbody id="operator-rows"></tbody>
+  </table></div>
+</main>
+<script src="/operator.js"></script>
+</body>
+</html>
