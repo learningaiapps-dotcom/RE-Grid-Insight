@@ -123,6 +123,6 @@ services:
     startCommand: node account/server.cjs
     envVars:
       - key: SUPABASE_URL
-        sync: false
+        value: https://oudlmrnefxlwixzmjpvq.supabase.co
       - key: SUPABASE_PUBLISHABLE_KEY
-        sync: false
+        value: sb_publishable__-mVsxyrk55XUUVDR_JdKA_9_rggZIE
