@@ -365,7 +365,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
     <label class="f"><span class="tip" data-g="dgrp">Show results by</span><select id="dgrp"><option value="day">Each day</option><option value="week">Each week</option><option value="month">Each month</option><option value="quarter">Each quarter</option><option value="all">Whole period</option></select></label>
   </div>
   <div style="margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:12px">
-    <b><span class="tip" data-g="bands">Deviation bands (set by you, as % of AvC)</span></b>
+    <b><span id="dBandTitle" class="tip" data-g="bands">Deviation bands (set by you, as % of AvC)</span></b>
         <div class="scroll" style="margin-top:8px;max-height:none"><table><thead><tr><th>Band</th><th>Deviation range</th><th>Upper limit (%)</th><th class="tip" data-g="dsmrate">Under-injection DSM penalty rate (% of PPA)</th><th class="tip" data-g="bandund">Under-injection payable (% of PPA)</th><th class="tip" data-g="bandov">Over-injection receivable (% of PPA)</th><th class="tip" data-g="lossrate">Over-injection revenue loss (% of PPA)</th></tr></thead><tbody id="dbtb"></tbody></table></div>
     <div class="tools" style="margin-top:8px"><button class="alt" id="dbadd">Add band</button><button class="alt" id="dbrem">Remove last band</button><span class="note" style="margin-left:10px">Presets:</span><button class="alt d-preset" id="dpre_my" aria-pressed="true">My bands</button><button class="alt d-preset" id="dpre_pub" aria-pressed="false">RPC calculation methodology</button></div>
     <div class="note" id="dpre_note" style="margin-top:6px"></div>
@@ -1461,7 +1461,7 @@ function dCalc(){
   const from=$("dfrom").value,to=$("dto").value,run=$("drun").value||new Date().toISOString().slice(0,10);
   const list=g.days.map(d=>({...d,date:d.date||addDays(run,d.rel)})).filter(d=>(!from||d.date>=from)&&(!to||d.date<=to)).sort((a,b)=>a.date<b.date?-1:1);
   if(!list.length)return dm("No days fall inside the dates you chose.",true);
-  let cfg=dBandRead();
+  let cfg=dPublished?null:dBandRead();
   if(dPublished){
     const first=list[0].date,last=list[list.length-1].date;
     cfg=rpcPublishedConfig($("dtype").value,first);
@@ -1473,7 +1473,6 @@ function dCalc(){
       dClear();
       return dm("RPC bands change on 1 April 2026. Use the date filters to calculate each period separately.",true);
     }
-    dBandRender(cfg);
     dPreNote(first);
   }
   if(!cfg)return dm("Band limits must be positive and each one larger than the one before.",true);
@@ -1531,11 +1530,20 @@ function rpcPublishedConfig(type,date){
 }
 let dPublished=false,dMyCfg=null;
 function dPreNote(date){
+  const fallback=$("dfrom").value||$("drun").value||new Date().toISOString().slice(0,10);
+  if(dPublished){
+    date=date||fallback;
+    const auto=rpcPublishedConfig($("dtype").value,date);
+    if(auto)dBandRender(auto);
+    $("dbtb").closest("table").hidden=!auto;
+  }else $("dbtb").closest("table").hidden=false;
+  $("dBandTitle").textContent=dPublished?"Automatic RPC deviation bands (% of AvC)":"Deviation bands (set by you, as % of AvC)";
+  for(const control of [...$("dbtb").querySelectorAll("input"),$("dbadd"),$("dbrem")])control.disabled=dPublished;
   $("dpre_pub").setAttribute("aria-pressed",String(dPublished));
   $("dpre_my").setAttribute("aria-pressed",String(!dPublished));
   $("dpre_note").textContent=dPublished
-    ?date?`RPC published WS seller bands for ${date}. Shortfall is charged at 100%, 110% and 200%. Excess is paid at 100%, 90% and 0%.`
-      :"RPC published bands will be selected using the plant type and settlement dates."
+    ?rpcPublishedConfig($("dtype").value,date)?`RPC published WS seller bands for ${date}. Shortfall is charged at 100%, 110% and 200%. Excess is paid at 100%, 90% and 0%.`
+      :"No supported RPC bands for this date."
     :"";
 }
 function dUseCustomBands(){
@@ -1543,7 +1551,7 @@ function dUseCustomBands(){
   dPreNote();
 }
 $("dpre_pub").onclick=()=>{
-  if(!dPublished)dMyCfg=dBandRead();
+  if(!dPublished)dMyCfg=dBandRead()||spvs[spvIdx()].cfg;
   dPublished=true;
   dPreNote();
   if(dData)dCalc();
@@ -1557,7 +1565,9 @@ $("dpre_my").onclick=()=>{
 $("dbtb").addEventListener("input",dUseCustomBands);
 $("dbadd").addEventListener("click",dUseCustomBands);
 $("dbrem").addEventListener("click",dUseCustomBands);
-$("dtype").addEventListener("change",()=>{if(dPublished&&dData)dCalc()});
+for(const id of ["dtype","drun","dfrom","dto","dspv"]){
+  $(id).addEventListener("change",()=>{if(dPublished){dPreNote();if(dData)dCalc()}});
+}
 function dClear(){
   dCur=null;
   $("dout").classList.add("hide");
@@ -1585,10 +1595,10 @@ function dPubDay(d){
   const mis=bl.filter(pubMis).length;
   e.innerHTML=`<details${mis?" open":""}><summary><b>Block by block for ${d.date}</b>: ${mis} of ${bl.length} block(s) differ</summary>
    <label style="font-size:13px;display:block;margin:6px 0"><input type="checkbox" id="dpubonly"${mis?" checked":""}> Show only the blocks that differ</label>
-   <div class="scroll"><table><thead><tr><th>Block</th><th>Time</th><th>Deviation<br><span class="u">(MW)</span></th><th>Published charge<br><span class="u">(₹)</span></th><th>This app<br><span class="u">(₹)</span></th><th>Difference<br><span class="u">(₹)</span></th><th>Check</th></tr></thead><tbody id="dpubtb"></tbody></table></div>
+   <div class="scroll"><table><thead><tr><th>Block</th><th>Time</th><th>Deviation<br><span class="u">(MW)</span></th><th>AvC (MW)</th><th>Rate (₹/kWh)</th><th>Published charge<br><span class="u">(₹)</span></th><th>This app<br><span class="u">(₹)</span></th><th>Difference<br><span class="u">(₹)</span></th><th>Check</th></tr></thead><tbody id="dpubtb"></tbody></table></div>
    <p class="note" style="margin:6px 0 0">Positive = payable by the plant, negative = receivable. "This app" = total charge minus receivable for the block.</p></details>`;
   const draw=()=>{const only=$("dpubonly").checked,rows=bl.filter(b=>!only||pubMis(b));
-    $("dpubtb").innerHTML=rows.length?rows.map(b=>{const a=b.pay-b.recv,m=pubMis(b);return `<tr${m?' style="background:#fee2e255"':""}><td>${b.b}</td><td>${hhmm(b.b)}</td><td>${f2(b.dev)}</td><td>${f2(b.pub)}</td><td>${f2(a)}</td><td>${f2(a-b.pub)}</td><td>${m?'<b class="err">Differs</b>':"✓"}</td></tr>`}).join(""):`<tr><td colspan="7">No blocks differ on this day.</td></tr>`};
+    $("dpubtb").innerHTML=rows.length?rows.map(b=>{const a=b.pay-b.recv,m=pubMis(b);return `<tr${m?' style="background:#fee2e255"':""}><td>${b.b}</td><td>${hhmm(b.b)}</td><td>${f2(b.dev)}</td><td>${f2(b.avc)}</td><td>${b.price.toFixed(4)}</td><td>${f2(b.pub)}</td><td>${f2(a)}</td><td>${f2(a-b.pub)}</td><td>${m?'<b class="err">Differs</b>':"✓"}</td></tr>`}).join(""):`<tr><td colspan="9">No blocks differ on this day.</td></tr>`};
   $("dpubonly").onchange=draw;draw();
 }
 
@@ -2522,7 +2532,7 @@ function dsmReceive(pl){
   spvSave();spvFill(sp.name);
   g("dtype").value=sp.plant.type;typeShow();
   if(pl.region==="NRPC")dPublished=true;
-  if(dPublished)dMyCfg=dBandRead();
+  if(dPublished)dMyCfg=sp.cfg;
   dPreNote();
   dData={names:[""],groups:{"":{days:pl.days.map(d=>({date:d.date,rel:0,rows:d.rows,count:d.count})),extra:0}},bad:0,seqDays:false};
   g("dfrom").value="";g("dto").value="";g("drun").value=pl.days[0].date;
