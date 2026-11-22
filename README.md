@@ -28,6 +28,11 @@ Saved runs and SPV settings stay in that browser only.
 - DSM cost per unit = (payable incl. DSM penalty − receivable) ÷ actual generation. Negative = net gain.
 - Each block is counted once, in the highest band its deviation reached. Night or no-generation blocks (no schedule, no output) are counted separately and left out of the scheduling tendency: over-schedules when 55% or more of deviating blocks are under-injection, under-schedules when 45% or fewer.
 
+## Security
+- `render.yaml` sends security headers on every site: a Content Security Policy (only the site's own scripts run; the browser may contact only Open-Meteo and the two reverse-geocoding services), no framing by other websites, `nosniff`, a strict referrer policy, HTTPS only (HSTS) and limited browser permissions.
+- All libraries are served from `vendor/`; no page loads code from a CDN. Keep SheetJS up to date (see `vendor/README.txt`).
+- If the headers do not appear on a live site (browser developer tools → Network → the page → Response headers), the Render service was created by hand rather than from this file: add the same headers in Render → the service → Settings → Headers, or recreate the services from the Blueprint.
+
 ## Open it
 * Online: the GitHub Pages address of this repository (see below).
 * On a computer: download this folder and double-click `index.html` (Chrome or Edge).
@@ -89,3 +94,23 @@ The existing combined dashboard still works when published from the
 repository root. Export any saved DSM runs you need from that dashboard
 before switching to the new DSM URL. Browser storage is tied to each URL's
 origin.
+
+### Approved IEX, WBES and plant generation feeds
+
+Sync the Render Blueprint and open the approved-feeds service. The administrator manages approvals through that service's private Environment settings. If Render assigns another hostname, update the link in index.html. Each feed uses an authorized read-only HTTPS endpoint returning a JSON array or an object with a rows array. An adapter is needed for other provider formats. Keep provider credentials in separate secret environment variables.
+
+Set FEED_SOURCES to a JSON object such as
+```json
+{"plant-a-generation":{"url":"https://provider.example/plant-a","authorizationEnv":"PLANT_A_AUTH","plantField":"plant","plantValue":"A","fields":["time","actualMW"]}}
+```
+Use separate IDs for each IEX product, WBES schedule or plant. Supply plantField and plantValue for multi-plant endpoints. Use plant-specific upstream credentials wherever possible.
+
+Generate one key for each approved user or publishing service using the following command on a trusted machine. Deliver the key privately. Put only its digest in FEED_GRANTS.
+```sh
+node -e "const c=require('crypto'),k=c.randomBytes(32).toString('base64url'); console.log(k,c.createHash('sha256').update(k).digest('hex'))"
+```
+Example FEED_GRANTS configuration:
+```json
+{"USER_KEY_SHA256":{"purpose":"view","expires":"2027-01-01T00:00:00Z","feeds":{"plant-a-generation":["time","actualMW"]}}}
+```
+For an approved website, issue its backend a distinct key with purpose publish and only redistributable fields. Its backend calls GET /v1/feeds or GET /v1/feeds/plant-a-generation with Authorization: Bearer KEY and renders permitted values. Never place publishing keys in public JavaScript. Purpose records the admin decision; anyone who can read values can copy them. Remove a digest and apply the environment update to revoke it. Limits are 60 authenticated requests per key per minute per service instance.

@@ -1,21 +1,117 @@
+# Security headers (same for every site): only this site's own scripts run, pages cannot be shown inside other
+# websites, HTTPS is enforced, and the browser may contact only the weather services the app needs.
 services:
   - type: web
     name: re-grid-forecast
     runtime: static
     buildCommand: node scripts/build-sites.cjs
     staticPublishPath: ./dist/forecast
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.open-meteo.com https://historical-forecast-api.open-meteo.com https://previous-runs-api.open-meteo.com https://geocoding-api.open-meteo.com https://nominatim.openstreetmap.org https://api.bigdatacloud.net; frame-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+      - path: /*
+        name: X-Frame-Options
+        value: "SAMEORIGIN"
+      - path: /*
+        name: X-Content-Type-Options
+        value: "nosniff"
+      - path: /*
+        name: Referrer-Policy
+        value: "strict-origin-when-cross-origin"
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)"
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=31536000"
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: "same-origin"
   - type: web
     name: re-grid-maps
     runtime: static
     buildCommand: node scripts/build-sites.cjs
     staticPublishPath: ./dist/maps
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.open-meteo.com https://historical-forecast-api.open-meteo.com https://previous-runs-api.open-meteo.com https://geocoding-api.open-meteo.com https://nominatim.openstreetmap.org https://api.bigdatacloud.net; frame-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+      - path: /*
+        name: X-Frame-Options
+        value: "SAMEORIGIN"
+      - path: /*
+        name: X-Content-Type-Options
+        value: "nosniff"
+      - path: /*
+        name: Referrer-Policy
+        value: "strict-origin-when-cross-origin"
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)"
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=31536000"
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: "same-origin"
   - type: web
     name: re-grid-dsm
     runtime: static
     buildCommand: node scripts/build-sites.cjs
     staticPublishPath: ./dist/dsm
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.open-meteo.com https://historical-forecast-api.open-meteo.com https://previous-runs-api.open-meteo.com https://geocoding-api.open-meteo.com https://nominatim.openstreetmap.org https://api.bigdatacloud.net; frame-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+      - path: /*
+        name: X-Frame-Options
+        value: "SAMEORIGIN"
+      - path: /*
+        name: X-Content-Type-Options
+        value: "nosniff"
+      - path: /*
+        name: Referrer-Policy
+        value: "strict-origin-when-cross-origin"
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)"
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=31536000"
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: "same-origin"
   - type: web
     name: re-grid-bess-operations
     runtime: static
     buildCommand: node scripts/build-sites.cjs
     staticPublishPath: ./dist/bess
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.open-meteo.com https://historical-forecast-api.open-meteo.com https://previous-runs-api.open-meteo.com https://geocoding-api.open-meteo.com https://nominatim.openstreetmap.org https://api.bigdatacloud.net; frame-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+      - path: /*
+        name: X-Frame-Options
+        value: "SAMEORIGIN"
+      - path: /*
+        name: X-Content-Type-Options
+        value: "nosniff"
+      - path: /*
+        name: Referrer-Policy
+        value: "strict-origin-when-cross-origin"
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)"
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=31536000"
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: "same-origin"
+  - type: web
+    name: re-grid-approved-feeds
+    runtime: node
+    plan: free
+    buildCommand: node --check feeds/server.cjs
+    startCommand: node feeds/server.cjs
