@@ -1589,14 +1589,52 @@ function dPubSummary(){
    <p class="note" style="margin:8px 0 0">${all.length.toLocaleString("en-IN")} blocks compared · <b class="${mis?"err":""}">${mis.toLocaleString("en-IN")} block(s) differ</b> by more than ₹5 or 0.5%. ${mis?(isPub?"These blocks need a look: the data or the rule differs from what was published.":"Your own bands are in use, so differences are expected. Select <b>RPC calculation methodology</b> to compare using the applicable WS seller bands."):"The app matches the published charge."}</p>
    <div id="dpubday" style="margin-top:10px"></div>`;
 }
+// Invert the three marginal RPC charge rates for a single block at a fixed price.
+function rpcImpliedCapacity(block,cfg){
+  const deviation=Math.abs(block.dev),price=block.price;
+  if(!(deviation>0 && price>0) || !Number.isFinite(block.pub))return {message:"Insufficient data"};
+  const under=block.dev<0;
+  if((under && block.pub<0)||(!under && block.pub>0))return {message:"Published amount has the opposite sign"};
+  const rates=under?payRates(cfg).map((rate,i)=>rate+dsmRates(cfg)[i]):ovrRates(cfg);
+  const [a,b,c]=rates.map(rate=>rate/100);
+  const [lo,hi]=cfg.limits.map(limit=>limit/100);
+  const unit=price*250, target=Math.abs(block.pub)/unit;
+  if(Math.abs(target-a*deviation)*unit<=0.5)return {message:"First-band charge within ₹0.50; capacity cannot be uniquely inferred"};
+  if(target<Math.min(a,c)*deviation-1e-9 || target>Math.max(a,c)*deviation+1e-9)return {message:"No matching capacity at this rate"};
+  const last=(target-c*deviation)/((a-b)*lo+(b-c)*hi);
+  const capacity=last<=deviation/hi?last:(target-b*deviation)/((a-b)*lo);
+  if(!Number.isFinite(capacity)||capacity < -1e-8)return {message:"No matching capacity at this rate"};
+  return {capacity:Math.max(0,capacity)};
+}
+function showImpliedBand(box,block,cfg){
+  const {capacity,message}=rpcImpliedCapacity(block,cfg);
+  const [low,high]=cfg.limits;
+  const limits=cfg.limits.map(percent=>percent/100*block.avc);
+  const rows=[[0,low],[low,high],[high,null]].map(([from,to],i)=>{
+    const range=values=>i===0?"Up to "+f2(values[0]):i===1?f2(values[0])+" to "+f2(values[1]):"Above "+f2(values[1]);
+    const inferred=capacity==null?"—":range(cfg.limits.map(percent=>percent/100*capacity));
+    return `<tr><td>${i+1}</td><td>${to==null?"Above "+from:from+" to "+to}%</td><td>${range(limits)}</td><td>${inferred}</td></tr>`;
+  }).join("");
+  box.innerHTML=`<p>Block ${block.b} · Deviation ${f2(block.dev)} MW · Rate ₹${block.price.toFixed(4)}/kWh · Published ₹${f2(block.pub)}</p>
+    <table><thead><tr><th>Band</th><th>RPC limit</th><th>Using imported AvC (MW)</th><th>Implied limit (MW)</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="note">AvC used: ${f2(block.avc)} MW. ${message||("Implied AvC: "+f2(capacity)+" MW.")} Estimate assumes the same block rate and RPC percentages. Published rounding can affect the result.</p>`;
+}
 function dPubDay(d){
   const e=$("dpubday");if(!e)return;
   const bl=d.blocks.filter(b=>b.pub!=null);if(!bl.length){e.innerHTML="";return}
   const mis=bl.filter(pubMis).length;
   e.innerHTML=`<details${mis?" open":""}><summary><b>Block by block for ${d.date}</b>: ${mis} of ${bl.length} block(s) differ</summary>
+   ${dCur.meta.published?'<div class="card"><b>Back-calculated RPC bands</b> <label>Block <select id="dpubpick"></select></label><div id="dpubbands"></div></div>':""}
    <label style="font-size:13px;display:block;margin:6px 0"><input type="checkbox" id="dpubonly"${mis?" checked":""}> Show only the blocks that differ</label>
    <div class="scroll"><table><thead><tr><th>Block</th><th>Time</th><th>Deviation<br><span class="u">(MW)</span></th><th>AvC (MW)</th><th>Rate (₹/kWh)</th><th>Published charge<br><span class="u">(₹)</span></th><th>This app<br><span class="u">(₹)</span></th><th>Difference<br><span class="u">(₹)</span></th><th>Check</th></tr></thead><tbody id="dpubtb"></tbody></table></div>
    <p class="note" style="margin:6px 0 0">Positive = payable by the plant, negative = receivable. "This app" = total charge minus receivable for the block.</p></details>`;
+  if(dCur.meta.published){
+    const picker=$("dpubpick");
+    bl.forEach(b=>picker.add(new Option(b.b+" · "+hhmm(b.b)+(pubMis(b)?" · Differs":""),String(b.b))));
+    picker.value=String((bl.find(pubMis)||bl[0]).b);
+    picker.onchange=()=>showImpliedBand($("dpubbands"),bl.find(b=>b.b===+picker.value),dCur.meta.cfg);
+    picker.onchange();
+  }
   const draw=()=>{const only=$("dpubonly").checked,rows=bl.filter(b=>!only||pubMis(b));
     $("dpubtb").innerHTML=rows.length?rows.map(b=>{const a=b.pay-b.recv,m=pubMis(b);return `<tr${m?' style="background:#fee2e255"':""}><td>${b.b}</td><td>${hhmm(b.b)}</td><td>${f2(b.dev)}</td><td>${f2(b.avc)}</td><td>${b.price.toFixed(4)}</td><td>${f2(b.pub)}</td><td>${f2(a)}</td><td>${f2(a-b.pub)}</td><td>${m?'<b class="err">Differs</b>':"✓"}</td></tr>`}).join(""):`<tr><td colspan="9">No blocks differ on this day.</td></tr>`};
   $("dpubonly").onchange=draw;draw();
