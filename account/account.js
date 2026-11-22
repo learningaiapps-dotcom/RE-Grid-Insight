@@ -5,14 +5,66 @@ async function post(action,body){
     const error=await res.json().catch(()=>({}));
     throw Error(error.message || 'Request failed. Check your details or try again.');
   }
+  return res.json();
 }
 function button(text,action){
   const b=document.createElement('button');b.textContent=text;b.onclick=()=>run(action);return b;
 }
 async function run(fn){try{el('message').textContent='';await fn()}catch(e){el('message').textContent=e.message}}
+async function renderOperatorAdmin(){
+  const section=el('operator-admin');
+  section.hidden=false;
+  const response=await fetch('/operator-admin');
+  if(!response.ok)throw Error('Could not load operator access.');
+  const {approvals,plants}=await response.json();
+  const labels=new Map();
+  for(const plant of plants)if(!labels.has(plant.plant))labels.set(plant.plant,plant.label);
+  const picker=el('operator-plant'),selected=picker.value||new URLSearchParams(location.search).get('operatorPlant');
+  picker.replaceChildren(...[...labels].map(([id,label])=>new Option(label,id)));
+  if(labels.has(selected))picker.value=selected;
+  el('operator-form').hidden=!labels.size;
+  el('operator-empty').hidden=Boolean(labels.size);
+  const rows=el('operator-approvals');
+  rows.replaceChildren();
+  for(const item of approvals){
+    const row=rows.insertRow();
+    const expires=new Date(item.expires_at);
+    const status=item.revoked_at?'Revoked':expires<=new Date()?'Expired':'Active';
+    for(const value of [item.email,labels.get(item.plant)||item.plant,expires.toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}),status]){
+      row.insertCell().textContent=value;
+    }
+    const actions=row.insertCell();
+    actions.append(button('Renew',async()=>{
+      picker.value=item.plant;el('operator-email').value=item.email;
+      el('operator-period').focus();
+    }));
+    if(status==='Active')actions.append(button('Revoke',async()=>{
+      await post('operator-approval',{plant:item.plant,email:item.email,months:0});
+      el('operator-link').hidden=true;await renderOperatorAdmin();
+    }));
+  }
+  el('operator-form').onsubmit=event=>{
+    event.preventDefault();
+    const submit=el('operator-grant');
+    if(submit.disabled)return;
+    submit.disabled=true;
+    run(async()=>{
+      try{
+        const data=await post('operator-approval',{plant:picker.value,email:el('operator-email').value.trim(),months:Number(el('operator-period').value)});
+        el('operator-link-value').value=location.origin+'/operator#link='+data.link;
+        el('operator-link').hidden=false;
+        await renderOperatorAdmin();
+      }finally{submit.disabled=false}
+    });
+  };
+  el('operator-copy').onclick=()=>run(async()=>{
+    await navigator.clipboard.writeText(el('operator-link-value').value);
+    el('message').textContent='Operator link copied.';
+  });
+}
 async function render(){
   const r=await fetch('/me');el('login').hidden=r.ok;el('home').hidden=!r.ok;if(!r.ok)return;
-  const u=await r.json();el('sites').replaceChildren();el('admin').replaceChildren();
+  const u=await r.json();el('sites').replaceChildren();el('admin').replaceChildren();el('operator-admin').hidden=true;el('operator-link').hidden=true;
   for(const [site,title] of Object.entries({dsm:'DSM',forecast:'Forecast',maps:'Maps',bess:'BESS Operations'})){
     const row=document.createElement('p'),status=u.access.find(a=>a.site===site)?.status;
     row.append(title+' — ');
@@ -22,6 +74,7 @@ async function render(){
     el('sites').append(row);
   }
   if(u.admin){
+    await renderOperatorAdmin();
     const h=document.createElement('h2');h.textContent='Admin approvals';el('admin').append(h);
     for(const req of u.requests){
       const row=document.createElement('p');row.append(req.email+' · '+req.site+' · '+req.status);

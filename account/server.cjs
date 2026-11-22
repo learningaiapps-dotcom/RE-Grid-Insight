@@ -30,7 +30,7 @@ http.createServer(async(req,res)=>{
   try{
     if(req.method==='POST'){
       if(req.headers.origin!=='https://'+req.headers.host || req.headers['content-type']!=='application/json'){res.writeHead(403);return res.end()}
-      let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>(['/operator-share','/operator-guest-link'].includes(p)?24000:8192)){res.writeHead(413);return res.end()}}
+      let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>(p==='/operator-share'?24000:8192)){res.writeHead(413);return res.end()}}
       const b=JSON.parse(raw);
       if(p==='/logout'){cookie('',0);if(token)await api('/auth/v1/logout?scope=local',token,'POST',{});return json({})}
       if(['/signup','/login','/recover'].includes(p)){
@@ -51,7 +51,18 @@ http.createServer(async(req,res)=>{
         return json(rows);
       }
       if(!token){res.writeHead(401);return res.end()}
-      if(p==='/operator-share'||p==='/operator-guest-link'){
+      if(p==='/operator-approval'){
+        const email=typeof b.email==='string'?b.email.trim().toLowerCase():'';
+        if(typeof b.plant!=='string'||!b.plant||b.plant.length>120||!email||email.length>254||![0,1,12].includes(b.months)){
+          res.writeHead(400);return res.end('Invalid approval.');
+        }
+        const link=b.months?randomBytes(32).toString('hex'):null;
+        const expiry=await api('/rest/v1/rpc/regrid_operator_approval',token,'POST',{
+          plant_id:b.plant,operator_email:email,months:b.months,link_digest:link?createHash('sha256').update(link).digest('hex'):null
+        });
+        return json({link,expiry});
+      }
+      if(p==='/operator-share'){
         const {plant,day,label,schedule}=b;
         const recipients=Array.isArray(b.recipients)?[...new Set(b.recipients)]:null;
         if(typeof plant!=='string'||!plant||plant.length>120||!/^\d{4}-\d{2}-\d{2}$/.test(day)
@@ -61,23 +72,17 @@ http.createServer(async(req,res)=>{
             typeof email==='string'&&email.length<=254&&/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(email)&&email===email.toLowerCase())))){
           res.writeHead(400);return res.end('Invalid schedule or email list.');
         }
-        if(p==='/operator-guest-link'){
-          const link=b.revoke===true?null:randomBytes(32).toString('hex');
-          const digest=link?createHash('sha256').update(link).digest('hex'):null;
-          const expires=await api('/rest/v1/rpc/regrid_operator_guest_change',token,'POST',{
-            plant_id:plant,operating_day:day,plant_label:label,blocks:schedule,digest
-          });
-          return json({link,expires});
-        }
         const params=new URLSearchParams({plant:'eq.'+plant,day:'eq.'+day});
         const path='/rest/v1/regrid_operator_sheets';
-        if(recipients){
-          const changes={label,recipients,schedule,updated_at:new Date().toISOString()};
-          const updated=await api(path+'?'+params,token,'PATCH',changes,'return=representation');
-          if(!updated.length)await api(path,token,'POST',{plant,day,label,recipients,schedule});
-        }else{
-          await api(path+'?'+params,token,'PATCH',{label,schedule,updated_at:new Date().toISOString()});
-        }
+        const syncNewDay=b.publish===true
+          ? await api('/rest/v1/rpc/regrid_admin',token,'POST',{})
+          : b.sync===true && (await api('/rest/v1/regrid_operator_approvals?select=plant&limit=1&'+
+            new URLSearchParams({plant:'eq.'+plant,revoked_at:'is.null',expires_at:'gt.'+new Date().toISOString()}),token)).length>0;
+        if(b.publish===true&&!syncNewDay){res.writeHead(403);return res.end('Administrator required.')}
+        const changes={label,schedule,updated_at:new Date().toISOString()};
+        if(recipients)changes.recipients=recipients;
+        const updated=await api(path+'?'+params,token,'PATCH',changes,'return=representation');
+        if(!updated.length&&(recipients||syncNewDay))await api(path,token,'POST',{plant,day,label,recipients:recipients||[],schedule});
         return json({});
       }
       if(!sites.includes(b.site)){res.writeHead(400);return res.end()}
@@ -108,9 +113,20 @@ http.createServer(async(req,res)=>{
       const plant=url.searchParams.get('plant'),day=url.searchParams.get('day');
       const params=new URLSearchParams({owner:'eq.'+user.id,plant:'eq.'+plant,day:'eq.'+day,select:'recipients,guest_expires'});
       const list=await api('/rest/v1/regrid_operator_sheets?'+params,token);
-      return json({emails:list[0]?.recipients||[],guestActive:Date.parse(list[0]?.guest_expires)>Date.now()});
+      const approvals=await api('/rest/v1/regrid_operator_approvals?select=plant&limit=1&'+
+        new URLSearchParams({plant:'eq.'+plant,revoked_at:'is.null',expires_at:'gt.'+new Date().toISOString()}),token);
+      return json({emails:list[0]?.recipients||[],spvActive:approvals.length>0,guestActive:Date.parse(list[0]?.guest_expires)>Date.now()});
     }
     const admin=await api('/rest/v1/rpc/regrid_admin',token,'POST',{});
+    if(p==='/operator-admin'){
+      if(!admin){res.writeHead(403);return res.end('Administrator required.')}
+      const owner='&owner=eq.'+user.id;
+      const [approvals,plants]=await Promise.all([
+        api('/rest/v1/regrid_operator_approvals?select=plant,email,expires_at,revoked_at&order=email,plant'+owner,token),
+        api('/rest/v1/regrid_operator_sheets?select=plant,label&order=updated_at.desc'+owner,token)
+      ]);
+      return json({approvals,plants});
+    }
     if(p==='/me')return json({email:user.email,admin,access:await api('/rest/v1/regrid_access?user_id=eq.'+user.id,token),requests:admin?await api('/rest/v1/rpc/regrid_requests',token,'POST',{}):[]});
     const [,site,...parts]=p.split('/');
     if(!sites.includes(site)){res.writeHead(404);return res.end()}

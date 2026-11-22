@@ -46,3 +46,8 @@ a { color: #145741; }
 .operator th, .operator td { padding: .65rem; text-align: right; border-bottom: 1px solid #d8e5dc; }
 .operator th { background: #e6efe9; }
 .operator tr.current { background: #d9eee3; font-weight: 700; }
+
+#operator-admin { margin: 2rem 0; }
+#operator-admin select { font: inherit; max-width: 100%; padding: .5rem; }
+#operator-admin table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+#operator-admin th, #operator-admin td { padding: .45rem; text-align: left; border-bottom: 1px solid #cbdcd1; }
