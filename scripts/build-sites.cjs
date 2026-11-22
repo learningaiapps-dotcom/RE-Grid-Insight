@@ -71,7 +71,11 @@ for (const site of sites) {
     ? '<strong aria-current="page">' + escape(other.title) + '</strong>'
     : '<a href="' + siteUrl(other) + '">' + escape(other.title) + '</a>').join("");
   if (site.id === "bess") {
-    writeFileSync(path.join(out, "index.html"), read("bess-operations.html"));
+    const bessPage = read("bess-operations.html")
+      .replace("</head>", '<link rel="stylesheet" href="site-ui.css"></head>')
+      .replace("<body>", '<body><div class="grid-site">' + shellHeader(nav) + '</div>');
+    copyFileSync(path.join(root, "site-ui.css"), path.join(out, "site-ui.css"));
+    writeFileSync(path.join(out, "index.html"), bessPage);
     console.log("Built dist/bess");
     continue;
   }
