@@ -82,3 +82,13 @@
   .grid-site button { min-height: 44px; }
   .grid-site .chartbox { height: 250px; }
 }
+
+.feature-picker {margin:16px 0;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.feature-picker summary {cursor:pointer;font-weight:700}
+.feature-picker p {color:var(--mute)}
+.feature-groups {display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.feature-groups fieldset {border:1px solid var(--line);border-radius:8px;min-width:0}
+.feature-groups legend {font-weight:650}
+.feature-groups label {display:flex;align-items:center;gap:8px;padding:4px;cursor:pointer}
+.feature-groups input {width:auto;accent-color:var(--accent)}
+.grid-site .feature-off {display:none!important}

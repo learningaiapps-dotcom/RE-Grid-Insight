@@ -108,6 +108,8 @@ for (const id of siteTabs) {
       between(html, '// ===== DSM calculator', '</script>\n<script>/* JSZip')) +
       between(html, '<script>/* JSZip', '<script type="text/plain" id="re_d_plants">');
   }
+  const picker = ["dsm","forecast"].includes(site.id) ? '<script src="feature-picker.js" defer></script>' : "";
+  if (picker) assets.push("feature-picker.js");
   for (const asset of ["site-ui.css", ...assets]) {
     const dest = path.join(out, asset);
     mkdirSync(path.dirname(dest), {recursive:true});
@@ -115,7 +117,7 @@ for (const id of siteTabs) {
   }
   if (site.id === "forecast") {
     const mobile = read("mobile.html")
-      .replace('<script src="task-picker.js" defer></script>', '')
+      .replace('<script src="task-picker.js" defer></script>', picker)
       .replace('</head>', '<link rel="stylesheet" href="site-ui.css">\n</head>')
       .replace('<body data-mobile-lite>', '<body class="grid-site" data-site="forecast" data-mobile-lite>')
       .replace('<main id="task-workspace" class="wrap">', shellHeader(nav) + '<main id="task-workspace" class="wrap">')
@@ -153,7 +155,7 @@ ${shellHeader(nav)}
 <div class="site-tools" role="group" aria-label="Choose a tool">${siteTabsMarkup}</div>
 ${panels}</main>
 <div id="tipbox"></div>
-${tabCode}${scripts}${start}
+${tabCode}${scripts}${start}${picker}
 </body></html>`);
   console.log("Built dist/" + site.id);
 }
