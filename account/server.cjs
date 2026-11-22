@@ -9,7 +9,10 @@ async function api(route,token,method='GET',body){
   const headers={apikey:key,'Content-Type':'application/json'};
   if(token) headers.Authorization='Bearer '+token;
   const r=await fetch(base+route,{method,headers,body:body&&JSON.stringify(body),signal:AbortSignal.timeout(10000)});
-  if(!r.ok)throw Object.assign(Error('Request failed'),{status:r.status});
+  if(!r.ok){
+    const error=await r.json().catch(()=>({}));
+    throw Object.assign(Error('Request failed'),{status:r.status,authCode:error.error_code||error.code});
+  }
   const text=await r.text();return text?JSON.parse(text):null;
 }
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.csv':'text/csv','.png':'image/png'};
@@ -69,5 +72,16 @@ http.createServer(async(req,res)=>{
     const root=path.resolve(__dirname,'../dist',site),file=path.resolve(root,decodeURIComponent(parts.join('/'))||'index.html');
     if(!file.startsWith(root+path.sep)){res.writeHead(403);return res.end()}
     const data=await fs.readFile(file);res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');res.end(data);
-  }catch(e){res.writeHead(e.code==='ENOENT'?404:e.status>=400&&e.status<500?e.status:503);res.end('Unable to complete request. Check your login or try again.')}
+  }catch(e){
+    const signupErrors={
+      weak_password:'Choose a stronger password with at least 6 characters.',
+      email_address_invalid:'Enter a valid email address.',
+      email_address_not_authorized:'Confirmation email could not be sent to this address. Contact the RE Grid Insight administrator.',
+      over_email_send_rate_limit:'Too many confirmation emails were requested. Try again later.'
+    };
+    if(req.method==='POST' && p==='/signup' && Object.hasOwn(signupErrors,e.authCode)){
+      res.statusCode=e.status;
+      return json({message:signupErrors[e.authCode]});
+    }
+    res.writeHead(e.code==='ENOENT'?404:e.status>=400&&e.status<500?e.status:503);res.end('Unable to complete request. Check your login or try again.')}
 }).listen(process.env.PORT||3000);

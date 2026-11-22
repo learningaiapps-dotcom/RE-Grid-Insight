@@ -1,7 +1,10 @@
 const el=id=>document.getElementById(id);
 async function post(action,body){
   const res=await fetch('/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!res.ok)throw Error('Request failed. Check your details or sign in again.');
+  if(!res.ok){
+    const error=await res.json().catch(()=>({}));
+    throw Error(error.message || 'Request failed. Check your details or try again.');
+  }
 }
 function button(text,action){
   const b=document.createElement('button');b.textContent=text;b.onclick=()=>run(action);return b;
@@ -35,6 +38,9 @@ function setMode(register) {
   el('switch-prompt').textContent = signup ? 'Already have an account?' : 'New to RE Grid Insight?';
   el('switch-mode').textContent = signup ? 'Sign in' : 'Create account';
   el('password').autocomplete = signup ? 'new-password' : 'current-password';
+  if (signup) el('password').minLength = 6;
+  else el('password').removeAttribute('minlength');
+  el('password-hint').hidden = !signup;
   el('recovery').hidden = signup;
   el('message').textContent = '';
 }
