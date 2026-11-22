@@ -37,7 +37,27 @@
         <button data-action="reset" type="button">Set new password</button>
       </details>
     </section>
-    <section id="home" hidden><h2>My sites</h2><div id="sites"></div><p><a href="/operator">View shared BESS schedules</a></p><div id="admin"></div><button data-action="logout" type="button">Sign out</button></section>
+    <section id="home" hidden><h2>My sites</h2><div id="sites"></div><p><a href="/operator">View shared BESS schedules</a></p><div id="admin"></div>
+      <section id="operator-admin" hidden>
+        <h2>Operator access</h2>
+        <p>Create read-only links by BESS SPV. Share each link privately with the intended operator.</p>
+        <p id="operator-empty">To add a BESS SPV, open its issued schedule in Live operation and select Manage operator access.</p>
+        <form id="operator-form" hidden>
+          <label for="operator-plant">BESS SPV</label><select id="operator-plant" required></select>
+          <label for="operator-email">Operator email</label><input id="operator-email" type="email" required maxlength="254">
+          <label for="operator-period">Approval period</label><select id="operator-period"><option value="1">1 month</option><option value="12">1 year</option></select>
+          <button id="operator-grant" type="submit">Create or replace link</button>
+        </form>
+        <div id="operator-link" hidden>
+          <label for="operator-link-value">Operator viewing link</label><input id="operator-link-value" readonly>
+          <button id="operator-copy" type="button">Copy link</button>
+        </div>
+        <div class="operator-scroll"><table>
+          <thead><tr><th>Operator email</th><th>BESS SPV</th><th>Expires (IST)</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="operator-approvals"></tbody>
+        </table></div>
+      </section>
+<button data-action="logout" type="button">Sign out</button></section>
     <p role="status" id="message"></p>
   </div>
 </main>

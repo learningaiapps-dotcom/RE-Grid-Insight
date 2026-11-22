@@ -857,7 +857,7 @@ function vLive(){
    ${edit?`<div class="seg" role="group" aria-label="Team"><button class="${S.team==='ho'?'on':''}" data-team="ho">HO team</button><button class="${S.team==='site'?'on':''}" data-team="site">Site team</button></div>`:''}
    <span class="muted" id="liveStat">${useMem()?'Not shared (sample / offline)':'● Live — both teams see changes instantly'}</span><div class="grow"></div>
    ${ho?`<button class="sec" id="lTemplate">Download schedule template</button><button class="sec" id="lUpBtn">Upload schedule</button><input type="file" id="lUp" accept=".xlsx,.xls,.csv" hidden>${!o.issued?'<button class="sec" id="lCopy">Copy previous day</button>':''}`:''}
-   ${ho?'<button class="sec" id="lShareOperator">Share live schedule</button><button class="sec" id="lShareGuest" hidden>Share without sign-in</button>':''}<button class="sec" id="lSaveDay">Save day</button><select id="lSavedDays" aria-label="Saved operation days"><option value="">Saved days</option>${savedOperationDays().map(day=>'<option value="'+esc(day.date)+'">'+esc(day.date)+' · '+esc(fmtDT(day.at))+'</option>').join('')}</select><button class="sec" id="lOpenDay">Open saved day</button><button class="sec" id="lX">Export Excel</button>${ho&&!o.issued?'<button id="lIssue">Issue to site</button>':''}</div>
+   ${ho?'<button class="sec" id="lShareOperator">Share live schedule</button><button class="sec" id="lShareGuest" hidden>Manage operator access</button>':''}<button class="sec" id="lSaveDay">Save day</button><select id="lSavedDays" aria-label="Saved operation days"><option value="">Saved days</option>${savedOperationDays().map(day=>'<option value="'+esc(day.date)+'">'+esc(day.date)+' · '+esc(fmtDT(day.at))+'</option>').join('')}</select><button class="sec" id="lOpenDay">Open saved day</button><button class="sec" id="lX">Export Excel</button>${ho&&!o.issued?'<button id="lIssue">Issue to site</button>':''}</div>
   <p class="muted" style="margin:0 0 6px">Charging / buying: enter <span class="power-charge">negative (−)</span> MW · Discharging / selling: enter <span class="power-discharge">positive (+)</span> MW</p><h1 style="margin-bottom:6px">Real-time operation · ${esc(p.name)} · ${new Date(S.liveDate+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</h1>
   <p class="muted" style="margin:0 0 14px">${o.issued?`Schedule issued to site ${esc(fmtDT(o.issuedAt))}${o.issuedBy?' by <span data-uid="'+esc(o.issuedBy)+'">HO</span>':''} · ${nRev} block${nRev===1?'':'s'} revised in real time`:'<b class="red">Draft — not yet issued to site.</b> HO enters or uploads the schedule, then clicks “Issue to site”.'} · Discharge set point = schedule ÷ (1 − ${p.dLoss}% loss) · Charging set point = total charging × (1 − ${p.cLoss}% loss)</p>
   ${(()=>{const bad=rows.find(r=>r.soc<minS-.01||r.soc>maxS+.01);return bad?`<div class="al bad" style="margin:0 0 14px"><b>SOC check</b> · Projected SOC ${bad.soc<minS?'falls below the '+f(minS,1)+' MWh minimum':'rises above the '+f(maxS,1)+' MWh maximum'} at block ${bad.n} (${blockTime(bad.i)}) — the schedule cannot be met as it stands. Check SOC at 00:00 or revise.</div>`:''})()}
@@ -1099,7 +1099,7 @@ async function shareOperator(){
     const recipients=[...new Set(entered.toLowerCase().split(/[\s,;]+/).filter(Boolean))];
     const body=operatorPayload();
     await operatorRequest('/operator-share',{...body,recipients});
-    operatorSyncKey=query;operatorShared=recipients.length>0||previous.guestActive;operatorLast=JSON.stringify(body);
+    operatorSyncKey=query;operatorShared=recipients.length>0||previous.guestActive||previous.spvActive;operatorLast=JSON.stringify(body);
     if(!recipients.length)return toast('Operator access removed.');
     const link=location.origin+'/operator';
     try{await navigator.clipboard.writeText(link);toast('Operator link copied. Send it to the approved email addresses.')}
@@ -1116,21 +1116,9 @@ function showGuestShareControl(){
 async function shareGuest(){
   if(!opsDoc().issued)return toast('Issue the schedule to site before sharing it.');
   try{
-    const query=operatorQuery().toString();
-    const access=await operatorRequest('/operator-recipients?'+query);
-    if(query!==operatorQuery().toString())return;
-    const choice=prompt(access.guestActive
-      ? 'Type COPY for a new 24-hour link (replaces the previous link), or REVOKE to turn it off.'
-      : 'Anyone with this link can view this schedule for 24 hours. Type COPY to create it.','COPY');
-    const action=choice?.trim().toUpperCase();
-    if(action!=='COPY'&&action!=='REVOKE')return;
     const body=operatorPayload();
-    const result=await operatorRequest('/operator-guest-link',{...body,revoke:action==='REVOKE'});
-    operatorSyncKey=query;operatorShared=Boolean(result.link)||access.emails.length>0;operatorLast=JSON.stringify(body);
-    if(!result.link)return toast('Guest link revoked.');
-    const link=location.origin+'/operator#link='+result.link;
-    try{await navigator.clipboard.writeText(link);toast('24-hour view-only link copied. Send it to the operator.')}
-    catch{prompt('Copy and send this 24-hour view-only link.',link)}
+    await operatorRequest('/operator-share',{...body,publish:true});
+    location.href='/?operatorPlant='+encodeURIComponent(body.plant)+'#operator-admin';
   }catch(error){toast(error.message)}
 }
 async function syncOperatorSchedule(){
@@ -1138,15 +1126,15 @@ async function syncOperatorSchedule(){
   operatorBusy=true;
   try{
     const query=operatorQuery().toString();
-    if(query!==operatorSyncKey){
+    if(query!==operatorSyncKey||!operatorShared){
       const access=await operatorRequest('/operator-recipients?'+query);
       if(query!==operatorQuery().toString()||!opsDoc().issued)return;
-      operatorSyncKey=query;operatorShared=access.emails.length>0||access.guestActive;operatorLast='';
+      operatorSyncKey=query;operatorShared=access.emails.length>0||access.guestActive||access.spvActive;operatorLast='';
     }
     if(!operatorShared)return;
     const body=operatorPayload(), serialized=JSON.stringify(body);
     if(serialized===operatorLast)return;
-    await operatorRequest('/operator-share',body);
+    await operatorRequest('/operator-share',{...body,sync:true});
     if(query===operatorSyncKey)operatorLast=serialized;
   }catch(error){
     const status=$('#liveStat');
