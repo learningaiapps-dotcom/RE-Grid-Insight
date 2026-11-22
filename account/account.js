@@ -27,10 +27,43 @@ async function render(){
     }
   }
 }
-for(const b of document.querySelectorAll('[data-action]'))b.onclick=()=>run(async()=>{
-  const action=b.dataset.action;
-  await post(action,{email:el('email').value.trim(),password:el('password').value,code:el('code').value.trim()});
-  el('password').value='';el('code').value='';await render();
-  el('message').textContent=({signup:'Check your inbox to confirm your email.',recover:'Check your inbox for a recovery code.',reset:'Password updated. Sign in.'})[action]||'';
+let signup = false;
+function setMode(register) {
+  signup = register;
+  el('login-title').textContent = signup ? 'Create your account' : 'Sign in';
+  el('submit').textContent = signup ? 'Create account' : 'Sign in';
+  el('switch-prompt').textContent = signup ? 'Already have an account?' : 'New to RE Grid Insight?';
+  el('switch-mode').textContent = signup ? 'Sign in' : 'Create account';
+  el('password').autocomplete = signup ? 'new-password' : 'current-password';
+  el('recovery').hidden = signup;
+  el('message').textContent = '';
+}
+async function complete(action) {
+  const passwordField = action === 'reset' ? 'new-password' : 'password';
+  await post(action, {
+    email: el('email').value.trim(),
+    password: el(passwordField).value,
+    code: el('code').value.trim()
+  });
+  el(passwordField).value = '';
+  if (action === 'reset') el('code').value = '';
+  await render();
+  el('message').textContent = ({
+    signup: 'Check your inbox to confirm your email.',
+    recover: 'Check your inbox for a recovery code.',
+    reset: 'Password updated. Sign in with your new password.'
+  })[action] || '';
+}
+el('switch-mode').onclick = () => setMode(!signup);
+el('credentials').onsubmit = async event => {
+  event.preventDefault();
+  const submit = el('submit');
+  submit.disabled = true;
+  try { await run(() => complete(signup ? 'signup' : 'login')); }
+  finally { submit.disabled = false; }
+};
+for (const b of document.querySelectorAll('[data-action]')) b.onclick = () => run(async () => {
+  if (b.dataset.action !== 'logout' && !el('email').reportValidity()) return;
+  await complete(b.dataset.action);
 });
 run(render);
