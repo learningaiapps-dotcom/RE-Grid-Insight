@@ -51,7 +51,9 @@ const inline = code => '<script>\n' + code + '\n</script>\n';
 const escape = text => text.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 
 function siteUrl(site) {
-  const url = new URL(process.env["RE_GRID_" + site.id.toUpperCase() + "_URL"] || site.url);
+  const configured = process.env["RE_GRID_" + site.id.toUpperCase() + "_URL"];
+  if (configured === "/" + site.id + "/") return configured;
+  const url = new URL(configured || site.url);
   if (!["http:", "https:"].includes(url.protocol)) throw new Error("Invalid site URL: " + url);
   return escape(url.href);
 }
@@ -69,7 +71,8 @@ for (const site of sites) {
   mkdirSync(out, {recursive:true});
   const nav = sites.map(other => other === site
     ? '<strong aria-current="page">' + escape(other.title) + '</strong>'
-    : '<a href="' + siteUrl(other) + '">' + escape(other.title) + '</a>').join("");
+    : '<a href="' + siteUrl(other) + '">' + escape(other.title) + '</a>').join("") +
+    (process.env.RE_GRID_DSM_URL === "/dsm/" ? '<a href="/">My sites</a>' : '<a href="https://re-grid-accounts.onrender.com/">Sign in</a>');
   if (site.id === "bess") {
     const bessPage = read("bess-operations.html")
       .replace("</head>", '<link rel="stylesheet" href="site-ui.css"></head>')
