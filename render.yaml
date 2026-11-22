@@ -109,3 +109,14 @@ services:
       - path: /*
         name: Cross-Origin-Opener-Policy
         value: "same-origin"
+  - type: web
+    name: re-grid-accounts
+    runtime: node
+    plan: free
+    buildCommand: RE_GRID_DSM_URL=/dsm/ RE_GRID_BESS_URL=/bess/ RE_GRID_MAPS_URL=/maps/ RE_GRID_FORECAST_URL=/forecast/ node scripts/build-sites.cjs
+    startCommand: node account/server.cjs
+    envVars:
+      - key: SUPABASE_URL
+        value: https://oudlmrnefxlwixzmjpvq.supabase.co
+      - key: SUPABASE_PUBLISHABLE_KEY
+        value: sb_publishable__-mVsxyrk55XUUVDR_JdKA_9_rggZIE
