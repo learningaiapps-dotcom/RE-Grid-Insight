@@ -72,6 +72,10 @@ for (const site of sites) {
     : '<a href="' + siteUrl(other) + '">' + escape(other.title) + '</a>').join("");
   if (site.id === "bess") {
     writeFileSync(path.join(out, "index.html"), read("bess-operations.html"));
+    for (const asset of ["vendor/chart.umd.min.js","vendor/xlsx.full.min.js","vendor/jspdf.umd.min.js","vendor/jspdf.plugin.autotable.min.js"]) {
+      mkdirSync(path.join(out, "vendor"), {recursive:true});
+      copyFileSync(path.join(root, asset), path.join(out, asset));
+    }
     console.log("Built dist/bess");
     continue;
   }
