@@ -319,6 +319,19 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <div class="tabs" style="margin-bottom:12px"><button id="d_t1" class="on">Calculation engine</button><button id="d_t3">Deviation analysis &amp; RCA</button><button id="d_t4">Model comparison</button><button id="d_t2">Historical logs</button></div>
 <div id="d_p1">
 <div class="card">
+  <fieldset style="margin:0 0 14px;border:1px solid var(--line);border-radius:8px">
+    <legend><b>Data source</b></legend>
+    <div class="tools">
+      <label><input type="radio" name="dsource" id="dsource_import"> Use NRPC, WRPC or SRPC imports</label>
+      <label><input type="radio" name="dsource" id="dsource_own" checked> Upload my own CSV or Excel file</label>
+    </div>
+    <div id="dsource_picker" class="hide">
+      <label>Extracted plant data <select id="dsource_choice"></select></label>
+      <button type="button" id="dsource_load">Load selected import</button>
+      <button type="button" class="alt" id="dsource_open">Open regional imports</button>
+      <span class="note" id="dsource_status" role="status"></span>
+    </div>
+  </fieldset>
   <div class="row">
     <label class="f"><span class="tip" data-g="spv">SPV</span><select id="dspv"></select></label>
     <label class="f">Run date<input id="drun" type="date"></label>
@@ -2178,7 +2191,7 @@ function makeView(p,mount){
       g(p+"_q").value="";g(p+"_b").value="";g(p+"_sort").value="asc";dm2("");
       g(p+"_card").classList.remove("hide");filter();
     },
-    clear(){st.res=null;g(p+"_card").classList.add("hide")}
+    clear(){st.res=null;if(window.KDRES)delete window.KDRES[p];g(p+"_card").classList.add("hide")}
   };
 }
 const nView=makeView("n","n_res"),wView=makeView("w","w_res");
@@ -2459,19 +2472,50 @@ function buildDays(res,m,agg){
   });
   return {days,missS,missA};
 }
+function refreshImportChoices(){
+  const select=g("dsource_choice"),previous=select.value;
+  select.replaceChildren();
+  for(const [prefix,result] of Object.entries(window.KDRES||{})){
+    if(result.rows.length)select.add(new Option(result.region+" · "+result.plant+" · "+result.meta.first+" to "+result.meta.last,prefix));
+  }
+  if([...select.options].some(option=>option.value===previous))select.value=previous;
+  const empty=!select.options.length;
+  if(empty)select.add(new Option("No plant extracted yet",""));
+  g("dsource_load").disabled=empty;
+  g("dsource_status").textContent=empty?"Open regional imports, upload your file and extract a plant.":"";
+}
+function switchSource(regional){
+  dData=null;dPrice=null;dClear();dm("");
+  g("dfile").value="";g("dpfile").value="";
+  dSrcMode(regional);
+}
+g("dsource_import").onchange=()=>switchSource(true);
+g("dsource_own").onchange=()=>switchSource(false);
+g("dsource_open").onclick=()=>g("t6").click();
+g("t5").addEventListener("click",refreshImportChoices);
+g("dsource_load").onclick=()=>{
+  const prefix=g("dsource_choice").value;
+  if(!window.KDRES?.[prefix])return refreshImportChoices();
+  g(prefix+"_send").click();
+  g("dsource_status").textContent=g(prefix+"_smsg").textContent;
+};
 function dSrcMode(on,src,name){
+  g("dsource_import").checked=on;g("dsource_own").checked=!on;
+  g("dsource_picker").classList.toggle("hide",!on);
+  if(on)refreshImportChoices();
   const row=g("dsrcrow"),note=g("dsrcnote");if(!row)return;
   ["dfile","dpfile","dppa","davc"].forEach(id=>{g(id).closest("label").style.display=on?"none":""});
   g("dplant").style.display=on?"none":"";
-  note.style.display=on?"":"none";
-  if(on){
-    note.innerHTML=`Data source: <b>${esc(src)}</b> import for <b>${esc(name)}</b>. <a href="#" id="dsrcback">Show manual inputs / use my own file</a>`;
-    g("dsrcback").onclick=e=>{e.preventDefault();dSrcMode(false)};
+  note.style.display=on&&src?"":"none";
+  if(on&&src){
+    note.innerHTML=`Data source: <b>${esc(src)}</b> import for <b>${esc(name)}</b>. <a href="#" id="dsrcback">Show plant and rate inputs for this import</a>`;
+    g("dsrcback").onclick=e=>{e.preventDefault();for(const id of ["dppa","davc"])g(id).closest("label").style.display="";g("dplant").style.display=""};
     const kl=g("k_loc"),pl=g("dloc");
     if(kl&&kl.value.trim()&&pl&&!pl.value.trim()){pl.value=kl.value.trim();pl.dispatchEvent(new Event("input",{bubbles:true}))}
   }
 }
 function dsmReceive(pl){
+  dPrice=null;dClear();
   let sp=spvs.find(x=>x.name.toLowerCase()===pl.name.toLowerCase());
   if(!sp){sp=mkSpv(pl.name,+g("dppa").value||2.5,"",JSON.parse(JSON.stringify(dfltCfg())));spvs.push(sp)}
   sp.plant=Object.assign(defPlant(),sp.plant||{},{type:pl.type||(sp.plant&&sp.plant.type)||"solar",region:pl.region||(sp.plant&&sp.plant.region)||""});
@@ -2486,7 +2530,7 @@ function dsmReceive(pl){
   dSrcMode(true,pl.source,sp.name);
   const hasAvc=pl.days.some(d=>d.rows.some(r=>r.v>0)),needAvc=!hasAvc&&!(+g("davc").value>0);
   const note=`${pl.source} data received for ${sp.name}: ${pl.days.length} day(s), ${pl.days[0].date} to ${pl.days[pl.days.length-1].date}.`+(pl.missS||pl.missA?` ${nf(pl.missS)} schedule and ${nf(pl.missA)} actual value(s) were blank and are treated as 0.`:"");
-  if(needAvc){dm(note+" No available capacity (AvC) was supplied. Map an AvC column in the import, or select “Show manual inputs / use my own file” to enter AvC and calculate.",true);return}
+  if(needAvc){dm(note+" No available capacity (AvC) was supplied. Map an AvC column in the import, or select “Show plant and rate inputs for this import” to enter AvC and calculate.",true);return}
   dm(note);dCalc();
   if(dCur)dm(note+" Calculated. Open 'Deviation analysis & RCA' to see where and why the limits were crossed.");
 }
