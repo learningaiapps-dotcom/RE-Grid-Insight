@@ -4,6 +4,7 @@ const statusLine = byId('operator-status');
 const table = byId('operator-table');
 const sheetKey = s => JSON.stringify([s.owner, s.plant, s.day]);
 let sheets = [];
+const guestLink = new URLSearchParams(location.hash.slice(1)).get('link');
 function showSchedule() {
   const sheet = sheets.find(s => sheetKey(s) === picker.value);
   table.hidden = !sheet;
@@ -28,7 +29,14 @@ function showSchedule() {
 picker.onchange = showSchedule;
 async function refresh(){
   try{
-    const response = await fetch('/operator-data');
+    const response = guestLink
+      ? await fetch('/operator-guest-data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({link:guestLink})})
+      : await fetch('/operator-data');
+    if(guestLink&&response.status===404){
+      sheets=[];picker.hidden=true;picker.replaceChildren();table.hidden=true;
+      byId('operator-rows').replaceChildren();statusLine.textContent='This link has expired or been revoked. Ask the administrator for a new link.';
+      return;
+    }
     byId('operator-login').hidden = response.status!==401;
     if(response.status===401){
       sheets=[];picker.hidden=true;picker.replaceChildren();table.hidden=true;
