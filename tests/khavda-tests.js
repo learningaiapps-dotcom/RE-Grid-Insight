@@ -228,6 +228,39 @@ await test("WRPC: empty and headerless files are skipped, corrupted ZIP is rejec
 });
 
 /* ================= export ================= */
+/* ================= weekly files joined ("All plants at once") ================= */
+await test("NRPC: two weekly workbooks with the same days are joined once",()=>{
+  const idx=KD.nrpcIndexMany([{name:"week2.xlsx",wb:nrpcBook()},{name:"week1.xlsx",wb:nrpcBook()}]);
+  assert.strictEqual(idx.nFiles,2);assert.ok(idx.plants.includes(PLANT));
+  const r=KD.nrpcExtract(idx,SEL);
+  assert.strictEqual(r.rows.length,672);
+  assert.ok(r.issues.some(i=>i.type==="Overlapping workbooks"&&i.sev==="Info"));
+});
+await test("NRPC: one workbook through nrpcIndexMany gives the same rows as before",()=>{
+  const a=KD.nrpcExtract(KD.nrpcIndex(nrpcBook()),SEL),b=KD.nrpcExtract(KD.nrpcIndexMany([{name:"x.xlsx",wb:nrpcBook()}]),SEL);
+  assert.strictEqual(JSON.stringify(a.rows),JSON.stringify(b.rows));
+});
+await test("WRPC: two weekly ZIPs with an overlapping day: the second copy is not used",async()=>{
+  const z1=await zipOf({"P_QCA.csv":wrpcCsv({days:DATES.slice(0,3)})}),z2=await zipOf({"P_QCA.csv":wrpcCsv({days:DATES.slice(2,5)})});
+  const idx=await KD.wrpcIndex([...KD.wrpcEntries(z1),...KD.wrpcEntries(z2)],{});
+  assert.strictEqual(idx.nFiles,2);assert.strictEqual(idx.plants.size,1);
+  const r=await KD.wrpcExtract(idx,"P_QCA");
+  assert.strictEqual(r.rows.length,96*5);
+  assert.ok(r.issues.some(i=>i.type==="Overlapping files"&&i.count===96));
+});
+await test("SRPC: weekly files of one plant are joined; overlapping blocks kept once",async()=>{
+  const H="record_id,date,time,available_capacity,sch_total,act_total,rate,ppa_rate,dev,dev_perc,nc_energy,beyond_nc_energy,Overinjection_charges,Underinjection_Charges,Drawl_Charges";
+  const day=(d,cols)=>Array.from({length:96},(_,i)=>{const m=i*15,t=String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")+":00";
+    const v={record_id:d+"-"+t,date:d,time:t,available_capacity:62.5,sch_total:10,act_total:11,rate:273,ppa_rate:273,dev:1,dev_perc:1.6,nc_energy:1,beyond_nc_energy:0,Overinjection_charges:2730,Underinjection_Charges:0,Drawl_Charges:0};
+    return cols.map(c=>v[c]).join(",")}).join("\n");
+  const c1=H.split(","),c2=c1.slice().reverse();
+  const f1=[H,day("2026-10-26",c1),day("2026-10-27",c1)].join("\n"),f2=[c2.join(","),day("2026-10-27",c2),day("2026-10-28",c2)].join("\n");
+  const plants=KD.srpcMerge(await KD.srpcIndex([{name:"wk1/commercial_dev2022_abc.csv",async:async()=>f1},{name:"wk2/commercial_dev2022_abc (1).csv",async:async()=>f2}]));
+  assert.strictEqual(plants.length,1);assert.strictEqual(plants[0].files.length,2);
+  const r=KD.srpcExtract(plants[0]);assert.strictEqual(r.rows.length,288);
+  assert.ok(r.issues.some(i=>i.type==="Overlapping files"&&i.sev==="Info"&&i.count===96));
+  assert.ok(!r.issues.some(i=>i.sev==="Warning"));
+});
 await test("export: CSV holds every record with the exact column order, blanks stay blank",async()=>{
   const r=await KD.wrpcExtract(await KD.wrpcIndex(await zipOf({"P_QCA.csv":wrpcCsv()}),{}),"P_QCA");
   const lines=KD.toCSV(r).replace(/^\uFEFF/,"").split("\r\n");
@@ -259,6 +292,26 @@ for(const n of [672,10000,35040,100000]){
     assert.ok(ms<60000);
   });
 }
+
+/* ---------------- RPC rule library file ---------------- */
+await test("rules: data/rpc-rules.json is valid and matches the X-factor trajectory",()=>{
+  const j=JSON.parse(fs.readFileSync(path.join(__dirname,"..","data","rpc-rules.json"),"utf8"));
+  const ids=j.rules.map(r=>r.id);
+  ["cerc2024","legacy15","cerc2024x"].forEach(id=>assert.ok(ids.includes(id),"missing rule "+id));
+  for(const r of j.rules){
+    const n=r.rates.pay.length;
+    ["dsm","over","loss"].forEach(k=>assert.strictEqual(r.rates[k].length,n,r.id+" "+k));
+    for(const p of r.periods)for(const t of ["solar","wind"]){
+      assert.strictEqual(p[t].length,n-1,`${r.id} ${p.from} ${t} limits`);
+      p[t].forEach((v,i)=>assert.ok(v>0&&(!i||v>p[t][i-1]),`${r.id} limits must rise`));
+      assert.ok(p.x[t]>=0&&p.x[t]<=100);
+    }
+  }
+  const xr=j.rules.find(r=>r.id==="cerc2024x"),xAt=d=>xr.periods.find(p=>(!p.from||d>=p.from)&&(!p.to||d<=p.to)).x.solar;
+  assert.deepStrictEqual(["2026-06-01","2027-06-01","2028-06-01","2029-06-01","2030-06-01","2031-06-01"].map(xAt),[100,80,60,40,20,0]);
+  const html2=fs.readFileSync(htmlPath,"utf8");
+  assert.ok(/B0=X>=100\?A:X\/100\*A\+\(100-X\)\/100\*Math\.max\(r\.s,0\)/.test(html2),"engine uses the X-factor base");
+});
 
 console.log("\nKhavda NRPC / WRPC tests\n"+results.join("\n"));
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -76,6 +76,9 @@ for (const site of sites) {
       .replace("<body>", '<body><div class="grid-site">' + shellHeader(nav) + '</div>');
     copyFileSync(path.join(root, "site-ui.css"), path.join(out, "site-ui.css"));
     writeFileSync(path.join(out, "index.html"), bessPage);
+    mkdirSync(path.join(out, "vendor"), {recursive:true});
+    for (const asset of ["vendor/chart.umd.min.js","vendor/xlsx.full.min.js","vendor/jspdf.umd.min.js","vendor/jspdf.plugin.autotable.min.js"])
+      copyFileSync(path.join(root, asset), path.join(out, asset));
     console.log("Built dist/bess");
     continue;
   }
@@ -107,7 +110,7 @@ for (const id of siteTabs) {
   } else {
     panels = workflow + dsm;
     libraries = chartAndExcel;
-    assets = ["standalone-bess-dsm.html","vendor/chart.umd.min.js","vendor/xlsx.full.min.js","samples/nrpc-sample.xlsx","samples/wrpc-sample.zip"];
+    assets = ["standalone-bess-dsm.html","vendor/chart.umd.min.js","vendor/xlsx.full.min.js","samples/nrpc-sample.xlsx","samples/wrpc-sample.zip","data/rpc-rules.json"];
     scripts = inline(baseWeather + prelude + dsmTime + "\n" + sharedDsm +
       between(html, '// ===== DSM calculator', '</script>\n<script>/* JSZip')) +
       between(html, '<script>/* JSZip', '<script type="text/plain" id="re_d_plants">');
