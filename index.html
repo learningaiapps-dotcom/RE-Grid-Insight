@@ -11,9 +11,7 @@
   }
 </script>
 <script src="vendor/chart.umd.min.js"></script>
-<script>if(typeof Chart==="undefined")document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>')</script>
 <script src="vendor/xlsx.full.min.js"></script>
-<script>if(typeof XLSX==="undefined")document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>')</script>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--mute:#5b6b7a;--line:#d9e0e6;--accent:#0f766e;--sun:#d97706}
 @media (prefers-color-scheme:dark){:root{--bg:#0f1720;--card:#17222d;--ink:#e8eef3;--mute:#93a4b3;--line:#2a3a48;--accent:#2dd4bf;--sun:#fbbf24}}
@@ -43,6 +41,7 @@ button:disabled{opacity:.5}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:5px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
 th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+#drlib td,#drlib th{white-space:normal;text-align:left;vertical-align:top}#drlib td:first-child{min-width:260px}
 th{position:sticky;top:0;background:var(--card)}
 .hide{display:none}
 .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
@@ -368,7 +367,26 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
     <b><span id="dBandTitle" class="tip" data-g="bands">Deviation bands (set by you, as % of AvC)</span></b>
         <div class="scroll" style="margin-top:8px;max-height:none"><table><thead><tr><th>Band</th><th>Deviation range</th><th>Upper limit (%)</th><th class="tip" data-g="dsmrate">Under-injection DSM penalty rate (% of PPA)</th><th class="tip" data-g="bandund">Under-injection payable (% of PPA)</th><th class="tip" data-g="bandov">Over-injection receivable (% of PPA)</th><th class="tip" data-g="lossrate">Over-injection revenue loss (% of PPA)</th></tr></thead><tbody id="dbtb"></tbody></table></div>
     <div class="tools" style="margin-top:8px"><button class="alt" id="dbadd">Add band</button><button class="alt" id="dbrem">Remove last band</button><span class="note" style="margin-left:10px">Presets:</span><button class="alt d-preset" id="dpre_my" aria-pressed="true">My bands</button><button class="alt d-preset" id="dpre_pub" aria-pressed="false">RPC calculation methodology</button></div>
+    <label class="f" id="drule_wrap" style="max-width:520px;margin-top:8px" hidden>RPC rule for this plant<select id="drule"><option value="auto">Automatic: use the rule that matches the RPC's published charges</option></select></label>
     <div class="note" id="dpre_note" style="margin-top:6px"></div>
+    <details id="drlib" style="margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:8px 12px">
+      <summary style="cursor:pointer;font-weight:600">RPC rule library: view, add or change rules (bands, rates, X factor)</summary>
+      <p class="note" style="margin:8px 0">Every rule has band rates and one or more date periods. For each period you set the band limits and <b>X</b>: deviation is measured against <b>X% of available capacity + (100 − X)% of the schedule</b>. X = 100 is today's method (available capacity only). <b>Website rules</b> apply to every user; to change them, edit a rule, click <b>Download rules file for the website</b> and upload that file to GitHub as <code>data/rpc-rules.json</code>. <b>My rules</b> stay in this browser only and are for your own comparisons.</p>
+      <div id="drl_list"></div>
+      <div class="tools" style="margin:8px 0"><button class="alt" id="drl_new">New rule</button><button class="alt" id="drl_dl">Download rules file for the website</button><label class="alt" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:6px 10px">Open a rules file<input type="file" id="drl_up" accept=".json,application/json" hidden></label></div>
+      <div id="drl_ed" hidden style="border-top:1px solid var(--line);padding-top:10px">
+        <div class="row"><label class="f">Rule name<input id="drl_name" maxlength="80"></label><label class="f" style="flex:0 1 200px">Short id (no spaces)<input id="drl_id" maxlength="60"></label></div>
+        <label class="f">Description<input id="drl_desc" maxlength="400"></label>
+        <p class="note" style="margin:10px 0 4px"><b>Band rates</b> (% of the price). Band 1 is the smallest deviation.</p>
+        <div class="scroll" style="max-height:none"><table><thead><tr><th>Band</th><th>Shortfall charged (%)</th><th>Excess paid (%)</th></tr></thead><tbody id="drl_rates"></tbody></table></div>
+        <div class="tools" style="margin:6px 0"><button class="alt" id="drl_badd">Add band</button><button class="alt" id="drl_brem">Remove last band</button></div>
+        <p class="note" style="margin:10px 0 4px"><b>Periods</b>. Limits are the upper edge of each band except the last, in % of the deviation base, separated by commas (for example <code>5, 10</code>). Leave a date empty for "no start" or "no end".</p>
+        <div class="scroll" style="max-height:none"><table><thead><tr><th>From</th><th>To</th><th>Solar / hybrid limits (%)</th><th>Wind limits (%)</th><th>X solar (%)</th><th>X wind (%)</th><th></th></tr></thead><tbody id="drl_per"></tbody></table></div>
+        <div class="tools" style="margin:6px 0"><button class="alt" id="drl_padd">Add period</button></div>
+        <p class="note" id="drl_msg" style="margin:6px 0"></p>
+        <div class="tools"><button id="drl_save">Save as my rule (this browser)</button><button class="alt" id="drl_site">Put in website rules file</button><button class="alt" id="drl_cancel">Close</button></div>
+      </div>
+    </details>
   </div>
   <div class="tools" style="margin-top:12px"><button id="dcalc">Calculate DSM</button><button class="alt" id="dsamp">Try sample data (2 SPVs, 10 days, dynamic price)</button><button class="alt" id="dsdl">Download sample CSV</button></div>
   <label class="note" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="dlive" checked> Update the results automatically when I change the bands, rates, PPA, AvC or formula</label>
@@ -390,6 +408,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   <div class="kpis" id="dkpi"></div>
   <p class="note" id="dnote"></p>
   <div id="dpub" class="hide" style="margin:12px 0;border:1px solid var(--line);border-radius:8px;padding:12px"></div>
+  <div id="dcmp" class="hide" style="margin:12px 0;border:1px solid var(--line);border-radius:8px;padding:12px"></div>
   <div class="tools" style="margin:8px 0"><button id="dsave">Save run(s) to history</button><button class="alt" id="dxl">Download Excel report</button></div>
   <div id="dperiod" class="hide"><p class="note" style="margin:10px 0 4px"><b id="dptitle"></b></p><div class="chartbox" style="height:260px"><canvas id="dcp"></canvas></div><div id="dptab" style="margin-top:10px"></div></div>
   <div id="ddbox" style="margin-top:16px">
@@ -476,6 +495,13 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   </div>
 </div>
 <div id="n_res"></div>
+<div class="card" style="margin-top:14px;border-style:dashed">
+  <b>All plants at once (NRPC)</b>
+  <p class="note" style="margin:4px 0 8px">Pick all the weekly Excel workbooks for a period (for example 2 months) together. Every plant is extracted and joined across the weeks, and you get one ZIP: one CSV per plant plus a summary CSV of checks. Overlapping weeks are not counted twice. If it is slow on your computer, do one or two months at a time.</p>
+  <div class="row"><label class="f" style="flex:2 1 320px">Weekly Excel workbooks<input id="na_file" type="file" accept=".xlsx,.xls" multiple></label></div>
+  <div class="tools" style="margin-top:10px"><button id="na_go">Extract all plants (ZIP of CSV files)</button><progress id="na_prog" class="hide" style="width:220px"></progress><span id="na_msg" class="note" role="status"></span></div>
+  <div id="na_sum"></div>
+</div>
 </div>
 <div id="k_p2" class="hide">
 <div class="card">
@@ -495,6 +521,13 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   </div>
 </div>
 <div id="w_res"></div>
+<div class="card" style="margin-top:14px;border-style:dashed">
+  <b>All plants at once (WRPC)</b>
+  <p class="note" style="margin:4px 0 8px">Pick all the weekly ZIP files (or CSV files) for a period (for example 2 months) together. Every plant is extracted and joined across the weeks, and you get one ZIP: one CSV per plant plus a summary CSV of checks. Overlapping weeks are not counted twice. If it is slow on your computer, do one or two months at a time.</p>
+  <div class="row"><label class="f" style="flex:2 1 320px">Weekly ZIP files (or CSV files)<input id="wa_file" type="file" accept=".zip,.csv" multiple></label></div>
+  <div class="tools" style="margin-top:10px"><button id="wa_go">Extract all plants (ZIP of CSV files)</button><progress id="wa_prog" class="hide" style="width:220px"></progress><span id="wa_msg" class="note" role="status"></span></div>
+  <div id="wa_sum"></div>
+</div>
 </div>
 <div id="k_p3" class="hide">
 <div class="card">
@@ -507,6 +540,13 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   </div>
 </div>
 <div id="s_res"></div>
+<div class="card" style="margin-top:14px;border-style:dashed">
+  <b>All plants at once (SRPC)</b>
+  <p class="note" style="margin:4px 0 8px">Pick all the weekly ZIP or CSV files for a period (for example 2 months) together. Every plant is extracted and joined across the weeks, and you get one ZIP: one CSV per plant plus a summary CSV of checks. Overlapping weeks are not counted twice. If it is slow on your computer, do one or two months at a time.</p>
+  <div class="row"><label class="f" style="flex:2 1 320px">Weekly ZIP or CSV files<input id="sa_file" type="file" accept=".zip,.csv" multiple></label></div>
+  <div class="tools" style="margin-top:10px"><button id="sa_go">Extract all plants (ZIP of CSV files)</button><progress id="sa_prog" class="hide" style="width:220px"></progress><span id="sa_msg" class="note" role="status"></span></div>
+  <div id="sa_sum"></div>
+</div>
 </div>
 
 </div>
@@ -1307,14 +1347,15 @@ function dCompute(rows,ppa,avc,mode,cfg){
   const bp=Array(k+1).fill(0),br=Array(k+1).fill(0),bd=Array(k+1).fill(0);
   const bl=rows.map((r,i)=>{
     const A=r.v>0?r.v:avc,pr=r.p>0?r.p:ppa,f=250*pr,dev=r.a-r.s,err=r.s!==0?dev/r.s*100:0,a=Math.abs(dev);
-    const sl=slicesOf(a,A);
+    const X=cfg.x==null?100:cfg.x,B0=X>=100?A:X/100*A+(100-X)/100*Math.max(r.s,0),B=B0>0?B0:A;  /* deviation base */
+    const sl=slicesOf(a,B);
     /* under-injection: payable (energy value) + DSM penalty = total charge. over-injection: receivable, and the revenue lost against the full PPA value */
     const pyb=sl.map((x,j)=>dev<0?x*f*PR[j]/100:0),db=sl.map((x,j)=>dev<0?x*f*DR[j]/100:0);
     const rb=sl.map((x,j)=>dev>0?x*f*OR[j]/100:0),lb=sl.map((x,j)=>dev>0?x*f*LR[j]/100:0);
     const pb=pyb.map((x,j)=>x+db[j]),paybV=sm(pyb),dsmV=sm(db),payV=paybV+dsmV,recV=sm(rb),lossV=sm(lb);
     pay+=payV;payb+=paybV;dsmT+=dsmV;recv+=recV;loss+=lossV;sS+=r.s*.25;sA+=r.a*.25;sq+=dev*dev;if(dev<0)under++;if(dev>0)over++;maxd=Math.max(maxd,a);
     pb.forEach((x,j)=>{bp[j]+=x;br[j]+=rb[j];bd[j]+=db[j]});
-    return {b:i+1,s:r.s,a:r.a,dev,err,avc:A,price:pr,sl:sl.map(x=>dev<0?-x:x),pay:payV,payb:paybV,dsm:dsmV,recv:recV,loss:lossV,net:recV-payV,pb,pyb,db,rb,lb,pub:r.pub==null?null:r.pub,psrc:r.p>0?"block price from the file":"PPA rate"};
+    return {b:i+1,s:r.s,a:r.a,dev,err,avc:A,base:B,price:pr,sl:sl.map(x=>dev<0?-x:x),pay:payV,payb:paybV,dsm:dsmV,recv:recV,loss:lossV,net:recV-payV,pb,pyb,db,rb,lb,pub:r.pub==null?null:r.pub,psrc:r.p>0?"block price from the file":"PPA rate"};
   });
   return {blocks:bl,sum:{sched:sS,act:sA,net:sA-sS,pay,payb,dsm:dsmT,recv,loss,settle:recv-pay,alt:null,rmse:Math.sqrt(sq/96),under,over,maxd,bp,br,bd}};
 }
@@ -1462,31 +1503,42 @@ function dCalc(){
   const list=g.days.map(d=>({...d,date:d.date||addDays(run,d.rel)})).filter(d=>(!from||d.date>=from)&&(!to||d.date<=to)).sort((a,b)=>a.date<b.date?-1:1);
   if(!list.length)return dm("No days fall inside the dates you chose.",true);
   let cfg=dPublished?null:dBandRead();
-  if(dPublished){
-    const first=list[0].date,last=list[list.length-1].date;
-    cfg=rpcPublishedConfig($("dtype").value,first);
-    if(!cfg||!rpcPublishedConfig($("dtype").value,last)){
-      dClear();
-      return dm("RPC published bands are available for 16 September 2024 through 31 March 2027. Select dates within that period or use My bands.",true);
-    }
-    if(first<"2026-04-01"&&last>="2026-04-01"){
-      dClear();
-      return dm("RPC bands change on 1 April 2026. Use the date filters to calculate each period separately.",true);
-    }
-    dPreNote(first);
-  }
-  if(!cfg)return dm("Band limits must be positive and each one larger than the one before.",true);
   const priced=list.map(d=>({...d,rows:d.rows.map((r,i)=>{let p=r.p;if(!(p>0)&&dPrice)p=dPrice.bd.get(d.date+"|"+(i+1))??dPrice.bl.get(i+1)??0;return {...r,p}})}));
   if(!(ppa>0)&&priced.some(d=>d.rows.some(r=>!(r.p>0))))return dm("Enter the PPA rate (INR/kWh). Some blocks have no price of their own.",true);
   if(!(avc>0)&&priced.some(d=>d.rows.some(r=>!(r.v>0)&&(r.s>0||r.a>0))))return dm("Enter the available capacity (MW). Your file does not give it for every block.",true);
+  let dayCfg=null;
+  if(dPublished){
+    const type=$("dtype").value,pick=$("drule").value,first=priced[0].date;
+    const cfgsFor=id=>{const m=priced.map(d=>rpcRuleConfig(id,type,d.date));if(m.some(c=>!c))return null;if(m.some(c=>c.limits.length!==m[0].limits.length))return "mixed";return m};
+    const hasPub=priced.some(d=>d.rows.some(r=>r.pub!=null));
+    dRuleWhy="";
+    if(pick!=="auto")dRuleUsed=pick;
+    else{
+      const cands=allRules().map(r=>r.id).filter(id=>Array.isArray(cfgsFor(id)));
+      if(!cands.length){dClear();return dm("No rule in the RPC rule library covers all of these dates. Change the dates or add a period in the rule library.",true)}
+      if(hasPub&&cands.length>1){
+        /* try every rule on these blocks and keep the one that reproduces the published charges */
+        const sc=cands.map(id=>{const cs=cfgsFor(id);let m=0,n=0;priced.forEach((d,k)=>dCompute(d.rows,ppa,avc,"slice",cs[k]).blocks.forEach(b=>{if(b.pub!=null){n++;if(pubMis(b))m++}}));return {id,m,n}}).sort((a,b)=>a.m-b.m);
+        dRuleUsed=sc[0].id;
+        dRuleWhy=`Automatic: ${ruleName(dRuleUsed)} reproduces ${(sc[0].n-sc[0].m).toLocaleString("en-IN")} of ${sc[0].n.toLocaleString("en-IN")} published blocks`+
+          (sc.length>1?"; "+sc.slice(1).map(x=>`${ruleName(x.id)} ${(x.n-x.m).toLocaleString("en-IN")}`).join(", ")+".":".");
+      }else{dRuleUsed=cands.includes("cerc2024")?"cerc2024":cands[0];dRuleWhy=hasPub?"":`Automatic: this data has no published charges to compare, so ${ruleName(dRuleUsed)} is used. Choose the rule if your plant is settled differently.`}
+    }
+    const cs=cfgsFor(dRuleUsed);
+    if(cs===null){dClear();return dm(`"${ruleName(dRuleUsed)}" has no settings for some of these dates. Change the dates, choose another rule, or add a period in the RPC rule library.`,true)}
+    if(cs==="mixed"){dClear();return dm(`"${ruleName(dRuleUsed)}" changes its number of bands inside these dates. Use the date filters to calculate each part separately.`,true)}
+    dayCfg=cs;cfg=cs[0];
+    dPreNote(first);
+  }
+  if(!cfg)return dm("Band limits must be positive and each one larger than the one before.",true);
   const i=spvIdx();spvs[i].ppa=ppa>0?ppa:spvs[i].ppa;spvs[i].avc=avc>0?avc:"";if(!dPublished)spvs[i].cfg=cfg;spvSave();dCfg=cfg;
-  const days=priced.map(d=>{const c=dCompute(d.rows,ppa,avc,mode,cfg);c.blocks.forEach(b=>b.date=d.date);return {date:d.date,rows:d.rows,blocks:c.blocks,sum:c.sum,count:d.count}});
+  const days=priced.map((d,k)=>{const c=dCompute(d.rows,ppa,avc,mode,dayCfg?dayCfg[k]:cfg);c.blocks.forEach(b=>b.date=d.date);return {date:d.date,rows:d.rows,blocks:c.blocks,sum:c.sum,count:d.count}});
   const total=dAgg(days.map(d=>d.sum));
-  dCur={meta:{spv,ppa,avc,mode,cfg,published:dPublished,from:days[0].date,to:days[days.length-1].date},days,sum:total};
+  dCur={meta:{spv,ppa,avc,mode,cfg,rule:dPublished?dRuleUsed:null,dayCfg,published:dPublished,from:days[0].date,to:days[days.length-1].date},days,sum:total};
   $("dout").classList.remove("hide");
   const m=dCur.meta,one=days.length===1;
   $("dwho").innerHTML=`<b>${esc(spv)}</b> · ${one?m.from:`${m.from} to ${m.to} (${days.length} days)`} · PPA ₹${f2(ppa)}/kWh${priced.some(d=>d.rows.some(r=>r.p>0))?" (blocks with their own price use it)":""} · AvC ${avc>0?f2(avc)+" MW":"from file"} · bands ${cfg.limits.join("% / ")}% of AvC<br><span class="note">Rates used (from your bands table): ${bandsUsed(cfg)}</span>`;
-  $("dkpi").innerHTML=dKpi(total);dPubSummary();
+  $("dkpi").innerHTML=dKpi(total);dPubSummary();dRuleCompare();
   const diff=total.alt!=null&&Math.abs(total.alt-total.pay)>1;
   $("dnote").innerHTML=(total.alt!=null?`Formula used: ${dName(mode)}.`+(diff?` For comparison, ${dName(mode==="brd"?"slice":"brd")} would give a payable of ₹ ${f2(total.alt)}.`:""):"Formula: continuous bands.")+" Receivable rates are the ones you set in the bands table (the BRD does not define them).";
   $("dday").innerHTML=days.map(d=>`<option>${d.date}</option>`).join("");
@@ -1522,28 +1574,86 @@ function dRenderDay(){
   dPubDay(d);
 }
 $("dcalc").onclick=dCalc;$("dgrp").onchange=dRenderPeriods;$("dday").onchange=dRenderDay;
-// CERC DSM Regulations 2024, regulation 8(4), WS sellers.
-function rpcPublishedConfig(type,date){
-  if(date<"2024-09-16"||date>="2027-04-01")return null;
-  const first=(date<"2026-04-01"?10:5)+(type==="wind"?5:0);
-  return {limits:[first,first+5],pay:[100,100,100],dsm:[0,10,100],over:[100,90,0],loss:[0,10,100]};
+/* ===== RPC rule library =====
+   A rule = band rates + date periods. Each period gives the band limits (solar/hybrid and wind) and X:
+   deviation base = X% of available capacity + (100 - X)% of scheduled generation (X = 100: available capacity only).
+   Rules come from data/rpc-rules.json on the website (edited by the admin and uploaded to GitHub), falling back to
+   the copy below; anyone can also keep private rules in this browser for comparison. */
+const RULES_BUILTIN=[{"id":"cerc2024","name":"CERC DSM 2024 (available capacity)","desc":"Regulation 8(4) bands with deviation measured against available capacity (X = 100).","rates":{"dsm":[0,10,100],"pay":[100,100,100],"over":[100,90,0],"loss":[0,10,100]},"periods":[{"from":"2024-09-16","to":"2026-03-31","solar":[10,15],"wind":[15,20],"x":{"solar":100,"wind":100}},{"from":"2026-04-01","to":"","solar":[5,10],"wind":[10,15],"x":{"solar":100,"wind":100}}]},{"id":"legacy15","name":"Legacy ±15%","desc":"Older projects still settled on the earlier rule: 100% both ways up to 15% of AvC, beyond that shortfall 110% and excess 90%.","rates":{"dsm":[0,10],"pay":[100,100],"over":[100,90],"loss":[0,10]},"periods":[{"from":"","to":"","solar":[15],"wind":[15],"x":{"solar":100,"wind":100}}]},{"id":"cerc2024x","name":"CERC DSM 2024 with X factor","desc":"Same bands and rates as CERC DSM 2024, with deviation measured against X% of AvC + (100 - X)% of schedule. X per CERC order of 31 Mar 2026 for existing projects: 100 in 2026-27, 80 in 2027-28, 60, 40, 20, then 0 from 1 Apr 2031. Check the wind values against the order: CERC set separate paths for wind and solar.","rates":{"dsm":[0,10,100],"pay":[100,100,100],"over":[100,90,0],"loss":[0,10,100]},"periods":[{"from":"2024-09-16","to":"2026-03-31","solar":[10,15],"wind":[15,20],"x":{"solar":100,"wind":100}},{"from":"2026-04-01","to":"2027-03-31","solar":[5,10],"wind":[10,15],"x":{"solar":100,"wind":100}},{"from":"2027-04-01","to":"2028-03-31","solar":[5,10],"wind":[10,15],"x":{"solar":80,"wind":80}},{"from":"2028-04-01","to":"2029-03-31","solar":[5,10],"wind":[10,15],"x":{"solar":60,"wind":60}},{"from":"2029-04-01","to":"2030-03-31","solar":[5,10],"wind":[10,15],"x":{"solar":40,"wind":40}},{"from":"2030-04-01","to":"2031-03-31","solar":[5,10],"wind":[10,15],"x":{"solar":20,"wind":20}},{"from":"2031-04-01","to":"","solar":[5,10],"wind":[10,15],"x":{"solar":0,"wind":0}}]}];
+let RULES_SITE=null;
+const MYRULES_KEY="kd_rpc_rules_mine_v1";
+const loadMyRules=()=>{try{const a=JSON.parse(localStorage.getItem(MYRULES_KEY)||"[]");return Array.isArray(a)?a.filter(r=>!ruleProblem(r)):[]}catch(e){return []}};
+const saveMyRules=list=>{try{localStorage.setItem(MYRULES_KEY,JSON.stringify(list));return true}catch(e){return false}};
+const siteRules=()=>RULES_SITE||RULES_BUILTIN;
+const allRules=()=>[...siteRules(),...loadMyRules().map(r=>({...r,mine:true}))];
+const ruleById=id=>allRules().find(r=>r.id===id);
+const ruleName=id=>{const r=ruleById(id);return r?r.name+(r.mine?" (my rule)":""):id};
+function ruleProblem(r){
+  if(!r||typeof r!=="object")return "not a rule";
+  if(!r.id||!/^[\w-]{1,60}$/.test(r.id))return "the rule needs a short id (letters, numbers, - or _)";
+  if(!r.name||!String(r.name).trim())return "the rule needs a name";
+  const R=r.rates||{},n=(R.pay||[]).length;
+  if(n<1||n>8||["dsm","pay","over","loss"].some(k=>!Array.isArray(R[k])||R[k].length!==n||R[k].some(v=>!(typeof v==="number"&&v>=0&&v<=1000))))return "every band needs four rates between 0 and 1000%";
+  if(!Array.isArray(r.periods)||!r.periods.length)return "the rule needs at least one period";
+  for(const p of r.periods){
+    if(p.from&&!/^\d{4}-\d{2}-\d{2}$/.test(p.from)||p.to&&!/^\d{4}-\d{2}-\d{2}$/.test(p.to))return "period dates must look like 2027-04-01";
+    if(p.from&&p.to&&p.to<p.from)return `a period ends (${p.to}) before it starts (${p.from})`;
+    for(const t of ["solar","wind"]){const L=p[t];
+      if(!Array.isArray(L)||L.length!==n-1||L.some((v,i)=>!(v>0)||(i&&v<=L[i-1])))return `${t==="solar"?"solar/hybrid":"wind"} limits must be ${n-1} rising number(s) above 0, one fewer than the bands`;
+      const x=p.x?p.x[t]:100;if(!(typeof x==="number"&&x>=0&&x<=100))return "X must be between 0 and 100";}
+  }
+  return "";
 }
+function rpcRuleConfig(id,type,date){
+  const r=ruleById(id);if(!r)return null;
+  const p=r.periods.find(q=>(!q.from||date>=q.from)&&(!q.to||date<=q.to));if(!p)return null;
+  const t=type==="wind"?"wind":"solar";
+  return {limits:p[t].slice(),pay:r.rates.pay.slice(),dsm:r.rates.dsm.slice(),over:r.rates.over.slice(),loss:r.rates.loss.slice(),x:p.x&&p.x[t]!=null?+p.x[t]:100};
+}
+// CERC DSM Regulations 2024, regulation 8(4), WS sellers (kept for older callers)
+function rpcPublishedConfig(type,date){return rpcRuleConfig("cerc2024",type,date)}
+const LEGACY15=()=>rpcRuleConfig("legacy15","solar","2026-01-01");
+function ruleText(c){
+  const L=c.limits,R=c.pay.map((p,i)=>p+c.dsm[i]);
+  const bands=L.map((l,i)=>`${i?L[i-1]+"–":"up to "}${l}%`).concat(`above ${L[L.length-1]}%`);
+  return `Bands ${bands.join(", ")} of the deviation base; shortfall charged ${R.join(" / ")}%, excess paid ${c.over.join(" / ")}%.`+
+    (c.x<100?` Deviation base = ${c.x}% of AvC + ${100-c.x}% of the schedule (X = ${c.x}).`:" Deviation base = available capacity (X = 100).");
+}
+let dRuleUsed=null,dRuleWhy="";
+const ruleListeners=[];
+function rulesChanged(){
+  const sel=$("drule"),cur=sel.value;
+  sel.innerHTML=`<option value="auto">Automatic: use the rule that matches the RPC's published charges</option>`+allRules().map(r=>`<option value="${esc(r.id)}">${esc(r.name)}${r.mine?" (my rule)":""}</option>`).join("");
+  sel.value=[...sel.options].some(o=>o.value===cur)?cur:"auto";
+  ruleListeners.forEach(f=>{try{f()}catch(e){}});
+}
+(function(){
+  if(location.protocol==="file:")return;
+  fetch("data/rpc-rules.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(j=>{
+    if(j&&Array.isArray(j.rules)&&j.rules.length&&j.rules.every(r=>!ruleProblem(r))){RULES_SITE=j.rules;rulesChanged()}
+  }).catch(()=>{});
+})();
+rulesChanged();
 let dPublished=false,dMyCfg=null;
 function dPreNote(date){
   const fallback=$("dfrom").value||$("drun").value||new Date().toISOString().slice(0,10);
   if(dPublished){
     date=date||fallback;
-    const auto=rpcPublishedConfig($("dtype").value,date);
+    const rule=$("drule").value!=="auto"?$("drule").value:(dRuleUsed||"cerc2024");
+    const auto=rpcRuleConfig(rule,$("dtype").value,date);
+    if(auto&&auto.x<100)$("dBandTitle").dataset.x=auto.x;else delete $("dBandTitle").dataset.x;
     if(auto)dBandRender(auto);
     $("dbtb").closest("table").hidden=!auto;
   }else $("dbtb").closest("table").hidden=false;
-  $("dBandTitle").textContent=dPublished?"Automatic RPC deviation bands (% of AvC)":"Deviation bands (set by you, as % of AvC)";
+  $("dBandTitle").textContent=dPublished?($("dBandTitle").dataset.x?`Automatic RPC deviation bands (% of ${$("dBandTitle").dataset.x}% AvC + ${100-$("dBandTitle").dataset.x}% schedule)`:"Automatic RPC deviation bands (% of AvC)"):"Deviation bands (set by you, as % of AvC)";
   for(const control of [...$("dbtb").querySelectorAll("input"),$("dbadd"),$("dbrem")])control.disabled=dPublished;
   $("dpre_pub").setAttribute("aria-pressed",String(dPublished));
   $("dpre_my").setAttribute("aria-pressed",String(!dPublished));
+  $("drule_wrap").hidden=!dPublished;
+  const ruleNow=$("drule").value!=="auto"?$("drule").value:(dRuleUsed||"cerc2024");
+  const cNow=dPublished?rpcRuleConfig(ruleNow,$("dtype").value,date||fallback):null;
   $("dpre_note").textContent=dPublished
-    ?rpcPublishedConfig($("dtype").value,date)?`RPC published WS seller bands for ${date}. Shortfall is charged at 100%, 110% and 200%. Excess is paid at 100%, 90% and 0%.`
-      :"No supported RPC bands for this date."
+    ?(cNow?`${ruleName(ruleNow)} for ${date||fallback}: ${ruleText(cNow)}`:`${ruleName(ruleNow)} has no settings for ${date||fallback}.`)+(dRuleWhy?" "+dRuleWhy:"")
     :"";
 }
 function dUseCustomBands(){
@@ -1565,6 +1675,7 @@ $("dpre_my").onclick=()=>{
 $("dbtb").addEventListener("input",dUseCustomBands);
 $("dbadd").addEventListener("click",dUseCustomBands);
 $("dbrem").addEventListener("click",dUseCustomBands);
+$("drule").addEventListener("change",()=>{dRuleUsed=null;dRuleWhy="";if(dPublished){dPreNote();if(dData)dCalc()}});
 for(const id of ["dtype","drun","dfrom","dto","dspv"]){
   $(id).addEventListener("change",()=>{if(dPublished){dPreNote();if(dData)dCalc()}});
 }
@@ -1572,6 +1683,110 @@ function dClear(){
   dCur=null;
   $("dout").classList.add("hide");
 }
+/* ===== Compare the same data under several RPC rules ===== */
+function dRuleCompare(){
+  const box=$("dcmp");
+  if(!dCur){box.classList.add("hide");return}
+  const type=$("dtype").value,{ppa,avc}=dCur.meta,days=dCur.days,hasPub=days.some(d=>d.rows.some(r=>r.pub!=null));
+  const cur=dCur.meta.published?dCur.meta.rule:null;
+  const rows=allRules().map(r=>{
+    const cs=days.map(d=>rpcRuleConfig(r.id,type,d.date));
+    if(cs.some(c=>!c))return {r,na:"no settings for some of these dates"};
+    let pay=0,recv=0,n=0,m=0;const xs=new Set();
+    days.forEach((d,k)=>{xs.add(cs[k].x);const c=dCompute(d.rows,ppa,avc,"slice",cs[k]);pay+=c.sum.pay;recv+=c.sum.recv;
+      c.blocks.forEach(b=>{if(b.pub!=null){n++;if(pubMis(b))m++}})});
+    const bands=[...new Set(cs.map(c=>c.limits.join(" / ")+"%"))].join("; ");
+    return {r,pay,recv,net:pay-recv,n,m,x:[...xs].sort((a,b)=>b-a).join(", "),bands};
+  });
+  const base=rows.find(x=>x.r.id===cur&&!x.na);
+  box.classList.remove("hide");
+  box.innerHTML=`<b>Compare RPC rules on this data</b>
+   <p class="note" style="margin:4px 0 8px">The same schedule, actual and prices, settled under each rule in the RPC rule library (${type==="wind"?"wind":"solar / hybrid"} settings). Positive net = the plant pays.</p>
+   <div class="scroll" style="max-height:none"><table><thead><tr><th>Rule</th><th>Band limits</th><th>X (%)</th><th>Shortfall charge (₹)</th><th>Excess receivable (₹)</th><th>Net charge (₹)</th>${base?"<th>Net vs rule used (₹)</th>":""}${hasPub?"<th>Blocks matching published</th>":""}</tr></thead><tbody>
+   ${rows.map(x=>x.na?`<tr><td>${esc(ruleName(x.r.id))}</td><td colspan="${4+(base?1:0)+(hasPub?1:0)+1}" class="note">Not available: ${x.na}</td></tr>`
+     :`<tr${x.r.id===cur?' style="font-weight:600"':""}><td>${esc(ruleName(x.r.id))}${x.r.id===cur?" (used above)":""}</td><td>${esc(x.bands)}</td><td>${esc(x.x)}</td><td>${f2(x.pay)}</td><td>${f2(x.recv)}</td><td>${f2(x.net)}</td>${base?`<td>${x.r.id===cur?"–":(x.net-base.net>0?"+":"")+f2(x.net-base.net)}</td>`:""}${hasPub?`<td>${x.n?`${(x.n-x.m).toLocaleString("en-IN")} of ${x.n.toLocaleString("en-IN")}`:"–"}</td>`:""}</tr>`).join("")}
+   </tbody></table></div>
+   <p class="note" style="margin:6px 0 0">Add your own rule (for example other bands or another X) in the RPC rule library above and it appears here. Downloads ${dPublished?"and charts use the rule shown in bold":"and charts use your own bands"}.</p>`;
+}
+
+/* ===== RPC rule library editor ===== */
+(function(){
+  let ed=null,edOrig=null,edMine=false;
+  const msg=(t,bad)=>{$("drl_msg").textContent=t;$("drl_msg").className="note"+(bad?" err":"")};
+  const listHtml=()=>{
+    const row=(r,mine)=>`<tr><td><b>${esc(r.name)}</b><br><span class="note">${esc(r.desc||"")}</span></td><td>${mine?"My rule (this browser)":"Website"}</td><td>${r.periods.length}</td>
+      <td style="white-space:nowrap"><button class="alt" data-edit="${esc(r.id)}" data-mine="${mine?1:0}">${mine?"Edit":"View / edit"}</button> <button class="alt" data-copy="${esc(r.id)}">Copy</button>${mine?` <button class="alt" data-del="${esc(r.id)}">Delete</button>`:""}</td></tr>`;
+    $("drl_list").innerHTML=`<div class="scroll" style="max-height:none"><table><thead><tr><th>Rule</th><th>Where</th><th>Periods</th><th></th></tr></thead><tbody>${siteRules().map(r=>row(r,false)).join("")}${loadMyRules().map(r=>row(r,true)).join("")}</tbody></table></div>`+
+      (RULES_SITE?"":`<p class="note" style="margin:4px 0 0">Using the rules built into the app${location.protocol==="file:"?"":" (no data/rpc-rules.json on the website yet)"}.</p>`);
+  };
+  ruleListeners.push(listHtml);
+  const rateRow=(i,sh,ex)=>`<tr><td>${i+1}</td><td><input type="number" min="0" max="1000" step="any" value="${sh}" data-r="sh"></td><td><input type="number" min="0" max="1000" step="any" value="${ex}" data-r="ex"></td></tr>`;
+  const perRow=p=>`<tr><td><input type="date" value="${esc(p.from||"")}" data-p="from"></td><td><input type="date" value="${esc(p.to||"")}" data-p="to"></td>
+    <td><input value="${esc((p.solar||[]).join(", "))}" data-p="solar" style="min-width:90px"></td><td><input value="${esc((p.wind||[]).join(", "))}" data-p="wind" style="min-width:90px"></td>
+    <td><input type="number" min="0" max="100" step="any" value="${p.x&&p.x.solar!=null?p.x.solar:100}" data-p="xs" style="width:70px"></td><td><input type="number" min="0" max="100" step="any" value="${p.x&&p.x.wind!=null?p.x.wind:100}" data-p="xw" style="width:70px"></td>
+    <td><button class="alt" data-prem>Remove</button></td></tr>`;
+  function open(r,mine){
+    ed=JSON.parse(JSON.stringify(r));edOrig=r.id;edMine=mine;
+    $("drl_name").value=ed.name;$("drl_id").value=ed.id;$("drl_desc").value=ed.desc||"";
+    const R=ed.rates;$("drl_rates").innerHTML=R.pay.map((p,i)=>rateRow(i,p+R.dsm[i],R.over[i])).join("");
+    $("drl_per").innerHTML=ed.periods.map(perRow).join("");
+    $("drl_ed").hidden=false;msg("");$("drl_name").focus();
+  }
+  function read(){
+    const num=v=>v===""?NaN:+v,lims=t=>t.split(/[,;\s]+/).filter(Boolean).map(Number);
+    const rates={dsm:[],pay:[],over:[],loss:[]};
+    [...$("drl_rates").rows].forEach(tr=>{const sh=num(tr.querySelector('[data-r="sh"]').value),ex=num(tr.querySelector('[data-r="ex"]').value);
+      rates.pay.push(Math.min(sh,100));rates.dsm.push(Math.max(sh-100,0));rates.over.push(ex);rates.loss.push(Math.max(100-ex,0))});
+    const periods=[...$("drl_per").rows].map(tr=>{const g=k=>tr.querySelector(`[data-p="${k}"]`).value.trim();
+      return {from:g("from"),to:g("to"),solar:lims(g("solar")),wind:lims(g("wind")),x:{solar:num(g("xs")),wind:num(g("xw"))}}});
+    return {id:$("drl_id").value.trim(),name:$("drl_name").value.trim(),desc:$("drl_desc").value.trim(),rates,periods};
+  }
+  function overlap(r){const ps=r.periods.map(p=>[p.from||"0000-00-00",p.to||"9999-12-31"]).sort();for(let i=1;i<ps.length;i++)if(ps[i][0]<=ps[i-1][1])return `periods ${ps[i-1][0].replace("0000-00-00","(no start)")} and ${ps[i][0]} overlap`;return ""}
+  function check(){const r=read(),bad=ruleProblem(r)||overlap(r);if(bad){msg("Not saved: "+bad+".",true);return null}return r}
+  $("drl_list").addEventListener("click",e=>{
+    const b=e.target.closest("button");if(!b)return;
+    if(b.dataset.edit){const mine=b.dataset.mine==="1",r=(mine?loadMyRules():siteRules()).find(x=>x.id===b.dataset.edit);if(r)open(r,mine)}
+    else if(b.dataset.copy){const r=ruleById(b.dataset.copy);if(r){let id=r.id+"-copy",k=2;while(ruleById(id))id=r.id+"-copy"+k++;open({...JSON.parse(JSON.stringify(r)),id,name:r.name+" (copy)",mine:undefined},true);edOrig=null}}
+    else if(b.dataset.del){if(confirm("Delete this rule from this browser?")){saveMyRules(loadMyRules().filter(x=>x.id!==b.dataset.del));rulesChanged();if(dCur)dCalc()}}
+  });
+  $("drl_new").onclick=()=>{let id="my-rule",k=2;while(ruleById(id))id="my-rule-"+k++;
+    open({id,name:"My rule",desc:"",rates:{dsm:[0,10,100],pay:[100,100,100],over:[100,90,0],loss:[0,10,100]},periods:[{from:"2027-04-01",to:"",solar:[5,10],wind:[10,15],x:{solar:80,wind:80}}]},true);edOrig=null};
+  $("drl_badd").onclick=()=>{const n=$("drl_rates").rows.length;if(n>=8)return;$("drl_rates").insertAdjacentHTML("beforeend",rateRow(n,200,0));msg("Added a band: add one more limit to every period.")};
+  $("drl_brem").onclick=()=>{const n=$("drl_rates").rows.length;if(n>1){$("drl_rates").deleteRow(n-1);msg("Removed a band: remove one limit from every period.")}};
+  $("drl_padd").onclick=()=>{const last=read().periods.slice(-1)[0]||{solar:[5,10],wind:[10,15],x:{solar:100,wind:100}};$("drl_per").insertAdjacentHTML("beforeend",perRow({...last,from:"",to:""}))};
+  $("drl_per").addEventListener("click",e=>{if(e.target.closest("[data-prem]")&&$("drl_per").rows.length>1)e.target.closest("tr").remove()});
+  $("drl_cancel").onclick=()=>{$("drl_ed").hidden=true;ed=null};
+  $("drl_save").onclick=()=>{
+    const r=check();if(!r)return;
+    if(siteRules().some(x=>x.id===r.id)){msg(`Not saved: "${r.id}" is a website rule id. Give your rule a different short id, or use "Put in website rules file".`,true);return}
+    const mine=loadMyRules().filter(x=>x.id!==r.id&&x.id!==(edMine?edOrig:null));mine.push(r);
+    if(!saveMyRules(mine)){msg("This browser would not save the rule (storage is full or blocked).",true);return}
+    edOrig=r.id;edMine=true;rulesChanged();msg("Saved in this browser. It is now in the rule list and in the comparison.");if(dCur)dCalc();
+  };
+  $("drl_site").onclick=()=>{
+    const r=check();if(!r)return;
+    const list=siteRules().filter(x=>x.id!==r.id&&x.id!==(edMine?null:edOrig));list.push(r);
+    RULES_SITE=list;rulesChanged();
+    msg(`"${r.name}" is now in the website rules for this page only. Click "Download rules file for the website" and upload it to GitHub as data/rpc-rules.json to make it permanent for every user.`);
+    if(dCur)dCalc();
+  };
+  $("drl_dl").onclick=()=>{
+    const body={version:1,updated:new Date().toISOString().slice(0,10),note:"RPC deviation rules for the QCA DSM engine. Base = X% of AvC + (100 - X)% of schedule. Upload to GitHub as data/rpc-rules.json.",rules:siteRules()};
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(body,null,2)],{type:"application/json"}));a.download="rpc-rules.json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+  };
+  $("drl_up").onchange=async e=>{
+    const f=e.target.files[0];e.target.value="";if(!f)return;
+    try{const j=JSON.parse(await f.text()),list=Array.isArray(j)?j:j.rules;
+      if(!Array.isArray(list)||!list.length)throw new Error("no rules in the file");
+      for(const r of list){const bad=ruleProblem(r);if(bad)throw new Error(`rule "${r&&r.name||"?"}": ${bad}`)}
+      RULES_SITE=list;rulesChanged();$("drl_ed").hidden=true;
+      $("drl_list").insertAdjacentHTML("beforeend",`<p class="note" style="margin:4px 0 0">Opened ${esc(f.name)} (${list.length} rules) for this page. Upload it to GitHub as data/rpc-rules.json to make it permanent.</p>`);
+      if(dCur)dCalc();
+    }catch(err){alert("This rules file can't be used: "+err.message)}
+  };
+  listHtml();
+})();
+
 const pubTol=p=>Math.max(5,Math.abs(p)*0.005);
 const pubMis=b=>b.pub!=null&&Math.abs(b.pay-b.recv-b.pub)>pubTol(b.pub);
 function dPubSummary(){
@@ -1609,7 +1824,7 @@ function rpcImpliedCapacity(block,cfg){
 function showImpliedBand(box,block,cfg){
   const {capacity,message}=rpcImpliedCapacity(block,cfg);
   const [low,high]=cfg.limits;
-  const limits=cfg.limits.map(percent=>percent/100*block.avc);
+  const limits=cfg.limits.map(percent=>percent/100*(block.base||block.avc));
   const rows=[[0,low],[low,high],[high,null]].map(([from,to],i)=>{
     const range=values=>i===0?"Up to "+f2(values[0]):i===1?f2(values[0])+" to "+f2(values[1]):"Above "+f2(values[1]);
     const inferred=capacity==null?"—":range(cfg.limits.map(percent=>percent/100*capacity));
@@ -1875,6 +2090,33 @@ function nrpcIndex(wb){
   out.plants=out.specs.solar.entities.slice();
   return out;
 }
+/* Several NRPC workbooks (one per week): each worksheet is rebuilt in one layout [plant, date, block 1..96]
+   and the rows are joined in file-name order. Where two workbooks have the same plant and date,
+   nrpcExtract uses the first row, so overlapping weeks are not counted twice. */
+function nrpcIndexMany(list){
+  list=list.slice().sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  if(list.length===1){const one=nrpcIndex(list[0].wb);one.nFiles=1;return one}
+  const per=list.map(x=>({name:x.name,idx:nrpcIndex(x.wb)}));
+  const out={specs:{},warnings:[],plants:[],nFiles:list.length};
+  per.forEach(p=>p.idx.warnings.forEach(w=>out.warnings.push({...w,detail:`${p.name}: ${w.detail}`})));
+  NR.forEach(sp=>{
+    const have=per.filter(p=>p.idx.specs[sp.key].an),firstSheet=per.map(p=>p.idx.specs[sp.key].sheet).find(Boolean)||null;
+    const o={spec:sp,found:per.some(p=>p.idx.specs[sp.key].found),sheet:firstSheet,an:null,entities:[]};
+    out.specs[sp.key]=o;
+    if(!have.length)return;
+    const cols={};for(let b=1;b<=96;b++)cols[b]=b+1;
+    const body=[],names=new Set();
+    have.forEach(p=>{const an=p.idx.specs[sp.key].an;
+      an.body.forEach(r=>{const row=[r[an.nameCol]==null?"":r[an.nameCol],r[an.dateCol]==null?"":r[an.dateCol]];for(let b=1;b<=96;b++)row.push(an.cols[b]==null||r[an.cols[b]]==null?"":r[an.cols[b]]);body.push(row)});
+      p.idx.specs[sp.key].entities.forEach(n=>names.add(n));
+    });
+    o.an={ok:true,hdrRow:0,cols,dateCol:1,nameCol:0,notes:[],body,prefix:have[0].idx.specs[sp.key].an.prefix};
+    o.entities=[...names].sort((a,b)=>a.localeCompare(b));
+  });
+  out.warnings.push({sev:"Info",type:"Several workbooks",detail:`${list.length} workbooks were joined. Where two workbooks have the same plant and date, the first one (by file name) is used.`,count:list.length});
+  out.plants=out.specs.solar.entities.slice();
+  return out;
+}
 /* sel = {solar:"name", act:"name"|"", gs:..., rate:..., dev:...} */
 function nrpcExtract(idx,sel){
   const issues=[],details=[],plant=sel.solar,maps={};
@@ -1893,7 +2135,9 @@ function nrpcExtract(idx,sel){
       m.set(d,r);
     });
     if(bad)issues.push({sev:"Warning",type:"Invalid date",detail:`${bad} row(s) of "${sp.label}" for this plant have an unreadable date and were not used.`,count:bad});
-    if(dup)issues.push({sev:"Warning",type:"Duplicate records",detail:`"${sp.label}" has ${dup} duplicate plant/date row(s). The first row of each was used.`,count:dup});
+    if(dup)issues.push(idx.nFiles>1
+      ?{sev:"Info",type:"Overlapping workbooks",detail:`"${sp.label}": ${dup} plant/date row(s) appear in more than one workbook. The first workbook's row was used, so nothing is counted twice.`,count:dup}
+      :{sev:"Warning",type:"Duplicate records",detail:`"${sp.label}" has ${dup} duplicate plant/date row(s). The first row of each was used.`,count:dup});
     maps[sp.key]=m;
   });
   const used=NR.filter(sp=>maps[sp.key]);
@@ -1952,6 +2196,7 @@ function wrpcHeader(rows){
 }
 function fileStem(name){
   let s=String(name).split(/[\\/]/).pop().replace(/\.csv$/i,"");
+  s=s.replace(/\s*\(\d+\)$/,"");                         // "name (1).csv": a second download of the same file
   s=s.replace(/[-_ ]*DSM[-_ ]?\d{4}[-_ ]?Data.*$/i,"");
   s=s.replace(/[-_ ]*(\d{4}[-_.]\d{2}[-_.]\d{2}|\d{2}[-_.]\d{2}[-_.]\d{4}|\d{8})(?=$|[-_ .])/g,"").replace(/^[-_ ]+|[-_ ]+$/g,"");
   return s||String(name).split(/[\\/]/).pop();
@@ -1978,7 +2223,8 @@ function wrpcEntries(zip){
 }
 async function wrpcIndex(zip,opts,progress){
   opts=opts||{};const mode=opts.plantFrom||"auto";
-  const entries=wrpcEntries(zip),plants=new Map(),skipped=[],src={column:0,above:0,filename:0};
+  /* zip: a JSZip archive, or a list of entries ({name, async}) gathered from several ZIP and CSV files */
+  const entries=Array.isArray(zip)?zip:wrpcEntries(zip),plants=new Map(),skipped=[],src={column:0,above:0,filename:0};
   for(let i=0;i<entries.length;i++){
     const e=entries[i];
     let text="";try{text=await e.async("string")}catch(x){skipped.push({reason:"unreadable file"});continue}
@@ -2010,7 +2256,7 @@ async function wrpcExtract(idx,plant,progress){
       readRows++;
       const d=parseDate(r[c.date]),bn=num(r[c.block]),b=(bn.s==="ok"&&Number.isInteger(bn.v)&&bn.v>=1&&bn.v<=96)?bn.v:null;
       if(!d||b==null){excl.push({date:String(r[c.date]),block:String(r[c.block]),column:"Date / Block",issue:"Invalid date or block number: row not included"});continue}
-      const rec={date:d,block:b,cons:c.cons!=null?String(r[c.cons]).trim():"",seq:seq++};
+      const rec={date:d,block:b,cons:c.cons!=null?String(r[c.cons]).trim():"",seq:seq++,f:i};
       Object.keys(WR_SRC).forEach(key=>{
         if(c[key]==null){rec[key]=null;return}
         const x=num(r[c[key]]);
@@ -2027,10 +2273,20 @@ async function wrpcExtract(idx,plant,progress){
   if(excl.length){issues.push({sev:"Warning",type:"Rows not included",detail:`${excl.length} row(s) with an invalid date or block number were not included in the table.`,count:excl.length});excl.forEach(x=>details.push(x))}
   Object.keys(miss).forEach(k=>issues.push({sev:"Warning",type:"Missing values",detail:`${WR_LABEL[k]}: ${miss[k]} blank value(s). Left blank, not replaced with zero.`,count:miss[k]}));
   Object.keys(bad).forEach(k=>issues.push({sev:"Warning",type:"Invalid numeric values",detail:`${WR_LABEL[k]}: ${bad[k]} non-numeric value(s). Left blank.`,count:bad[k]}));
-  // duplicates (same date, block and constituent) and blocks that carry several constituents
-  const seen=new Map();let dupN=0;
-  recs.forEach(r=>{const k=r.date+"|"+r.block+"|"+r.cons;const n=(seen.get(k)||0)+1;seen.set(k,n);if(n===2){dupN++;details.push({date:r.date,block:r.block,column:"Date / Block / Constituents",issue:`Duplicate records for constituent "${r.cons}" (all kept)`})}});
-  if(dupN)issues.push({sev:"Warning",type:"Duplicate records",detail:`${dupN} date/block/constituent combination(s) appear more than once. All rows were kept.`,count:dupN});
+  // a block already read from an earlier file (overlapping weekly files) is not used again;
+  // repeats inside one file are kept and reported as before
+  const first=new Map(),cnt=new Map(),kept=[];let dupN=0,ovN=0;
+  recs.forEach(r=>{
+    const k=r.date+"|"+r.block+"|"+r.cons;
+    if(!first.has(k))first.set(k,r.f);
+    if(first.get(k)!==r.f){ovN++;details.push({date:r.date,block:r.block,column:"Date / Block / Constituents",issue:"Also in an earlier file (overlapping files): this copy was not used"});return}
+    const n=(cnt.get(k)||0)+1;cnt.set(k,n);
+    if(n===2){dupN++;details.push({date:r.date,block:r.block,column:"Date / Block / Constituents",issue:`Duplicate records for constituent "${r.cons}" (all kept)`})}
+    kept.push(r);
+  });
+  recs.length=0;kept.forEach(r=>{delete r.f;recs.push(r)});
+  if(ovN)issues.push({sev:"Info",type:"Overlapping files",detail:`${ovN} block(s) appear in more than one file. Only the first file's row was used, so nothing is counted twice.`,count:ovN});
+  if(dupN)issues.push({sev:"Warning",type:"Duplicate records",detail:`${dupN} date/block/constituent combination(s) appear more than once in the same file. All rows were kept.`,count:dupN});
   const perBlock=new Map();recs.forEach(r=>{const k=r.date+"|"+r.block;perBlock.set(k,(perBlock.get(k)||0)+1)});
   let multi=0;perBlock.forEach(n=>{if(n>1)multi++});
   if(multi)issues.push({sev:"Info",type:"Several rows per block",detail:`${multi} date/block pair(s) have more than one row (different constituents).`,count:multi});
@@ -2068,13 +2324,26 @@ async function srpcIndex(entries){
     const header=(rows.shift()||[]).map(cell=>cell.trim().toLowerCase());
     const cols=Object.fromEntries(header.map((key,index)=>[key,index]));
     if(!["date","time",...SR_FIELDS.filter(([key])=>key!=="ppa").map(([,key])=>key)].every(key=>Object.prototype.hasOwnProperty.call(cols,key)))continue;
-    const plant=fileStem(entry.name).replace(/^commercial_dev2022_/i,"");
+    const plant=fileStem(entry.name).replace(/^.*?commercial_dev\d*_/i,"");
     plants.push({plant,source:entry.name,cols,rows});
   }
   return plants.sort((a,b)=>a.plant.localeCompare(b.plant));
 }
 
-function srpcExtract({plant,source,cols,rows}){
+/* weekly SRPC files of the same plant become one entry; later files' rows are rewritten in the first file's
+   column order. srpcExtract keeps the first row of a duplicate block. */
+function srpcMerge(plants){
+  const by=new Map();
+  plants.forEach(p=>{if(!by.has(p.plant))by.set(p.plant,[]);by.get(p.plant).push(p)});
+  return [...by.values()].map(list=>{
+    if(list.length===1)return list[0];
+    list.sort((a,b)=>a.source.localeCompare(b.source,undefined,{numeric:true}));
+    const base=list[0],keys=Object.keys(base.cols),width=Math.max(...Object.values(base.cols))+1,rows=base.rows.slice();
+    list.slice(1).forEach(p=>p.rows.forEach(r=>{const o=Array(width).fill("");keys.forEach(k=>{if(p.cols[k]!=null)o[base.cols[k]]=r[p.cols[k]]==null?"":r[p.cols[k]]});rows.push(o)}));
+    return {plant:base.plant,source:`${list.length} files`,files:list.map(p=>p.source),cols:base.cols,rows};
+  }).sort((a,b)=>a.plant.localeCompare(b.plant));
+}
+function srpcExtract({plant,source,cols,rows,files}){
   const issues=[],details=[],records=[],byDate=new Map();
   let missing=0,invalid=0,duplicates=0;
   for(const row of rows){
@@ -2118,7 +2387,8 @@ function srpcExtract({plant,source,cols,rows}){
     }
   }
   const missingDates=gaps(dates);
-  for(const [type,count] of [["Invalid date or time",invalid],["Duplicate blocks",duplicates],
+  if(files&&duplicates)issues.push({sev:"Info",type:"Overlapping files",detail:`${duplicates} block(s) appear in more than one of the ${files.length} files. The first file's row was kept, so nothing is counted twice.`,count:duplicates});
+  for(const [type,count] of [["Invalid date or time",invalid],["Duplicate blocks",files?0:duplicates],
     ["Missing or invalid numeric values",badValues],["Missing blocks",missing],["Missing dates",missingDates.length]]){
     if(count)issues.push({sev:"Warning",type,detail:`${count} found. See the validation report for row details.`,count});
   }
@@ -2160,7 +2430,7 @@ function workbook(res){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(validationAOA(res)),"Data Validation");
   return wb;
 }
-return {norm,parseDate,num,mul,div,parseCSV,score,suggest,NR,NR_COLS,WR_COLS,analyzeSheet,nrpcIndex,nrpcExtract,wrpcHeader,fileStem,resolvePlant,wrpcEntries,wrpcIndex,wrpcExtract,srpcIndex,srpcExtract,toCSV,validationCSV,validationAOA,summaryAOA,workbook,gaps};
+return {norm,parseDate,num,mul,div,parseCSV,score,suggest,NR,NR_COLS,WR_COLS,analyzeSheet,nrpcIndex,nrpcIndexMany,nrpcExtract,wrpcHeader,fileStem,resolvePlant,wrpcEntries,wrpcIndex,wrpcExtract,srpcIndex,srpcMerge,srpcExtract,toCSV,validationCSV,validationAOA,summaryAOA,workbook,gaps};
 })();
 </script>
 <script>
@@ -2394,6 +2664,119 @@ g("s_go").onclick=()=>{
     ?`Extracted ${nf(result.rows.length)} blocks across ${nf(result.meta.dates)} date(s).`
     :"No valid 15-minute records found for this plant.";
 };
+})();
+</script>
+<script id="kd-allplants">
+// ===== All plants at once: several weekly files of one region -> one ZIP with one CSV per plant + a summary CSV =====
+(function(){
+const g=id=>document.getElementById(id);
+if(!g("na_file")||typeof KD==="undefined")return;
+const tick=()=>new Promise(r=>setTimeout(r,0));
+const nf=x=>Number(x).toLocaleString("en-IN");
+const esc3=x=>String(x==null?"":x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const safe=s=>String(s).replace(/[^\w.-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,80)||"plant";
+const cell=v=>{const t=v==null?"":String(v);return /[",\r\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t};
+const csv=rows=>"﻿"+rows.map(r=>r.map(cell).join(",")).join("\r\n");
+const byName=(a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true});
+function save(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+const loadMaps=()=>{try{return JSON.parse(localStorage.getItem("kd_nrpc_map_v1")||"{}")}catch(e){return {}}};
+
+function ui(p){
+  const msg=(t,e)=>{g(p+"_msg").textContent=t;g(p+"_msg").className=e?"err":"note"};
+  const prog=(i,n,t)=>{const el=g(p+"_prog");el.classList.remove("hide");el.max=n||1;el.value=i;msg(t)};
+  const done=()=>g(p+"_prog").classList.add("hide");
+  return {msg,prog,done};
+}
+
+/* gather CSV entries from ZIP and CSV files (WRPC, SRPC) */
+async function entriesOf(files,keep){
+  const list=[];
+  for(const f of files.slice().sort(byName)){
+    if(/\.zip$/i.test(f.name)){
+      if(typeof JSZip==="undefined")throw new Error("the ZIP reader (JSZip) is not available");
+      let z;try{z=await JSZip.loadAsync(f)}catch(x){throw new Error(`"${f.name}" is corrupted or not a ZIP file (${x.message})`)}
+      KD.wrpcEntries(z).filter(en=>!keep||keep(en.name)).forEach(en=>list.push({name:f.name.replace(/\.zip$/i,"")+"/"+en.name,dir:false,async:t=>en.async(t||"string")}));
+    }else if(/\.csv$/i.test(f.name))list.push({name:f.name,dir:false,async:()=>f.text()});
+  }
+  return list;
+}
+
+/* one plant result -> summary row */
+function sumRow(res,extra){
+  const m=res.meta,warn=res.issues.filter(i=>i.sev!=="Info"),err=res.issues.filter(i=>i.sev==="Error");
+  return [res.plant,m.first||"",m.last||"",m.dates||0,m.records||0,m.missing||0,err.length?"Error":warn.length?"Warning":"OK",
+    res.issues.map(i=>`${i.type}: ${i.detail}`).join(" | "),...(extra||[])];
+}
+
+async function run(region){
+  const p={NRPC:"na",WRPC:"wa",SRPC:"sa"}[region],files=[...g(p+"_file").files],U=ui(p);
+  if(!files.length)return U.msg("Choose the weekly files first.",true);
+  if(typeof JSZip==="undefined")return U.msg("The ZIP writer (JSZip) is not available.",true);
+  g(p+"_go").disabled=true;g(p+"_sum").innerHTML="";
+  const t0=Date.now(),zip=new JSZip(),used=new Set(),sum=[],extraHead=[];let first="",last="",skipped=[];
+  const fname=(res)=>{let n=`${region}_${safe(res.plant)}_${res.meta.first}_to_${res.meta.last}.csv`,k=2;while(used.has(n))n=n.replace(/(_\d+)?\.csv$/,`_${k++}.csv`);used.add(n);return n};
+  const add=(res,extra)=>{
+    if(res.rows.length){zip.file(fname(res),KD.toCSV(res));if(!first||res.meta.first<first)first=res.meta.first;if(res.meta.last>last)last=res.meta.last}
+    sum.push(sumRow(res,extra));
+  };
+  try{
+    if(region==="NRPC"){
+      if(typeof XLSX==="undefined")throw new Error("the Excel reader (xlsx.full.min.js) is not loaded");
+      const list=[];
+      for(let i=0;i<files.length;i++){U.prog(i,files.length,`Reading workbook ${i+1} of ${files.length}: ${files[i].name}`);await tick();
+        try{list.push({name:files[i].name,wb:XLSX.read(await files[i].arrayBuffer(),{type:"array"})})}catch(x){throw new Error(`"${files[i].name}" could not be read (${x.message})`)}}
+      U.prog(files.length,files.length,"Joining the workbooks…");await tick();
+      const idx=KD.nrpcIndexMany(list),maps=loadMaps(),others=KD.NR.filter(sp=>sp.key!=="solar");
+      if(!idx.plants.length)throw new Error("no plants could be read from Solar_availability");
+      extraHead.push(...others.map(sp=>sp.label+" match"));
+      for(let i=0;i<idx.plants.length;i++){
+        const plant=idx.plants[i],sel={solar:plant},notes=[],saved=maps[KD.norm(plant)]||{};
+        others.forEach(sp=>{const o=idx.specs[sp.key];
+          if(!o.an){notes.push("worksheet not found");return}
+          if(saved[sp.key]&&o.entities.includes(saved[sp.key])){sel[sp.key]=saved[sp.key];notes.push(`${saved[sp.key]} (saved)`);return}
+          const sg=KD.suggest(o.entities,plant);
+          if(sg.auto){sel[sp.key]=sg.auto.n;notes.push(`${sg.auto.n} (auto ${Math.round(sg.auto.s*100)}%: check)`)}
+          else notes.push(sg.top.length?`no clear match: left blank (closest ${sg.top[0].n})`:"no match: left blank");
+        });
+        U.prog(i,idx.plants.length,`Extracting plant ${i+1} of ${idx.plants.length}: ${plant}`);
+        add(KD.nrpcExtract(idx,sel),notes);
+        if(i%5===0)await tick();
+      }
+    }else if(region==="WRPC"){
+      U.prog(0,1,"Reading files…");await tick();
+      const list=await entriesOf(files);
+      if(!list.length)throw new Error("no CSV files were found in the chosen files");
+      const idx=await KD.wrpcIndex(list,{plantFrom:"auto"},(i,n)=>U.prog(i,n,`Scanning file ${nf(i)} of ${nf(n)}`));
+      skipped=idx.skipped||[];
+      const plants=[...idx.plants.keys()].sort((a,b)=>a.localeCompare(b));
+      if(!plants.length)throw new Error("none of the CSV files is plant DSM data");
+      for(let i=0;i<plants.length;i++){U.prog(i,plants.length,`Extracting plant ${i+1} of ${plants.length}: ${plants[i]}`);await tick();add(await KD.wrpcExtract(idx,plants[i]))}
+    }else{
+      U.prog(0,1,"Reading files…");await tick();
+      const list=await entriesOf(files,n=>/(^|\/)commercial_dev\d*_/i.test(n));
+      if(!list.length)throw new Error("no commercial_dev CSV files were found in the chosen files");
+      const plants=KD.srpcMerge(await KD.srpcIndex(list));
+      if(!plants.length)throw new Error("none of the files is an SRPC generator DSM file");
+      for(let i=0;i<plants.length;i++){U.prog(i,plants.length,`Extracting plant ${i+1} of ${plants.length}: ${plants[i].plant}`);if(i%5===0)await tick();add(KD.srpcExtract(plants[i]),[plants[i].files?plants[i].files.length:1])}
+      extraHead.push("Files joined");
+    }
+    const head=["Plant","First date","Last date","Dates","Records","Missing blocks","Status","Checks",...extraHead];
+    zip.file(`${region}_all_plants_summary.csv`,csv([head,...sum]));
+    if(skipped.length)zip.file(`${region}_skipped_files.csv`,csv([["File","Reason"],...skipped.map(s=>[s.name,s.reason])]));
+    U.prog(0,100,"Building the ZIP file…");await tick();
+    const blob=await zip.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:6}},m=>{const el=g(p+"_prog");el.max=100;el.value=m.percent});
+    const name=`${region}_all_plants_${first||"no-data"}_to_${last||"no-data"}.zip`;
+    save(blob,name);U.done();
+    const ok=sum.filter(r=>r[6]==="OK").length,wn=sum.filter(r=>r[6]==="Warning").length,er=sum.filter(r=>r[6]==="Error").length,recs=sum.reduce((a,r)=>a+r[4],0);
+    U.msg(`Done in ${Math.round((Date.now()-t0)/1000)} s. ${nf(sum.length)} plant(s), ${nf(recs)} records, ${first} to ${last}. Downloaded ${name} (${(blob.size/1048576).toFixed(1)} MB).`);
+    const bad=sum.filter(r=>r[6]!=="OK");
+    g(p+"_sum").innerHTML=`<p style="margin:10px 0 6px"><b>${nf(ok)} OK</b> · <span class="sevw">${nf(wn)} with warnings</span> · <span class="err">${nf(er)} with errors</span>${skipped.length?` · ${nf(skipped.length)} non-plant file(s) skipped`:""}. Full details are in <b>${region}_all_plants_summary.csv</b> inside the ZIP.</p>`+
+      (bad.length?`<div class="scroll" style="max-height:320px"><table><thead><tr><th style="text-align:left">Plant</th><th>Records</th><th>Missing blocks</th><th style="text-align:left">Status</th><th style="text-align:left">Checks</th></tr></thead><tbody>${bad.slice(0,200).map(r=>`<tr><td style="text-align:left">${esc3(r[0])}</td><td>${nf(r[4])}</td><td>${nf(r[5])}</td><td style="text-align:left" class="${r[6]==="Error"?"err":"sevw"}">${r[6]}</td><td style="text-align:left;white-space:normal;min-width:360px">${esc3(r[7]).slice(0,400)}</td></tr>`).join("")}</tbody></table></div>`:"");
+  }catch(x){U.done();U.msg("Could not finish: "+x.message+".",true)}
+  g(p+"_go").disabled=false;
+}
+g("na_go").onclick=()=>run("NRPC");g("wa_go").onclick=()=>run("WRPC");g("sa_go").onclick=()=>run("SRPC");
+["na","wa","sa"].forEach(p=>g(p+"_file").addEventListener("change",()=>{const n=g(p+"_file").files.length;g(p+"_msg").textContent=n?`${n} file(s) chosen. Click the button to extract every plant.`:"";g(p+"_msg").className="note";g(p+"_sum").innerHTML=""}));
 })();
 </script>
 <script id="kd-headers">
@@ -3109,17 +3492,21 @@ function spvLoadQ(){
   ruleNote();
 }
 function cfgFor(date){
-  if(g("qc_rule").value==="rpc")return rpcPublishedConfig(g("qc_type").value,date);
+  const rv=g("qc_rule").value;
+  if(rv!=="plant")return rpcRuleConfig(rv==="rpc"?"cerc2024":rv,g("qc_type").value,date);
   const x=curSpv();return (x&&x.cfg)||dfltCfg();
 }
 function limitsText(cfg){return cfg.limits.map((l,i)=>`Band ${i+1} up to ${l}%`).join(", ")+`, Band ${cfg.limits.length+1} beyond ${cfg.limits[cfg.limits.length-1]}% of AvC`}
 function ruleNote(){
-  const c=g("qc_rule").value==="rpc"?null:cfgFor("");
+  if(g("qc_rule").value!=="plant"){const r=ruleById(g("qc_rule").value==="rpc"?"cerc2024":g("qc_rule").value);g("qc_rulenote").textContent=r?`${r.name}: ${r.desc||""} The settings for each date come from the RPC rule library.`:"";return}
+  const c=cfgFor("2026-01-01");
   g("qc_rulenote").textContent=c?`Bands: ${limitsText(c)}. Shortfall charged ${payRates(c).map((p,i)=>p+dsmRates(c)[i]).join(" / ")}%, excess paid ${ovrRates(c).join(" / ")}%.`
     :"RPC published WS seller bands (16 Sep 2024 to 31 Mar 2027): solar 10% / 15% of AvC before 1 Apr 2026 and 5% / 10% from then (wind +5%). Shortfall charged 100 / 110 / 200%, excess paid 100 / 90 / 0%.";
 }
 g("qc_spv").onchange=spvLoadQ;g("qc_rule").onchange=ruleNote;
-g("t9").addEventListener("click",()=>{spvFillQ();if(typeof dPublished!=="undefined"&&dPublished)g("qc_rule").value="rpc";ruleNote();actNote()});
+function qcRules(){const sel=g("qc_rule"),cur=sel.value;sel.innerHTML=`<option value="plant">This plant's own bands (from the QCA DSM engine)</option>`+allRules().map(r=>`<option value="${esc(r.id)}">${esc(r.name)}${r.mine?" (my rule)":""}</option>`).join("");sel.value=[...sel.options].some(o=>o.value===cur)?cur:"plant"}
+ruleListeners.push(qcRules);qcRules();
+g("t9").addEventListener("click",()=>{spvFillQ();qcRules();if(typeof dPublished!=="undefined"&&dPublished)g("qc_rule").value=dRuleUsed||"cerc2024";ruleNote();actNote()});
 
 /* ---------- reading files ---------- */
 function sheetInfo(aoa){
@@ -3333,7 +3720,7 @@ function render(L){
   const r=L.res,best=r[0],worst=r[r.length-1],nb=L.cfg.limits.length+1,save=worst.net-best.net;
   const bn=Array.from({length:nb},(_,j)=>j===0?`up to ${L.cfg.limits[0]}%`:j<nb-1?`${L.cfg.limits[j-1]}–${L.cfg.limits[j]}%`:`beyond ${L.cfg.limits[nb-2]}%`);
   const c=L.cfg,uC=pickShades(UNDER,nb),oC=pickShades(OVER,nb);
-  const ruleTxt=L.rule==="rpc"?"RPC published bands":"the plant's own bands";
+  const ruleTxt=L.rule==="plant"?"the plant's own bands":ruleName(L.rule==="rpc"?"cerc2024":L.rule);
   const maxPu=Math.max(...r.map(o=>o.pu),0.01),maxSide=Math.max(...r.map(o=>Math.max(o.ut,o.ot)),1);
   const seg=(n,col)=>`<div style="width:${(n/maxSide*100).toFixed(2)}%;background:${col};color:${darkText(col)?"#2b1d00":"#fff"}" title="${n0(n)} blocks">${n/maxSide>0.07?n0(n):""}</div>`;
   const tagCol={over:["#fff1e0","#7a3d00"],under:["#e6f0f8","#173f63"],bal:["#e8f4ef","#1b5b3c"]};
@@ -3391,7 +3778,7 @@ g("qc_xl").onclick=()=>{
   const hb=Array.from({length:nb},(_,j)=>"Band "+(j+1));
   const bands=[["QCA",...hb.map(x=>"Under "+x),"Under total",...hb.map(x=>"Over "+x),"Over total","No deviation","Night / no generation"]].concat(r.map(o=>[o.name,...o.u,o.ut,...o.o,o.ot,o.none,o.night]));
   const daily=[["Date",...r.map(o=>o.name+" net DSM (₹)")]].concat(L.dates.map((d,i)=>[d,...r.map(o=>+o.days[i].net.toFixed(2))]));
-  const notes=[["QCA performance comparison"],["Plant",L.spv],["Period",L.dates[0]+" to "+L.dates[L.dates.length-1]],["Common blocks",L.kept],["Band rule",(L.rule==="rpc"?"RPC published: ":"Plant's own bands: ")+limitsText(L.cfg)],[""],[plain(conclusion(L))],[""]]
+  const notes=[["QCA performance comparison"],["Plant",L.spv],["Period",L.dates[0]+" to "+L.dates[L.dates.length-1]],["Common blocks",L.kept],["Band rule",(L.rule!=="plant"?ruleName(L.rule==="rpc"?"cerc2024":L.rule)+": ":"Plant's own bands: ")+limitsText(L.cfg)],[""],[plain(conclusion(L))],[""]]
     .concat(...r.map(o=>[[o.name],...whyList(L,o).map(x=>["  "+plain(x)])]));
   const fn=`qca_comparison_${(L.spv||"plant").replace(/[^\w-]+/g,"_")}_${L.dates[0]}_${L.dates[L.dates.length-1]}`;
   if(typeof XLSX==="undefined"){dl(fn+".csv",sum.map(r=>r.map(x=>/[",]/.test(String(x))?`"${String(x).replace(/"/g,'""')}"`:x).join(",")).join("\n"));return}
