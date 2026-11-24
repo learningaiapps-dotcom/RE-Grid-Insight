@@ -1,0 +1,21 @@
+/* Shared page background for every RE Grid Insight page: a solar & wind scene (re-background.svg).
+   It sits on a fixed layer behind the content, so it stays put while the page scrolls (works on phones too). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: #eaf3ef url("re-background.svg") center bottom / cover no-repeat;
+}
+
+/* Dark mode: keep the dark page colour and show only a faint outline of the scene. */
+@media (prefers-color-scheme: dark) {
+  body::before { opacity: .12; background-color: transparent; }
+}
+:root[data-theme=dark] body::before { opacity: .12; background-color: transparent; }
+:root[data-theme=light] body::before { opacity: 1; background-color: #eaf3ef; }
+
+@media print {
+  body::before { display: none; }
+}
