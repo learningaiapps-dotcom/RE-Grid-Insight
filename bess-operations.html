@@ -164,7 +164,6 @@ table.live .ci{background:var(--bg)!important;box-shadow:none;outline:none;borde
 table.live tr.pend td:first-child{box-shadow:none}
 </style>
 <script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
-<link rel="stylesheet" href="re-background.css">
 </head>
 <body>
 <header class="top">

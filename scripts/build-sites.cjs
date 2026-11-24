@@ -47,8 +47,6 @@ const prelude = between(html, 'const dl=', '["1","2","3","4","5","6","7","8","9"
 const baseWeather = between(weather, '// name, Open-Meteo', 'let results=') +
   between(weather, 'async function geocode', 'function llOK');
 const dsmTime = between(html, 'const hhmm=', '\n\nfunction sample');
-// Shared solar & wind page background, linked from every page.
-const background = ["re-background.css", "re-background.svg"];
 const inline = code => '<script>\n' + code + '\n</script>\n';
 const escape = text => text.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 
@@ -79,7 +77,7 @@ for (const site of sites) {
     const bessPage = read("bess-operations.html")
       .replace("</head>", '<link rel="stylesheet" href="site-ui.css"></head>')
       .replace("<body>", '<body><div class="grid-site">' + shellHeader(nav) + '</div>');
-    for (const asset of ["site-ui.css", ...background]) copyFileSync(path.join(root, asset), path.join(out, asset));
+    copyFileSync(path.join(root, "site-ui.css"), path.join(out, "site-ui.css"));
     writeFileSync(path.join(out, "index.html"), bessPage);
     mkdirSync(path.join(out, "vendor"), {recursive:true});
     for (const asset of ["vendor/chart.umd.min.js","vendor/xlsx.full.min.js","vendor/jspdf.umd.min.js","vendor/jspdf.plugin.autotable.min.js"])
@@ -122,7 +120,7 @@ for (const id of siteTabs) {
   }
   const picker = ["dsm","forecast"].includes(site.id) ? '<script src="feature-picker.js" defer></script>' : "";
   if (picker) assets.push("feature-picker.js");
-  for (const asset of ["site-ui.css", ...background, ...assets]) {
+  for (const asset of ["site-ui.css", ...assets]) {
     const dest = path.join(out, asset);
     mkdirSync(path.dirname(dest), {recursive:true});
     copyFileSync(path.join(root, asset), dest);
