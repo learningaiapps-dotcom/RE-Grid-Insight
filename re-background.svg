@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
+  <!-- RE Grid Insight page background: sky, sun, wind turbines, solar rows and a transmission line. -->
+  <style>
+    .rotor { transform-box: view-box; animation: spin 14s linear infinite; }
+    .r2 { animation-duration: 18s; }
+    .r3 { animation-duration: 11s; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .rotor { animation: none; } }
+  </style>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3f8f6"/>
+      <stop offset=".55" stop-color="#e4f0eb"/>
+      <stop offset="1" stop-color="#d6e9e1"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffe7a8" stop-opacity=".9"/>
+      <stop offset=".35" stop-color="#ffefc6" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#fff6de" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fa3b8"/>
+      <stop offset="1" stop-color="#5d8299"/>
+    </linearGradient>
+    <g id="blades">
+      <circle r="5" fill="#f4f7f6" stroke="#9fb7ae" stroke-width="2"/>
+      <path d="M0-4 L-4-70 Q0-78 3-70 Z" fill="#f7faf9" stroke="#a9beb6" stroke-width="1.5"/>
+      <path d="M0-4 L-4-70 Q0-78 3-70 Z" fill="#f7faf9" stroke="#a9beb6" stroke-width="1.5" transform="rotate(120)"/>
+      <path d="M0-4 L-4-70 Q0-78 3-70 Z" fill="#f7faf9" stroke="#a9beb6" stroke-width="1.5" transform="rotate(240)"/>
+    </g>
+    <g id="row">
+      <path d="M0 0 L120 0 L135 -26 L15 -26 Z" fill="url(#panel)" opacity=".85"/>
+      <path d="M40 0 L55 -26 M80 0 L95 -26 M7 -13 L127 -13" stroke="#c9dbe4" stroke-width="1.2" opacity=".7"/>
+      <path d="M30 0 V10 M105 0 V10" stroke="#8ca39a" stroke-width="3"/>
+    </g>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+
+  <!-- sun -->
+  <circle cx="1290" cy="190" r="190" fill="url(#glow)"/>
+  <circle cx="1290" cy="190" r="58" fill="#ffe1a0" opacity=".85"/>
+
+  <!-- soft clouds -->
+  <g fill="#ffffff" opacity=".7">
+    <ellipse cx="300" cy="150" rx="120" ry="26"/><ellipse cx="370" cy="134" rx="70" ry="26"/>
+    <ellipse cx="900" cy="105" rx="95" ry="20"/><ellipse cx="950" cy="92" rx="55" ry="20"/>
+  </g>
+
+  <!-- far hills -->
+  <path d="M0 640 Q220 560 460 600 T920 585 T1350 560 T1600 590 V900 H0 Z" fill="#cfe3da"/>
+
+  <!-- wind turbines on far hills -->
+  <g stroke="#b9cdc5" stroke-width="6" stroke-linecap="round">
+    <line x1="250" y1="585" x2="250" y2="380"/>
+    <line x1="430" y1="600" x2="430" y2="440"/>
+    <line x1="620" y1="600" x2="620" y2="415"/>
+  </g>
+  <g class="rotor" style="transform-origin:250px 380px"><use href="#blades" transform="translate(250 380) scale(1.25)"/></g>
+  <g class="rotor r2" style="transform-origin:430px 440px"><use href="#blades" transform="translate(430 440) scale(.95)"/></g>
+  <g class="rotor r3" style="transform-origin:620px 415px"><use href="#blades" transform="translate(620 415) scale(1.1)"/></g>
+
+  <!-- transmission line -->
+  <g stroke="#a8bdb5" fill="none" stroke-width="3">
+    <path d="M1010 640 L1040 470 L1070 640 M1018 590 H1062 M1026 540 H1054 M1020 500 H1060 M1040 470 V455"/>
+    <path d="M1420 650 L1450 480 L1480 650 M1428 600 H1472 M1436 550 H1464 M1430 510 H1470 M1450 480 V465"/>
+  </g>
+  <g stroke="#b7cbc3" fill="none" stroke-width="1.6">
+    <path d="M760 520 Q900 560 1020 500 Q1240 560 1430 510 Q1530 535 1600 520"/>
+    <path d="M760 512 Q900 552 1060 500 Q1260 552 1470 510 Q1550 528 1600 514"/>
+  </g>
+
+  <!-- near hill -->
+  <path d="M0 760 Q300 670 640 715 T1240 700 T1600 690 V900 H0 Z" fill="#bfdacd"/>
+
+  <!-- solar rows on near hill -->
+  <g>
+    <use href="#row" x="820" y="725"/><use href="#row" x="975" y="718"/><use href="#row" x="1130" y="712"/><use href="#row" x="1285" y="706"/>
+    <use href="#row" x="760" y="790"/><use href="#row" x="915" y="784"/><use href="#row" x="1070" y="778"/><use href="#row" x="1225" y="772"/><use href="#row" x="1380" y="766"/>
+  </g>
+
+  <!-- foreground ground -->
+  <path d="M0 850 Q400 810 800 840 T1600 825 V900 H0 Z" fill="#b2d1c3"/>
+</svg>
