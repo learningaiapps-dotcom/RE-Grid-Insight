@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DSM of stand alone BESS</title>
 <script src="vendor/chart.umd.min.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--mute:#5b6b7a;--line:#d9e0e6;--accent:#0f766e;--pay:#c2410c;--rec:#15803d}
 @media (prefers-color-scheme:dark){:root{--bg:#0f1720;--card:#17222d;--ink:#e8eef3;--mute:#93a4b3;--line:#2a3a48;--accent:#2dd4bf;--pay:#fb923c;--rec:#4ade80}}
@@ -56,7 +57,12 @@ ul.rules{padding-left:18px;font-size:14px}ul.rules li{margin:4px 0}
 <!-- ============ TAB 1 ============ -->
 <div id="p1">
 <div class="card">
-  <div class="drop" id="drop">Drop one or more DSM CSV files here, or <label style="color:var(--accent);cursor:pointer;text-decoration:underline">choose files<input type="file" id="file" accept=".csv,text/csv" multiple style="display:none"></label><br><span class="note">Expected columns: Date, Time, Block, Freq(Hz), Constituents, Actual (MWH), Schedule (MWH), SRAS, Deviation, Deviation %, DSM Payable, DSM Receivable, Normal Rate, Wt. Avg. Hybrid Rate, …</span></div>
+  <h2>Fill-in template</h2>
+  <p class="note">Don't have the RLDC DSM file? Download the Excel template, fill in schedule, actual, frequency, Normal Rate and (if any) Wt. Avg. Hybrid Rate for each 15-minute block. Reference rate = Wt. Avg. Hybrid Rate if filled, otherwise Normal Rate (the Instructions sheet explains every column), then upload it below.</p>
+  <div class="tools"><label class="note">Unit name <input id="tpl_unit" value="BESS-1" style="width:120px"></label><label class="note">First day <input id="tpl_date" type="date"></label><label class="note">Days <input id="tpl_days" type="number" min="1" max="31" value="1" style="width:64px"></label><button id="tpl_dl">Download Excel template</button></div>
+</div>
+<div class="card">
+  <div class="drop" id="drop">Drop one or more DSM files here (filled template .xlsx, or RLDC .csv), or <label style="color:var(--accent);cursor:pointer;text-decoration:underline">choose files<input type="file" id="file" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple style="display:none"></label><br><span class="note">RLDC CSV columns: Date, Time, Block, Freq(Hz), Constituents, Actual (MWH), Schedule (MWH), SRAS, Deviation, Deviation %, DSM Payable, DSM Receivable, Normal Rate, Wt. Avg. Hybrid Rate, …</span></div>
   <div class="tools"><label class="note">Unit: <select id="unit"></select></label><label class="note">Date: <select id="date"><option value="">All dates</option></select></label><button class="alt" id="dl">Download annotated CSV</button></div>
   <div id="msg" class="note"></div>
 </div>
@@ -193,14 +199,58 @@ function lakh(n){return (n/1e5).toFixed(2)}
 function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(l=>l.trim()); if(!lines.length)throw new Error('Empty CSV'); const hdr=splitLine(lines[0]).map(h=>h.trim().toLowerCase());
   const col=(...names)=>{for(const n of names){const i=hdr.findIndex(h=>h.includes(n));if(i>=0)return i}return -1};
-  const ix={date:col('date'),time:col('time'),block:col('block'),f:col('freq'),unit:col('constituent'),act:col('actual'),sch:col('schedule'),dev:col('deviation(mwh)','deviation (mwh)'),pay:col('payable'),rec:col('receivable'),nr:col('normal rate'),hyb:col('hybrid'),hpn:col('hpdam normal')};
+  const ix={date:col('date'),time:col('time'),block:col('block'),f:col('freq'),unit:col('constituent'),act:col('actual'),sch:col('schedule'),dev:col('deviation(mwh)','deviation (mwh)'),pay:col('payable'),rec:col('receivable'),nr:col('normal rate'),hyb:col('hybrid'),hpn:col('hpdam normal'),rate:col('rate (p/kwh)')};
   if([ix.date,ix.time,ix.act,ix.sch,ix.f].some(i=>i<0)) throw new Error('Expected Date, Time, Actual, Schedule and Frequency columns');
   const rows=[];
   for(let i=1;i<lines.length;i++){const c=splitLine(lines[i]); if(c.length<8)continue;
-    const r={date:c[ix.date],time:c[ix.time],block:+c[ix.block],f:+c[ix.f],unit:ix.unit>=0?c[ix.unit]:'unit',act:+c[ix.act],sch:+c[ix.sch],pay:ix.pay>=0?+c[ix.pay]:0,rec:ix.rec>=0?+c[ix.rec]:0,nr:ix.nr>=0?+c[ix.nr]:0,hyb:ix.hyb>=0?+c[ix.hyb]:0};
+    const r={date:c[ix.date],time:c[ix.time],block:+c[ix.block],f:+c[ix.f],unit:ix.unit>=0?c[ix.unit]:'unit',act:+c[ix.act],sch:+c[ix.sch],pay:ix.pay>=0?+c[ix.pay]:0,rec:ix.rec>=0?+c[ix.rec]:0,nr:ix.nr>=0?+c[ix.nr]:0,hyb:ix.hyb>=0?+c[ix.hyb]:ix.rate>=0?+c[ix.rate]:0};
+    r.fileAmt=[ix.pay,ix.rec].some(k=>k>=0&&String(c[k]??'').trim()!=='');
     if(![r.act,r.sch,r.f,r.pay,r.rec,r.nr,r.hyb].every(Number.isFinite)||!c[ix.f]?.trim()||!c[ix.act]?.trim()||!c[ix.sch]?.trim())continue; r.dev=r.act-r.sch; rows.push(r)}
   if(!rows.length)throw new Error('No valid DSM blocks found');
   return rows;
+}
+// ---------- Excel template (download / upload) ----------
+const TPL_HEAD=['Date (YYYY-MM-DD)','Block no.','Time (from-to)','Unit / constituent','Frequency (Hz)','Schedule (MWh)','Actual (MWh)','Normal Rate (p/kWh)','Wt. Avg. Hybrid Rate (p/kWh, optional)','DSM payable from RLDC (Rs, optional)','DSM receivable from RLDC (Rs, optional)'];
+function xlsxToCSV(buf){
+  if(typeof XLSX==='undefined')throw new Error('Excel reader did not load; save the file as CSV and upload that instead');
+  const wb=XLSX.read(buf,{type:'array'}), name=wb.SheetNames.find(n=>/dsm data/i.test(n))||wb.SheetNames[0];
+  return XLSX.utils.sheet_to_csv(wb.Sheets[name],{blankrows:false,rawNumbers:true,dateNF:'yyyy-mm-dd'});
+}
+function downloadTemplate(){
+  const unit=$('tpl_unit').value.trim()||'BESS-1', days=Math.min(31,Math.max(1,Math.round(+$('tpl_days').value)||1));
+  const start=new Date(($('tpl_date').value||new Date().toLocaleDateString('en-CA'))+'T00:00:00Z');
+  const hm=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+  const data=[TPL_HEAD];
+  for(let d=0;d<days;d++){const day=new Date(start.getTime()+d*864e5).toISOString().slice(0,10);
+    for(let b=1;b<=96;b++)data.push([day,b,hm((b-1)*15)+'-'+(b===96?'24:00':hm(b*15)),unit,'','','','','','',''])}
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[14,9,13,18,15,15,14,20,30,32,34].map(w=>({wch:w}));
+  const help=[
+    ['How to use this template'],
+    ['1. Fill one row per 15-minute block in the "DSM data" sheet. Date, block, time and unit are already filled in; you can change them.'],
+    ['2. Fill Frequency, Schedule, Actual and Normal Rate (and Wt. Avg. Hybrid Rate if you have it). Rows without frequency, schedule or actual are skipped.'],
+    ['3. Save the file (keep it as .xlsx, or save as CSV) and upload it on the "Block-wise impact" tab of DSM of stand alone BESS.'],
+    ['4. To add more days or units, copy rows and change the date or unit name. Each unit is shown separately after upload.'],
+    [''],
+    ['Column','What to enter','Example'],
+    ['Date (YYYY-MM-DD)','Day of the block.','2026-11-24'],
+    ['Block no.','15-minute block number, 1 to 96 (block 1 = 00:00-00:15).','37'],
+    ['Time (from-to)','Clock time of the block.','09:00-09:15'],
+    ['Unit / constituent','Name of the BESS unit, as you want it shown.','BESS-1'],
+    ['Frequency (Hz)','Average grid frequency in that block.','49.98'],
+    ['Schedule (MWh)','Scheduled energy in the block. Discharging (selling) = positive, charging (buying) = negative, idle = 0. 25 MWh in a block = 100 MW.','25'],
+    ['Actual (MWh)','Metered energy in the block, same sign rule: discharge positive, charge negative.','23.4'],
+    ['Normal Rate (p/kWh)','Normal Rate of the block in paise per kWh, as shown in the RLDC DSM account. Rs 10/kWh = 1000.','1000'],
+    ['Wt. Avg. Hybrid Rate (p/kWh, optional)','Weighted average hybrid (contract) rate of the block in paise per kWh, as in the RLDC DSM account. Leave blank if not applicable.','1250'],
+    ['Which rate is used?','Reference rate (RR) = Wt. Avg. Hybrid Rate when it is filled and above 0; otherwise Normal Rate. This is the same rule the app uses for RLDC CSV files.',''],
+    ['DSM payable from RLDC (Rs, optional)','Leave blank to let the app calculate. If you enter the RLDC figure, the app compares it with its own formula.',''],
+    ['DSM receivable from RLDC (Rs, optional)','Leave blank to let the app calculate. If you enter the RLDC figure, the app compares it with its own formula.',''],
+    [''],
+    ['The app applies the CERC DSM Regulations 2024 (energy storage), with a volume limit of 10% of schedule capped at 25 MWh (100 MW) per block.']
+  ];
+  const hs=XLSX.utils.aoa_to_sheet(help); hs['!cols']=[{wch:38},{wch:100},{wch:14}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'DSM data'); XLSX.utils.book_append_sheet(wb,hs,'Instructions');
+  XLSX.writeFile(wb,'Standalone_BESS_DSM_template_'+unit.replace(/[^\w-]+/g,'_')+'.xlsx');
 }
 function splitLine(l){const out=[];let cur='',q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===','&&!q){out.push(cur);cur=''}else cur+=ch}out.push(cur);return out}
 
@@ -209,13 +259,15 @@ let ALL=[],charts={};
 const escapeHTML=value=>String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 const $=id=>document.getElementById(id);
 function load(files){
-  const reads=[...files].map(async f=>{try{return {rows:parseCSV(await f.text())}}catch(e){return {rows:[],error:f.name+': '+e.message}}});
+  const reads=[...files].map(async f=>{try{return {rows:parseCSV(/\.xlsx?$/i.test(f.name)?xlsxToCSV(await f.arrayBuffer()):await f.text())}}catch(e){return {rows:[],error:f.name+': '+e.message}}});
   Promise.all(reads).then(res=>{
     ALL=ALL.concat(res.flatMap(result=>result.rows));
-    ALL.forEach(r=>{ r.rr=r.hyb>0?r.hyb:r.nr; const m=calc(r.sch,r.act,r.f,r.rr,100); Object.assign(r,{m}); r.cat=m.cat; r.diff=(r.pay-r.rec)-m.net; });
+    ALL.forEach(r=>{ r.rr=r.hyb>0?r.hyb:r.nr; const m=calc(r.sch,r.act,r.f,r.rr,100); Object.assign(r,{m}); r.cat=m.cat;
+      if(!r.fileAmt){r.pay=m.pay;r.rec=m.rec;r.calc=true} r.diff=(r.pay-r.rec)-m.net; });
+    const noRate=ALL.filter(r=>r.calc&&!(r.rr>0)&&r.dev!==0).length;
     const units=[...new Set(ALL.map(r=>r.unit))]; $('unit').innerHTML=units.map(u=>`<option>${escapeHTML(u)}</option>`).join('');
     const dates=[...new Set(ALL.map(r=>r.date))].sort(); $('date').innerHTML='<option value="">All dates</option>'+dates.map(d=>`<option>${escapeHTML(d)}</option>`).join('');
-    $('msg').textContent=`${ALL.length} blocks loaded for ${units.length} unit(s), ${dates.length} day(s). ${res.map(result=>result.error).filter(Boolean).join(" ")}`;
+    $('msg').textContent=`${ALL.length} blocks loaded for ${units.length} unit(s), ${dates.length} day(s). ${ALL.some(r=>r.calc)?' Where the file has no RLDC payable/receivable, the amounts are calculated with the CERC formula.':''}${noRate?` Warning: ${noRate} block(s) with a deviation have no rate, so their amount is 0.`:''} ${res.map(result=>result.error).filter(Boolean).join(" ")}`;
     render();
   });
 }
@@ -224,16 +276,17 @@ function render(){
   const rows=view(); $('explain').classList.add('hide'); $('out').classList.toggle('hide',!rows.length); if(!rows.length)return;
   const sum=(k)=>rows.reduce((a,r)=>a+(r[k]||0),0);
   const pay=sum('pay'),rec=sum('rec'),net=pay-rec;
+  const src=rows.every(r=>r.calc)?'calculated':rows.some(r=>r.calc)?'file + calculated':'file';
   const schD=rows.filter(r=>r.sch>0).reduce((a,r)=>a+r.sch,0), delD=rows.filter(r=>r.sch>0).reduce((a,r)=>a+r.act,0);
   const zero=rows.filter(r=>r.sch>0&&r.act<0.5);
   $('kpis').innerHTML=[
-    [`Rs ${lakh(pay)} L`,'Total payable (file)'],[`Rs ${lakh(rec)} L`,'Total receivable (file)'],[`<span class="${net>0?'pay':'rec'}">Rs ${lakh(net)} L</span>`,net>0?'Net: unit PAYS':'Net: unit RECEIVES'],
+    [`Rs ${lakh(pay)} L`,`Total payable (${src})`],[`Rs ${lakh(rec)} L`,`Total receivable (${src})`],[`<span class="${net>0?'pay':'rec'}">Rs ${lakh(net)} L</span>`,net>0?'Net: unit PAYS':'Net: unit RECEIVES'],
     [`${schD.toFixed(0)} / ${delD.toFixed(0)} MWh`,'Scheduled vs delivered in discharge blocks'],[`${zero.length} blocks`,`Scheduled discharge but delivered ~nothing: Rs ${lakh(zero.reduce((a,r)=>a+r.pay,0))} L`],
     [`${rows.filter(r=>r.sch>0).length} / ${rows.filter(r=>r.sch<0).length} / ${rows.filter(r=>r.sch===0).length}`,'Blocks discharging / charging / idle']
   ].map(([b,s])=>`<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join('');
   const dis=rows.filter(r=>r.sch>0), ok=dis.filter(r=>Math.abs(r.diff)<=0.01*Math.max(1,r.pay+r.rec)).length;
   const modelNet=rows.reduce((a,r)=>a+r.m.net,0);
-  $('fit').innerHTML=`Formula check: ${ok} of ${dis.length} discharge blocks reproduced within 1% (contract rate known). Formula net for all blocks Rs ${lakh(modelNet)} L vs file Rs ${lakh(net)} L; the gap is mainly charging/idle blocks where the purchase price is not in the file.`;
+  $('fit').innerHTML=rows.every(r=>r.calc)?`Amounts calculated block by block with the CERC DSM 2024 formula (volume limit cap 100 MW). Click any row in "All blocks" to see how its amount is built up.`:`Formula check: ${ok} of ${dis.length} discharge blocks reproduced within 1% (contract rate known). Formula net for all blocks Rs ${lakh(modelNet)} L vs file Rs ${lakh(net)} L; the gap is mainly charging/idle blocks where the purchase price is not in the file.`;
   // categories
   const cats={}; rows.forEach(r=>{const c=cats[r.cat]||(cats[r.cat]={n:0,dev:0,pay:0,rec:0});c.n++;c.dev+=r.dev;c.pay+=r.pay;c.rec+=r.rec});
   $('cat').innerHTML=Object.keys(CATS).map(k=>{const c=cats[k]||{n:0,dev:0,pay:0,rec:0};const n=c.pay-c.rec;return `<tr><td>${k}</td><td>${CATS[k]}</td><td>${c.n}</td><td>${c.dev.toFixed(1)}</td><td>${fmt(c.pay)}</td><td>${fmt(c.rec)}</td><td class="${n>0?'pay':'rec'}">${fmt(n)}</td></tr>`}).join('');
@@ -298,6 +351,8 @@ $('dl').addEventListener('click',()=>{const rows=view();if(!rows.length)return;c
   const b=rows.map(r=>[r.date,r.time,r.f,r.unit,r.sch,r.act,r.dev.toFixed(6),r.sch?(r.dev/Math.abs(r.sch)*100).toFixed(2):'',r.cat,r.rr,r.pay,r.rec,r.m.pay.toFixed(2),r.m.rec.toFixed(2),r.diff.toFixed(2)].join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h+b],{type:'text/csv'}));a.download='DSM_annotated_'+$('unit').value+'.csv';a.click()});
 $('s_go').addEventListener('click',single);
+$('tpl_date').value=new Date().toLocaleDateString('en-CA');
+$('tpl_dl').addEventListener('click',()=>{try{downloadTemplate()}catch(e){$('msg').textContent='Could not create the template: '+e.message}});
 [['t1','p1'],['t2','p2'],['t3','p3']].forEach(([t,p])=>$(t).addEventListener('click',()=>{['p1','p2','p3'].forEach(x=>$(x).classList.toggle('hide',x!==p));['t1','t2','t3'].forEach(x=>$(x).classList.toggle('on',x===t));if(p==='p2')single()}));
 single();
 </script>

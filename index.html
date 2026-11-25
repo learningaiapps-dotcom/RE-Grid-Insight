@@ -478,6 +478,22 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <div id="p6" class="hide">
 <h1>Regional DSM Data Processing</h1>
 <p class="sub">Extract and convert NRPC, WRPC and SRPC scheduling data for one plant, check it, and download it as Excel or CSV. Files are processed in this browser only. Nothing is uploaded anywhere.</p>
+<div class="card" id="h_box">
+  <b>Stored history: NRPC, WRPC &amp; SRPC</b>
+  <p class="note" style="margin:4px 0 8px">Old data that is already processed and kept in the app. Pick a plant (SPV) to see it and send it to the QCA DSM engine for analysis. No file needed. <span id="h_count"></span></p>
+  <div class="row">
+    <label class="f" style="flex:0 1 150px">Region<select id="h_reg"><option value="">All regions</option><option>NRPC</option><option>WRPC</option><option>SRPC</option></select></label>
+    <label class="f" style="flex:1 1 200px">Search plants<input id="h_q" placeholder="Type part of a plant name"></label>
+    <label class="f" style="flex:3 1 420px">Plant / SPV<select id="h_plant"><option value="">Loading the list…</option></select></label>
+  </div>
+  <div class="tools" style="margin-top:10px"><button id="h_go">Load stored data</button><span class="note" id="h_msg" role="status"></span></div>
+  <details style="margin-top:10px"><summary>Add more data for a plant</summary>
+    <p style="margin:6px 0">Upload newer (or missing) data for one or more plants. Use the CSV from <b>Download CSV</b>, or the ZIP from <b>All plants at once</b>, in the NRPC / WRPC / SRPC tabs below. The file name tells the app the region and plant (for example <code>WRPC_KHAVDA_PSS1_….csv</code>). For every date in your file, your rows replace the stored rows; other dates are kept. A plant that is not in the list yet is added.</p>
+    <p style="margin:6px 0">Added data is saved in <b>this browser on this computer only</b>. To add it for every user, send the files to your app developer.</p>
+    <div class="row"><label class="f" style="flex:2 1 320px">Plant CSV or ZIP files<input id="h_file" type="file" accept=".csv,.zip" multiple></label></div>
+    <div class="tools" style="margin-top:8px"><button class="alt" id="h_clear">Remove my added data for the selected plant</button><span class="note" id="h_amsg" role="status"></span></div>
+  </details>
+</div>
 <div class="tabs" style="margin-bottom:12px"><button id="k_t1" class="on">NRPC Data Processing</button><button id="k_t2">WRPC Data Processing</button><button id="k_t3">SRPC Data Processing</button></div>
 <div id="k_p1">
 <div class="card">
@@ -1684,29 +1700,65 @@ function dClear(){
   $("dout").classList.add("hide");
 }
 /* ===== Compare the same data under several RPC rules ===== */
+let dCmpSel=null,dCmpBase="",dCmpChart=null,dCmpCache=null;
 function dRuleCompare(){
   const box=$("dcmp");
   if(!dCur){box.classList.add("hide");return}
   const type=$("dtype").value,{ppa,avc}=dCur.meta,days=dCur.days,hasPub=days.some(d=>d.rows.some(r=>r.pub!=null));
-  const cur=dCur.meta.published?dCur.meta.rule:null;
-  const rows=allRules().map(r=>{
-    const cs=days.map(d=>rpcRuleConfig(r.id,type,d.date));
-    if(cs.some(c=>!c))return {r,na:"no settings for some of these dates"};
-    let pay=0,recv=0,n=0,m=0;const xs=new Set();
-    days.forEach((d,k)=>{xs.add(cs[k].x);const c=dCompute(d.rows,ppa,avc,"slice",cs[k]);pay+=c.sum.pay;recv+=c.sum.recv;
-      c.blocks.forEach(b=>{if(b.pub!=null){n++;if(pubMis(b))m++}})});
-    const bands=[...new Set(cs.map(c=>c.limits.join(" / ")+"%"))].join("; ");
-    return {r,pay,recv,net:pay-recv,n,m,x:[...xs].sort((a,b)=>b-a).join(", "),bands};
-  });
-  const base=rows.find(x=>x.r.id===cur&&!x.na);
+  const cur=dCur.meta.published?dCur.meta.rule:null,rules=allRules();
+  // settle the same data under every rule once; ticking boxes later only redraws
+  if(!dCmpCache||dCmpCache.cur!==dCur||dCmpCache.type!==type||dCmpCache.n!==rules.length){
+    const rows=rules.map(r=>{
+      const cs=days.map(d=>rpcRuleConfig(r.id,type,d.date));
+      if(cs.some(c=>!c))return {r,na:"no settings for some of these dates"};
+      let pay=0,recv=0,n=0,m=0;const xs=new Set(),daily=[];
+      days.forEach((d,k)=>{xs.add(cs[k].x);const c=dCompute(d.rows,ppa,avc,"slice",cs[k]);pay+=c.sum.pay;recv+=c.sum.recv;
+        daily.push({date:d.date,pay:c.sum.pay,recv:c.sum.recv,net:c.sum.pay-c.sum.recv});
+        c.blocks.forEach(b=>{if(b.pub!=null){n++;if(pubMis(b))m++}})});
+      const bands=[...new Set(cs.map(c=>c.limits.join(" / ")+"%"))].join("; ");
+      return {r,pay,recv,net:pay-recv,n,m,x:[...xs].sort((a,b)=>b-a).join(", "),bands,daily};
+    });
+    dCmpCache={cur:dCur,type,n:rules.length,rows};
+  }
+  const rows=dCmpCache.rows,ok=rows.filter(x=>!x.na);
+  if(!dCmpSel)dCmpSel=new Set(ok.map(x=>x.r.id));
+  for(const id of [...dCmpSel])if(!ok.some(x=>x.r.id===id))dCmpSel.delete(id);
+  if(!dCmpSel.size)ok.forEach(x=>dCmpSel.add(x.r.id));
+  const shown=rows.filter(x=>dCmpSel.has(x.r.id));
+  if(!shown.some(x=>x.r.id===dCmpBase))dCmpBase=shown.some(x=>x.r.id===cur)?cur:(shown[0]?shown[0].r.id:"");
+  const base=shown.find(x=>x.r.id===dCmpBase),sg=v=>(v>0?"+":"")+f2(v);
+  const nm=x=>esc(ruleName(x.r.id))+(x.r.id===cur?" (used above)":"");
+  const cheapest=shown.length>1?shown.reduce((a,b)=>b.net<a.net?b:a):null;
   box.classList.remove("hide");
-  box.innerHTML=`<b>Compare RPC rules on this data</b>
-   <p class="note" style="margin:4px 0 8px">The same schedule, actual and prices, settled under each rule in the RPC rule library (${type==="wind"?"wind":"solar / hybrid"} settings). Positive net = the plant pays.</p>
-   <div class="scroll" style="max-height:none"><table><thead><tr><th>Rule</th><th>Band limits</th><th>X (%)</th><th>Shortfall charge (₹)</th><th>Excess receivable (₹)</th><th>Net charge (₹)</th>${base?"<th>Net vs rule used (₹)</th>":""}${hasPub?"<th>Blocks matching published</th>":""}</tr></thead><tbody>
-   ${rows.map(x=>x.na?`<tr><td>${esc(ruleName(x.r.id))}</td><td colspan="${4+(base?1:0)+(hasPub?1:0)+1}" class="note">Not available: ${x.na}</td></tr>`
-     :`<tr${x.r.id===cur?' style="font-weight:600"':""}><td>${esc(ruleName(x.r.id))}${x.r.id===cur?" (used above)":""}</td><td>${esc(x.bands)}</td><td>${esc(x.x)}</td><td>${f2(x.pay)}</td><td>${f2(x.recv)}</td><td>${f2(x.net)}</td>${base?`<td>${x.r.id===cur?"–":(x.net-base.net>0?"+":"")+f2(x.net-base.net)}</td>`:""}${hasPub?`<td>${x.n?`${(x.n-x.m).toLocaleString("en-IN")} of ${x.n.toLocaleString("en-IN")}`:"–"}</td>`:""}</tr>`).join("")}
+  box.innerHTML=`<b>Compare DSM calculation methods on this data</b>
+   <p class="note" style="margin:4px 0 8px">The same schedule, actual and prices, settled under each method (${type==="wind"?"wind":"solar / hybrid"} settings). Tick 2 methods to compare one against the other, or all of them. Positive net = the plant pays. To change the method used for the results above, pick it in “RPC rule for this plant”.</p>
+   <div class="row" style="align-items:flex-end;gap:14px">
+    <fieldset style="border:0;padding:0;margin:0"><legend class="note" style="padding:0">Methods to compare</legend>${ok.map(x=>`<label style="display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-size:14px"><input type="checkbox" data-cmp="${esc(x.r.id)}"${dCmpSel.has(x.r.id)?" checked":""}> ${esc(ruleName(x.r.id))}</label>`).join("")}</fieldset>
+    <label class="f" style="flex:0 1 300px">Compare against<select id="dcmp_base">${shown.filter(x=>!x.na).map(x=>`<option value="${esc(x.r.id)}"${x.r.id===dCmpBase?" selected":""}>${esc(ruleName(x.r.id))}</option>`).join("")}</select></label>
+    <button class="alt" id="dcmp_dl" type="button">Download comparison (CSV)</button>
+   </div>
+   <div class="scroll" style="max-height:none;margin-top:10px"><table><thead><tr><th>Method</th><th>Band limits</th><th>X (%)</th><th>Shortfall charge (₹)</th><th>Excess receivable (₹)</th><th>Net charge (₹)</th>${base?`<th>Net vs ${esc(ruleName(base.r.id))} (₹)</th>`:""}${hasPub?"<th>Blocks matching published</th>":""}</tr></thead><tbody>
+   ${shown.map(x=>x.na?`<tr><td>${esc(ruleName(x.r.id))}</td><td colspan="${5+(base?1:0)+(hasPub?1:0)}" class="note">Not available: ${x.na}</td></tr>`
+     :`<tr${x.r.id===dCmpBase?' style="font-weight:600"':""}><td>${nm(x)}</td><td>${esc(x.bands)}</td><td>${esc(x.x)}</td><td>${f2(x.pay)}</td><td>${f2(x.recv)}</td><td>${f2(x.net)}</td>${base?`<td>${x===base?"base":sg(x.net-base.net)}</td>`:""}${hasPub?`<td>${x.n?`${(x.n-x.m).toLocaleString("en-IN")} of ${x.n.toLocaleString("en-IN")}`:"–"}</td>`:""}</tr>`).join("")}
    </tbody></table></div>
-   <p class="note" style="margin:6px 0 0">Add your own rule (for example other bands or another X) in the RPC rule library above and it appears here. Downloads ${dPublished?"and charts use the rule shown in bold":"and charts use your own bands"}.</p>`;
+   ${cheapest?`<p style="margin:8px 0 0">Lowest net charge: <b>${esc(ruleName(cheapest.r.id))}</b> (₹ ${f2(cheapest.net)})${base&&cheapest!==base&&base.net-cheapest.net>0.005?`, ₹ ${f2(base.net-cheapest.net)} less than ${esc(ruleName(base.r.id))}`:""}.${shown.filter(x=>!x.na&&Math.abs(x.net-cheapest.net)<0.005).length>1?" Some methods give the same result for these dates (their settings are identical in this period).":""}</p>`:""}
+   ${days.length>1&&shown.length?`<div class="chartbox" style="height:280px;margin-top:10px"><canvas id="dcmp_c"></canvas></div>`:""}
+   <p class="note" style="margin:6px 0 0">Add your own method (for example other bands or another X) in the RPC rule library above and it appears here. Downloads ${dPublished?"and charts above use the rule shown in “RPC rule for this plant”":"and charts above use your own bands"}.</p>`;
+  box.querySelectorAll("[data-cmp]").forEach(cb=>cb.onchange=()=>{cb.checked?dCmpSel.add(cb.dataset.cmp):dCmpSel.delete(cb.dataset.cmp);if(!dCmpSel.size){dCmpSel.add(cb.dataset.cmp);cb.checked=true}dRuleCompare()});
+  $("dcmp_base").onchange=e=>{dCmpBase=e.target.value;dRuleCompare()};
+  $("dcmp_dl").onclick=()=>{
+    const cols=shown.map(x=>ruleName(x.r.id)),q=v=>/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+    let t="Date,"+cols.map(c=>q("Net charge Rs - "+c)).join(",")+(base?","+shown.filter(x=>x!==base).map(x=>q(`Difference Rs - ${ruleName(x.r.id)} vs ${ruleName(base.r.id)}`)).join(","):"")+"\n";
+    days.forEach((d,k)=>{t+=d.date+","+shown.map(x=>x.daily[k].net.toFixed(2)).join(",")+(base?","+shown.filter(x=>x!==base).map(x=>(x.daily[k].net-base.daily[k].net).toFixed(2)).join(","):"")+"\n"});
+    t+="Total,"+shown.map(x=>x.net.toFixed(2)).join(",")+(base?","+shown.filter(x=>x!==base).map(x=>(x.net-base.net).toFixed(2)).join(","):"")+"\n";
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+t],{type:"text/csv"}));a.download=`DSM_method_comparison_${days[0].date}_to_${days[days.length-1].date}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  };
+  if(dCmpChart){dCmpChart.destroy();dCmpChart=null}
+  if($("dcmp_c")&&typeof Chart!=="undefined"){
+    const pal=["#0f766e","#c2410c","#7c3aed","#2563eb","#b45309","#be185d"];
+    dCmpChart=new Chart($("dcmp_c"),{type:"line",data:{labels:days.map(d=>d.date),datasets:shown.map((x,i)=>({label:ruleName(x.r.id),data:x.daily.map(v=>+v.net.toFixed(2)),borderColor:pal[i%pal.length],backgroundColor:pal[i%pal.length],borderWidth:x.r.id===dCmpBase?2.5:1.5,pointRadius:days.length>40?0:2,tension:.15}))},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{title:{display:true,text:"Net DSM charge per day by method (₹, positive = plant pays)"}},scales:{y:{title:{display:true,text:"₹ per day"}},x:{ticks:{maxTicksLimit:14}}}}});
+  }
 }
 
 /* ===== RPC rule library editor ===== */
@@ -2664,6 +2716,133 @@ g("s_go").onclick=()=>{
     ?`Extracted ${nf(result.rows.length)} blocks across ${nf(result.meta.dates)} date(s).`
     :"No valid 15-minute records found for this plant.";
 };
+/* ---------- Stored history (built-in library + data the user adds in this browser) ---------- */
+(function(){
+  const H={index:null,loading:null,uploads:new Map()};
+  const VIEW={NRPC:[nView,"1"],WRPC:[wView,"2"],SRPC:[sView,"3"]};
+  const COLS={
+    NRPC:KD.NR_COLS,WRPC:KD.WR_COLS,
+    SRPC:[["date","Date"],["block","Block"],["sched","Schedule (MW)"],["actual","Actual (MW)"],["cap","Available capacity (MW)"],["rate","DSM rate (Rs/kWh)"],["ppa","PPA rate (Rs/kWh)"],["over","Over-injection (Rs)"],["under","Under-injection (Rs)"],["drawl","Drawal (Rs)"],["pub","Published net payable (Rs)"]].map(([key,h])=>({key,h}))};
+  const TEXT=new Set(["date","dcCol","cons"]);
+  const stem=s=>String(s).replace(/\.csv(\.gz)?$/i,"").replace(/^.*\//,"").replace(/_\d{4}-\d{2}-\d{2}_to_\d{4}-\d{2}-\d{2}$/,"").replace(/[^\w.-]+/g,"_").replace(/_+$/,"");
+  const hm=(t,e)=>{g("h_msg").textContent=t;g("h_msg").className="note"+(e?" err":"")};
+  const am=(t,e)=>{g("h_amsg").textContent=t;g("h_amsg").className="note"+(e?" err":"")};
+
+  /* browser storage for added data (IndexedDB: large files fit, unlike localStorage) */
+  const DB=()=>new Promise((ok,no)=>{const r=indexedDB.open("re-grid-history",1);r.onupgradeneeded=()=>r.result.createObjectStore("uploads",{keyPath:"key"});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+  async function dbDo(mode,fn){const db=await DB();return new Promise((ok,no)=>{const t=db.transaction("uploads",mode),st=t.objectStore("uploads"),r=fn(st);t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>no(t.error)})}
+  async function loadUploads(){try{(await dbDo("readonly",st=>st.getAll())||[]).forEach(u=>H.uploads.set(u.key,u))}catch(e){}}
+
+  async function gunzipText(buf){
+    const b=new Uint8Array(buf);
+    if(b[0]!==0x1f||b[1]!==0x8b)return new TextDecoder().decode(b); // server already unpacked it
+    if(typeof DecompressionStream==="undefined")throw new Error("This browser cannot unpack the stored data. Please use a current Chrome, Edge, Firefox or Safari.");
+    return new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  }
+  function ensureIndex(){
+    if(!H.loading)H.loading=Promise.all([
+      fetch("data/history/index.json").then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).catch(()=>({plants:[]})),
+      loadUploads()
+    ]).then(([idx])=>{H.index=idx;fill()});
+    return H.loading;
+  }
+  // one list: stored plants plus plants only the user added
+  function plants(){
+    const list=(H.index?H.index.plants:[]).map(p=>({...p,key:p.region+"/"+stem(p.file)}));
+    const known=new Set(list.map(p=>p.key));
+    for(const u of H.uploads.values())if(!known.has(u.key))list.push({region:u.region,plant:u.plant,key:u.key,first:u.first,last:u.last,status:"",checks:"",added:true});
+    return list.sort((a,b)=>a.region.localeCompare(b.region)||a.plant.localeCompare(b.plant));
+  }
+  function fill(){
+    const reg=g("h_reg").value,q=g("h_q").value.trim().toLowerCase(),prev=g("h_plant").value,all=plants();
+    const list=all.filter(p=>(!reg||p.region===reg)&&(!q||p.plant.toLowerCase().includes(q)));
+    g("h_plant").replaceChildren(...list.map(p=>{const u=H.uploads.get(p.key);
+      return new Option(`${p.region} · ${p.plant} · ${u&&!p.added?(p.first<u.first?p.first:u.first)+" to "+(p.last>u.last?p.last:u.last):p.first+" to "+p.last}${u?" · includes your added data":""}`,p.key)}));
+    if(!list.length)g("h_plant").add(new Option(all.length?"No plant matches the search":"No stored data found",""));
+    if([...g("h_plant").options].some(o=>o.value===prev))g("h_plant").value=prev;
+    const n=r=>all.filter(p=>p.region===r).length;
+    g("h_count").textContent=all.length?`${all.length} plants: NRPC ${n("NRPC")}, WRPC ${n("WRPC")}, SRPC ${n("SRPC")}.`:"";
+  }
+  // rows of a CSV in this app's export format -> {header, rows[]}
+  function readCSV(text){const rows=KD.parseCSV(text).filter(r=>r.some(c=>String(c).trim()!==""));const header=(rows.shift()||[]).map(h=>String(h).trim());return {header,rows}}
+  // for every date in "add", its rows replace those in "base"
+  function merge(base,add){
+    if(!base)return add;
+    if(base.header.join(",")!==add.header.join(","))throw new Error("its columns are different from the stored data for this plant");
+    const dates=new Set(add.rows.map(r=>r[0]));
+    return {header:base.header,rows:base.rows.filter(r=>!dates.has(r[0])).concat(add.rows).sort((a,b)=>a[0].localeCompare(b[0])||(+a[1])-(+b[1]))};
+  }
+  function toResult(region,plant,data,info,added){
+    const cols=COLS[region],pos=cols.map(c=>data.header.findIndex(h=>h.toLowerCase()===c.h.toLowerCase()));
+    if(pos[0]<0||pos[1]<0)throw new Error("Date and Block columns were not found");
+    const rows=[],byDate=new Map();
+    data.rows.forEach((r,i)=>{const o={seq:i};cols.forEach((c,j)=>{const v=pos[j]<0?null:r[pos[j]];
+      if(c.key==="date")o.date=KD.parseDate(v)||String(v).trim();else if(c.key==="block")o.block=+v;else if(TEXT.has(c.key))o[c.key]=v==null?"":String(v);
+      else{const n=KD.num(v);o[c.key]=n.s==="ok"?n.v:null}});
+      if(!o.date||!(o.block>=1&&o.block<=96))return;rows.push(o);(byDate.get(o.date)||byDate.set(o.date,new Set()).get(o.date)).add(o.block)});
+    rows.sort((a,b)=>a.date.localeCompare(b.date)||a.block-b.block||a.seq-b.seq);
+    const dates=[...byDate.keys()].sort(),missing=dates.reduce((m,d)=>m+96-byDate.get(d).size,0);
+    const issues=(info&&info.checks?info.checks.split(" | ").filter(Boolean):[]).map(t=>{const k=t.indexOf(":");return {sev:info.status==="Error"?"Error":"Warning",type:k>0?t.slice(0,k):"Check",detail:k>0?t.slice(k+1).trim():t,count:1}});
+    issues.push({sev:"Info",type:"Source",detail:added?"Stored history with data you added in this browser.":"Stored history kept in the app.",count:1});
+    if(missing)issues.push({sev:"Warning",type:"Missing blocks",detail:`${missing} block(s) are missing on the stored dates.`,count:missing});
+    return {region,plant,cols,rows,issues,details:[],
+      meta:{region,plant,first:dates[0]||"",last:dates[dates.length-1]||"",dates:dates.length,records:rows.length,missing,
+        mapping:[["Source","Stored history"+(added?" + your added data":"")]],factors:[["Values","As stored (already converted to MW, Rs/kWh and Rs)"]],at:new Date().toISOString()}};
+  }
+
+  g("h_reg").onchange=fill;g("h_q").addEventListener("input",fill);
+  g("h_go").onclick=async()=>{
+    await ensureIndex();
+    const key=g("h_plant").value,p=plants().find(x=>x.key===key);if(!p)return hm("Choose a plant first.",true);
+    g("h_go").disabled=true;hm("Loading stored data…");await tickUI();
+    try{
+      let data=null;
+      if(!p.added){const r=await fetch("data/history/"+p.file);if(!r.ok)throw new Error("the stored file could not be downloaded (HTTP "+r.status+")");data=readCSV(await gunzipText(await r.arrayBuffer()))}
+      const u=H.uploads.get(key);if(u)data=merge(data,{header:u.header,rows:u.rows});
+      const res=toResult(p.region,p.plant,data,p,!!u);
+      if(!res.rows.length)throw new Error("no valid 15-minute records");
+      const [view,tab]=VIEW[p.region];sub(tab);view.show(res);
+      hm(`Loaded ${nf(res.rows.length)} records, ${res.meta.first} to ${res.meta.last}. Scroll down to the ${p.region} results and use “Send to QCA DSM engine and analyse”.`);
+      g(({NRPC:"n",WRPC:"w",SRPC:"s"})[p.region]+"_card").scrollIntoView({behavior:"smooth",block:"start"});
+    }catch(e){hm("Could not load this plant: "+e.message,true)}
+    g("h_go").disabled=false;
+  };
+  g("h_file").onchange=async e=>{
+    const files=[...e.target.files];if(!files.length)return;
+    await ensureIndex();am("Reading files…");await tickUI();
+    const items=[];
+    for(const f of files){
+      if(/\.zip$/i.test(f.name)){const z=await JSZip.loadAsync(f);for(const n of Object.keys(z.files))if(/\.csv$/i.test(n)&&!z.files[n].dir)items.push({name:n,text:()=>z.files[n].async("string")})}
+      else items.push({name:f.name,text:()=>f.text()});
+    }
+    const ok=[],bad=[],stored=new Map(plants().map(p=>[p.key,p]));
+    for(const it of items){
+      const base=it.name.replace(/^.*\//,"");
+      if(/_(checks|skipped_files)_/i.test(base))continue;
+      const region=(base.match(/^(NRPC|WRPC|SRPC)_/i)||[])[1];
+      if(!region){bad.push(base+": the file name must start with NRPC_, WRPC_ or SRPC_");continue}
+      const R=region.toUpperCase(),key=R+"/"+stem(base);
+      try{
+        const add=readCSV(await it.text());
+        if(!add.rows.length||add.header[0].toLowerCase()!=="date")throw new Error("no data rows, or the first column is not Date");
+        toResult(R,"check",add);// throws if the columns do not fit this region
+        const prev=H.uploads.get(key),m=merge(prev?{header:prev.header,rows:prev.rows}:null,add),dates=[...new Set(m.rows.map(r=>r[0]))].sort();
+        const p=stored.get(key),rec={key,region:R,plant:p?p.plant:stem(base).slice(R.length+1),header:m.header,rows:m.rows,first:dates[0],last:dates[dates.length-1],at:new Date().toISOString()};
+        await dbDo("readwrite",st=>st.put(rec));H.uploads.set(key,rec);
+        ok.push(`${rec.plant} (${p?"added to stored data":"new plant"}, ${nf(add.rows.length)} rows)`);
+      }catch(x){bad.push(base+": "+x.message)}
+    }
+    e.target.value="";fill();
+    am((ok.length?`Saved in this browser: ${ok.join("; ")}.`:"Nothing was added.")+(bad.length?` Skipped: ${bad.join("; ")}.`:""),!ok.length);
+  };
+  g("h_clear").onclick=async()=>{
+    const key=g("h_plant").value;if(!H.uploads.has(key))return am("You have not added data for the selected plant.",true);
+    await dbDo("readwrite",st=>st.delete(key));H.uploads.delete(key);fill();am("Your added data for this plant was removed from this browser.");
+  };
+  // load the plant list when the regional tab is opened
+  const t6=g("t6");if(t6)t6.addEventListener("click",ensureIndex);
+  if(!g("p6").classList.contains("hide"))ensureIndex();
+})();
 })();
 </script>
 <script id="kd-allplants">
@@ -2913,7 +3092,7 @@ function refreshImportChoices(){
   const empty=!select.options.length;
   if(empty)select.add(new Option("No plant extracted yet",""));
   g("dsource_load").disabled=empty;
-  g("dsource_status").textContent=empty?"Open regional imports, upload your file and extract a plant.":"";
+  g("dsource_status").textContent=empty?"Open regional imports, then load a plant from stored history or upload your file and extract a plant.":"";
 }
 function switchSource(regional){
   dData=null;dPrice=null;dClear();dm("");

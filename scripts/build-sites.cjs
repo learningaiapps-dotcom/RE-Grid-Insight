@@ -1,4 +1,4 @@
-const {readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSync} = require("node:fs");
+const {readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSync, cpSync} = require("node:fs");
 const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const read = name => readFileSync(path.join(root, name), "utf8");
@@ -125,6 +125,8 @@ for (const id of siteTabs) {
     mkdirSync(path.dirname(dest), {recursive:true});
     copyFileSync(path.join(root, asset), dest);
   }
+  // Stored NRPC / WRPC / SRPC history used by "Stored history" in the regional imports tab.
+  if (site.id === "dsm") cpSync(path.join(root, "data", "history"), path.join(out, "data", "history"), {recursive: true});
   if (site.id === "forecast") {
     const mobile = read("mobile.html")
       .replace('<script src="task-picker.js" defer></script>', picker)
