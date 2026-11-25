@@ -416,13 +416,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   <div id="dcmp" class="hide" style="margin:12px 0;border:1px solid var(--line);border-radius:8px;padding:12px"></div>
   <div class="tools" style="margin:8px 0"><button id="dsave">Save run(s) to history</button><button class="alt" id="dxl">Download Excel report</button></div>
   <div id="dperiod" class="hide"><p class="note" style="margin:10px 0 4px"><b id="dptitle"></b></p><div class="chartbox" style="height:260px"><canvas id="dcp"></canvas></div><div id="dptab" style="margin-top:10px"></div></div>
-  <div id="ddbox" style="margin-top:16px">
-    <div class="row"><label class="f" style="flex:0 1 280px"><span class="tip" data-g="dday">Day to inspect (96 blocks)</span><select id="dday"></select></label></div>
-    <div class="kpis" id="ddkpi" style="margin-top:10px"></div>
-    <div class="chartbox" style="height:280px"><canvas id="dc1"></canvas></div>
-    <p class="note" style="margin:14px 0 4px"><b>DSM per block, split by band.</b> Orange stack = under-injection (UI) payable, green stack = over-injection (OI) receivable. Light shades are the lower bands (small deviations), dark shades the upper bands (large deviations).</p><div class="chartbox" style="height:320px"><canvas id="dc2"></canvas></div>
-    <div id="dtab"></div>
-  </div>
+  <div class="tools" style="margin-top:14px"><span class="note">Block-by-block detail for each day (band chart, block map and table) is in </span><button type="button" class="alt" id="dgoan">Deviation analysis &amp; RCA</button></div>
 </div>
 </div>
 <div id="d_p2" class="hide">
@@ -450,14 +444,19 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   </div>
   <div class="card"><b>Areas of improvement</b><div id="an_find"></div></div>
   <div class="card"><b>Root cause analysis (RCA)</b><div id="an_rca" style="margin-top:8px"></div><div class="chartbox" style="height:240px;margin-top:10px"><canvas id="an_cp"></canvas></div></div>
-  <div class="card"><b>Where and when the limits were crossed</b>
-   <div class="note" id="an_leg" style="margin:6px 0"></div>
-   <div id="an_hm_box" style="overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:6px;background:#fff"><canvas id="an_hm"></canvas></div>
-   <div class="note" id="an_hmi" style="min-height:20px"></div>
-   <div class="chartbox" style="height:260px;margin-top:14px"><canvas id="an_ch1"></canvas></div>
-   <div class="chartbox" style="height:240px;margin-top:14px"><canvas id="an_ch2"></canvas></div>
+  <div class="card"><b>At what time of day the limits were crossed</b>
+   <div class="hide"><div class="note" id="an_leg"></div><div id="an_hm_box"><canvas id="an_hm"></canvas></div><div class="note" id="an_hmi"></div><div class="chartbox"><canvas id="an_ch2"></canvas></div></div>
+   <div class="chartbox" style="height:260px;margin-top:10px"><canvas id="an_ch1"></canvas></div>
   </div>
-  <div class="card"><b>Worst episodes</b><div id="an_ep" style="margin-top:8px"></div><p style="margin:16px 0 4px"><b>Worst days</b></p><div id="an_day"></div><div class="chartbox" style="height:260px;margin-top:14px"><canvas id="an_cd"></canvas></div></div>
+  <div class="card"><b>Worst episodes</b><div id="an_ep" style="margin-top:8px"></div><p style="margin:16px 0 4px"><b>Worst days</b></p><div id="an_day"></div><div class="hide"><div class="chartbox"><canvas id="an_cd"></canvas></div></div></div>
+  <div class="card" id="ddbox"><b>One day in detail</b>
+    <p class="note" style="margin:4px 0 8px">Pick a day to see its 96 blocks: schedule against actual, the DSM of each block split by band, the block map and the block-by-block working.</p>
+    <div class="row"><label class="f" style="flex:0 1 280px"><span class="tip" data-g="dday">Day to inspect (96 blocks)</span><select id="dday"></select></label></div>
+    <div class="kpis" id="ddkpi" style="margin-top:10px"></div>
+    <div class="chartbox" style="height:280px"><canvas id="dc1"></canvas></div>
+    <p class="note" style="margin:14px 0 4px"><b>DSM per block, split by band.</b> Orange stack = under-injection (UI) payable, green stack = over-injection (OI) receivable. Light shades are the lower bands (small deviations), dark shades the upper bands (large deviations).</p><div class="chartbox" style="height:320px"><canvas id="dc2"></canvas></div>
+    <div id="dtab"></div>
+  </div>
  </div>
 </div>
 <div id="d_p4" class="hide">
@@ -1453,7 +1452,7 @@ function dPeriods(items,mode){
 }
 const kp=(l,v)=>`<div class="kpi"><span>${l}</span><b>${v}</b></div>`;
 const nz=v=>v==null?"–":"₹ "+f2(v);
-const dKpi=s=>kp("Total schedule (MWh)",f2(s.sched))+kp("Total actual (MWh)",f2(s.act))+kp("Net deviation (MWh)",f2(s.net))+kp(T("dsmcol","DSM penalty (under-injection, ₹)"),nz(s.dsm))+kp(T("dsmpay","Payable (under-injection, ₹)"),nz(s.payb))+kp(T("totc","Total charge (payable + DSM penalty)"),"₹ "+f2(gp(s)))+kp(T("recvt","Receivable (over-injection, ₹)"),"₹ "+f2(gr(s)))+kp(T("lossc","Over-injection revenue loss (₹)"),nz(s.loss))+kp(T("settle","Net settlement (receivable − total charge)"),"₹ "+f2(gr(s)-gp(s)))+kp(T("rmse","RMSE (MW)"),f2(s.rmse))+kp("Under / over-injection blocks",s.under+" / "+(s.over||0))+kp("Largest deviation (MW)",f2(s.maxd));
+const dKpi=s=>kp("Total schedule (MWh)",f2(s.sched))+kp("Total actual (MWh)",f2(s.act))+kp("Net deviation (MWh)",f2(s.net))+kp(T("dsmcol","DSM penalty (under-injection, ₹)"),nz(s.dsm))+kp(T("dsmpay","Payable (under-injection, ₹)"),nz(s.payb))+kp(T("totc","Total charge (payable + DSM penalty)"),"₹ "+f2(gp(s)))+kp(T("recvt","Receivable (over-injection, ₹)"),"₹ "+f2(gr(s)))+kp(T("lossc","Over-injection revenue loss (₹)"),nz(s.loss))+kp(T("settle","Net settlement (receivable − total charge)"),"₹ "+f2(gr(s)-gp(s)))+kp("Under / over-injection blocks",s.under+" / "+(s.over||0))+kp("Largest deviation (MW)",f2(s.maxd));
 const bandNames=cfg=>{const l=cfg.limits,k=l.length;return Array.from({length:k+1},(_,i)=>i===0?`0–${l[0]}%`:i<k?`${l[i-1]}–${l[i]}%`:`>${l[k-1]}%`)};
 function dBandRows(bl,cfg){
   return bandNames(cfg).map((n,j)=>{
@@ -1644,6 +1643,8 @@ function dRenderDay(){
   dPubDay(d);
 }
 $("dcalc").onclick=dCalc;$("dgrp").onchange=dRenderPeriods;$("dday").onchange=dRenderDay;
+$("an_day").addEventListener("click",e=>{const a=e.target.closest("[data-day]");if(!a)return;e.preventDefault();$("dday").value=a.dataset.day;dRenderDay();$("ddbox").scrollIntoView({behavior:"smooth",block:"start"})});
+$("dgoan").onclick=()=>{dsub(3);$("ddbox").scrollIntoView({behavior:"smooth",block:"start"})};
 /* ===== RPC rule library =====
    A rule = band rates + date periods. Each period gives the band limits (solar/hybrid and wind) and X:
    deviation base = X% of available capacity + (100 - X)% of scheduled generation (X = 100: available capacity only).
@@ -3375,7 +3376,7 @@ function anWhatIf(cur){
 }
 function anFindings(A,W){
   const out=[],K=A.kpi,cfg=A.cfg,lim=cfg.limits[A.thr-1];
-  out.push({sev:"i",t:"Overall performance",x:`In ${nf(K.act)} active blocks the plant delivered ${p1(K.achieve)}% of the scheduled energy. ${p1(K.compl)}% of blocks stayed inside the ±${lim}% of AvC limit; ${nf(K.ui)} blocks fell short (under-injection) and ${nf(K.oi)} exceeded (over-injection) beyond it. Average miss ${p1(K.mae)} MW (${p1(K.nmae)}% of capacity), bias ${K.bias>=0?"+":""}${p1(K.bias)} MW, correlation between schedule and actual ${isNaN(K.corr)?"n/a":K.corr.toFixed(2)}.`});
+  out.push({sev:"i",t:"Overall performance",x:`In ${nf(K.act)} active blocks the plant delivered ${p1(K.achieve)}% of the scheduled energy. ${p1(K.compl)}% of blocks stayed inside the ±${lim}% of AvC limit; ${nf(K.ui)} blocks fell short (under-injection) and ${nf(K.oi)} exceeded (over-injection) beyond it. On average each block missed the schedule by ${p1(K.mae)} MW (${p1(K.nmae)}% of capacity), and the plant generated ${K.bias<0?"less":"more"} than scheduled by ${p1(Math.abs(K.bias))} MW on average.`});
   const cs=Object.keys(A.rca).filter(c=>A.rca[c].n).sort((a,b)=>A.rca[b].money-A.rca[a].money),tm=cs.reduce((t,c)=>t+A.rca[c].money,0);
   if(cs.length&&tm>0){const c=cs[0],r=A.rca[c];out.push({sev:"h",t:"Biggest cause of limit crossings",x:`${CAUSE[c][0]}: ${nf(r.n)} episode(s), ${nf(r.blocks)} blocks, ₹ ${f2(r.money)} in the breach bands (${p1(pct(r.money,tm))}% of all breach money).`,a:CAUSE[c][1]})}
   const hr=A.hours.map((H,h)=>({h,r:H.n?(H.ui+H.oi)/H.n*100:0,n:H.n})).filter(x=>x.n>=5).sort((a,b)=>b.r-a.r)[0];
@@ -3428,7 +3429,7 @@ function anRender(force){
   anRepDays();
   g("an_who").innerHTML=`<b>${esc(dCur.meta.spv)}</b> · ${dCur.meta.from}${dCur.meta.to!==dCur.meta.from?" to "+dCur.meta.to:""} (${A.days} day(s)) · plant type: ${A.type}`;
   const kp2=(l,v)=>`<div class="kpi"><span>${l}</span><b>${v}</b></div>`;
-  g("an_kpi").innerHTML=kp2("Active blocks",nf(K.act))+kp2(T("compl","Blocks inside the limit"),p1(K.compl)+" %")+kp2("Under-injection beyond limit",nf(K.ui))+kp2("Over-injection beyond limit",nf(K.oi))+kp2("Delivered vs scheduled",p1(K.achieve)+" %")+kp2(T("nmae","Average miss (NMAE)"),p1(K.nmae)+" % of capacity")+kp2("Average miss (MW)",f2(K.mae))+kp2(T("bias","Bias (actual − schedule)"),(K.bias>=0?"+":"")+f2(K.bias)+" MW")+kp2(T("rmse","RMSE (MW)"),f2(K.rmse))+kp2("Total charge (₹)",f2(A.T.pay))+kp2("Receivable (₹)",f2(A.T.recv))+kp2("DSM cost per MWh generated","₹ "+f2(K.costMWh));
+  g("an_kpi").innerHTML=kp2("Active blocks",nf(K.act))+kp2(T("compl","Blocks inside the limit"),p1(K.compl)+" %")+kp2("Under-injection beyond limit",nf(K.ui))+kp2("Over-injection beyond limit",nf(K.oi))+kp2("Delivered vs scheduled",p1(K.achieve)+" %")+kp2("Average miss per block (MW)",f2(K.mae))+kp2("Total charge (₹)",f2(A.T.pay))+kp2("Receivable (₹)",f2(A.T.recv))+kp2("DSM cost per MWh generated","₹ "+f2(K.costMWh));
   const F=anFindings(A,W);
   g("an_find").innerHTML=F.map(f=>`<div style="border-left:4px solid ${f.sev==="h"?"#ea580c":f.sev==="m"?"#d97706":"#64748b"};padding:6px 12px;margin:8px 0;background:var(--bg);border-radius:0 6px 6px 0"><b>${esc(f.t)}</b><div>${esc(f.x)}</div>${f.a?`<div class="note"><b>What to do:</b> ${esc(f.a)}</div>`:""}</div>`).join("");
   // RCA table and chart
@@ -3445,7 +3446,7 @@ function anRender(force){
   const ep=A.eps.slice().sort((a,b)=>b.money-a.money).slice(0,15);
   g("an_ep").innerHTML=`<div class="scroll" style="max-height:420px"><table><thead><tr><th>Date</th><th>From</th><th>To</th><th>Blocks</th><th>Direction</th><th>Average deviation (MW)</th><th>Largest (MW)</th><th>₹ in breach bands</th><th>Likely cause</th><th>Evidence</th></tr></thead><tbody>`+ep.map(e=>`<tr><td style="text-align:left">${e.date}</td><td>${hhmm(e.start)}</td><td>${hhmm(e.end+1)}</td><td>${e.len}</td><td>${e.dir==="UI"?"Under":"Over"}</td><td>${f2(e.avgDev)}</td><td>${f2(e.maxAbs)}</td><td>${f2(e.money)}</td><td style="text-align:left;white-space:normal">${esc(CAUSE[e.key][0])}</td><td style="text-align:left;white-space:normal;min-width:240px">${esc(e.ev||"")}</td></tr>`).join("")+`</tbody></table></div><p class="note">The 15 episodes with the most money in the breach bands. An episode is a run of consecutive blocks beyond the limit in the same direction. All ${nf(A.eps.length)} episodes are in the Excel report.</p>`;
   const wd=A.daily.slice().sort((a,b)=>b.pay-a.pay).slice(0,10);
-  g("an_day").innerHTML=`<div class="scroll" style="max-height:340px"><table><thead><tr><th>Date</th><th>Total charge (₹)</th><th>Receivable (₹)</th><th>Blocks beyond limit</th><th>Largest miss (MW)</th><th>RMSE (MW)</th></tr></thead><tbody>`+wd.map(d=>`<tr><td style="text-align:left">${d.date}</td><td>${f2(d.pay)}</td><td>${f2(d.recv)}</td><td>${d.br}</td><td>${f2(d.maxAbs)}</td><td>${f2(d.act?Math.sqrt(d.sq/d.act):0)}</td></tr>`).join("")+`</tbody></table></div>`;
+  g("an_day").innerHTML=`<div class="scroll" style="max-height:340px"><table><thead><tr><th>Date</th><th>Total charge (₹)</th><th>Receivable (₹)</th><th>Blocks beyond limit</th><th>Largest miss (MW)</th></tr></thead><tbody>`+wd.map(d=>`<tr><td style="text-align:left"><a href="#" data-day="${d.date}" title="Open this day in detail below">${d.date}</a></td><td>${f2(d.pay)}</td><td>${f2(d.recv)}</td><td>${d.br}</td><td>${f2(d.maxAbs)}</td></tr>`).join("")+`</tbody></table></div><p class="note" style="margin:6px 0 0">Click a date to see that day block by block below.</p>`;
 }
 g("an_thr").onchange=()=>anRender(true);
 /* ===== plain-language plant report (print / save as PDF) ===== */
@@ -3691,7 +3692,7 @@ function anExport(){
 g("an_xl").onclick=anExport;
 function dsub(n){
   [1,2,3,4].forEach(i=>{g("d_p"+i).classList.toggle("hide",i!==n);if(g("d_t"+i))g("d_t"+i).classList.toggle("on",i===n)});
-  if(n===2)hRender();if(n===3)anRender();
+  if(n===2)hRender();if(n===3){anRender();if(typeof dCur!=="undefined"&&dCur)dRenderDay()}
 }
 window.dsub=dsub;
 [1,2,3].forEach(i=>{g("d_t"+i).onclick=()=>dsub(i)});
