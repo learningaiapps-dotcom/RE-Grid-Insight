@@ -73,7 +73,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <div id="task-home" hidden></div>
 <div id="task-workspace" class="wrap">
 <p><a class="task-back" href="index.html?view=full">← All tools</a></p>
-<div class="tabs"><button id="t1" class="on">Weather data</button><button id="t2">Solar forecast correction</button><button id="t3">Wind forecast correction</button><button id="t4">DSM calculator</button><button id="t5">QCA DSM engine &amp; analysis</button><button id="t6">NRPC, WRPC &amp; SRPC imports</button><button id="t9">QCA performance comparison</button><button id="t7">ISTS pooling stations map</button><button id="t8">India RE plants map</button></div>
+<div class="tabs"><button id="t1" class="on">Weather data</button><button id="t2">Solar forecast correction</button><button id="t3">Wind forecast correction</button><button id="t4">DSM calculator</button><button id="t5">QCA DSM engine &amp; analysis</button><button id="t6">NRPC, WRPC &amp; SRPC imports</button><button id="t9">QCA performance comparison</button><button id="t10">Plant performance comparison</button><button id="t7">ISTS pooling stations map</button><button id="t8">India RE plants map</button></div>
 <div id="steps" class="note" style="margin:-6px 0 14px"><b>Workflow:</b> <button class="alt" data-go="t6" style="padding:4px 10px">1. Plant region and regional import</button> → <button class="alt" data-go="t5-1" style="padding:4px 10px">2. QCA DSM engine</button> → <button class="alt" data-go="t5-3" style="padding:4px 10px">3. Deviation analysis &amp; RCA</button> → <button class="alt" data-go="t5-4" style="padding:4px 10px">4. Weather model comparison</button></div>
 <div id="p1">
 <h1>Solar &amp; wind in 96 time blocks</h1>
@@ -656,6 +656,53 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   <div id="qc_res"></div>
 </div>
 </div>
+<div id="p10" class="hide">
+<h1>Plant performance comparison</h1>
+<p class="sub">Compare DSM performance of different plants (across NRPC, WRPC and SRPC), or the same plant under different DSM methods and bands. Add transmission down time and bay-wise frequency to see their effect.</p>
+
+<div class="card">
+  <h2 style="margin:0 0 6px;font-size:17px">1 · Plants and methods to compare</h2>
+  <p class="note" style="margin:0 0 8px">Add 2 to 6 rows. Each row is one plant settled under one method. Use different plants with the same method to compare plants, or the same plant with different methods to compare bands. Plants come from Stored history (NRPC, WRPC &amp; SRPC imports tab), including data you added there.</p>
+  <div class="row">
+    <label class="f" style="flex:1 1 240px">Search plants (filters the plant lists)<input id="pc_q" placeholder="Type part of a plant name"></label>
+    <label class="f" style="flex:0 1 170px">From (optional)<input id="pc_from" type="date"></label>
+    <label class="f" style="flex:0 1 170px">To (optional)<input id="pc_to" type="date"></label>
+    <label class="f" style="flex:0 1 210px">Rate for plants without a rate (₹/kWh)<input id="pc_rate" type="number" min="0" step="0.01"></label>
+    <label class="f" style="flex:0 1 280px">Dates<select id="pc_common"><option value="common">Only dates every row has (fair comparison)</option><option value="all">All dates of each row</option></select></label>
+  </div>
+  <div id="pc_list" style="margin-top:8px"></div>
+  <div class="tools" style="margin-top:10px">
+    <button type="button" class="alt" id="pc_add">+ Add plant</button>
+    <button type="button" class="alt" id="pc_allm">Same plant under every method (uses row 1)</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2 style="margin:0 0 6px;font-size:17px">2 · Transmission down time (optional)</h2>
+  <p class="note" style="margin:0 0 8px">Periods when a line, bay or ICT was out. Blocks inside these periods are marked, and results are shown with and without them.</p>
+  <div class="tools"><button type="button" class="alt" id="pc_otpl">Download down-time template (Excel)</button>
+    <label class="f" style="flex:0 1 300px">Upload filled down-time file<input id="pc_ofile" type="file" accept=".xlsx,.xls,.csv"></label>
+    <button type="button" class="alt" id="pc_oclr">Clear down time</button></div>
+  <p class="note" id="pc_omsg" role="status" style="margin:6px 0 0"></p>
+</div>
+
+<div class="card">
+  <h2 style="margin:0 0 6px;font-size:17px">3 · Frequency, bay-wise and block-wise (optional)</h2>
+  <p class="note" style="margin:0 0 8px">Frequency at each bay for each 15-minute block. Where a plant has several bays, the average is used. The template is filled with the plants in your rows.</p>
+  <div class="tools"><label class="note">First day <input id="pc_fdate" type="date"></label><label class="note">Days <input id="pc_fdays" type="number" min="1" max="31" value="1" style="width:64px"></label>
+    <button type="button" class="alt" id="pc_ftpl">Download frequency template (Excel)</button>
+    <label class="f" style="flex:0 1 300px">Upload filled frequency file<input id="pc_ffile" type="file" accept=".xlsx,.xls,.csv"></label>
+    <button type="button" class="alt" id="pc_fclr">Clear frequency</button></div>
+  <p class="note" id="pc_fmsg" role="status" style="margin:6px 0 0"></p>
+</div>
+
+<div class="tools">
+  <button type="button" id="pc_go">Compare</button>
+  <button type="button" class="alt" id="pc_dl" disabled>Download results (CSV)</button>
+  <span id="pc_msg" class="note" role="status"></span>
+</div>
+<div id="pc_res"></div>
+</div>
 </div>
 <div id="tipbox"></div>
 
@@ -663,7 +710,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <script>
 // ===== Tabs =====
 const dl=(n,t)=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/csv"}));a.download=n;a.click()};
-["1","2","3","4","5","6","7","8","9"].forEach(n=>{$("t"+n).onclick=()=>["1","2","3","4","5","6","7","8","9"].forEach(m=>{$("p"+m).classList.toggle("hide",m!==n);$("t"+m).classList.toggle("on",m===n)})});
+["1","2","3","4","5","6","7","8","9","10"].forEach(n=>{$("t"+n).onclick=()=>["1","2","3","4","5","6","7","8","9","10"].forEach(m=>{$("p"+m).classList.toggle("hide",m!==n);$("t"+m).classList.toggle("on",m===n)})});
 
 // ===== Forecast correction =====
 const LOSSES=[["soil","Soiling",2],["trf","Transformer",1],["cab","Cable",1],["dc","DC-side",2],["inv","Inverter",2]];
@@ -2790,17 +2837,23 @@ g("s_go").onclick=()=>{
         mapping:[["Source","Stored history"+(added?" + your added data":"")]],factors:[["Values","As stored (already converted to MW, Rs/kWh and Rs)"]],at:new Date().toISOString()}};
   }
 
+  async function loadRes(p){
+    let data=null;
+    if(!p.added){const r=await fetch("data/history/"+p.file);if(!r.ok)throw new Error("the stored file could not be downloaded (HTTP "+r.status+")");data=readCSV(await gunzipText(await r.arrayBuffer()))}
+    const u=H.uploads.get(p.key);if(u)data=merge(data,{header:u.header,rows:u.rows});
+    const res=toResult(p.region,p.plant,data,p,!!u);
+    if(!res.rows.length)throw new Error("no valid 15-minute records");
+    return res;
+  }
+  // shared with the Plant performance comparison tab
+  window.REHIST={ready:()=>ensureIndex(),plants:()=>plants(),load:async key=>{await ensureIndex();const p=plants().find(x=>x.key===key);if(!p)throw new Error("plant not found");return loadRes(p)}};
   g("h_reg").onchange=fill;g("h_q").addEventListener("input",fill);
   g("h_go").onclick=async()=>{
     await ensureIndex();
     const key=g("h_plant").value,p=plants().find(x=>x.key===key);if(!p)return hm("Choose a plant first.",true);
     g("h_go").disabled=true;hm("Loading stored data…");await tickUI();
     try{
-      let data=null;
-      if(!p.added){const r=await fetch("data/history/"+p.file);if(!r.ok)throw new Error("the stored file could not be downloaded (HTTP "+r.status+")");data=readCSV(await gunzipText(await r.arrayBuffer()))}
-      const u=H.uploads.get(key);if(u)data=merge(data,{header:u.header,rows:u.rows});
-      const res=toResult(p.region,p.plant,data,p,!!u);
-      if(!res.rows.length)throw new Error("no valid 15-minute records");
+      const res=await loadRes(p);
       const [view,tab]=VIEW[p.region];sub(tab);view.show(res);
       hm(`Loaded ${nf(res.rows.length)} records, ${res.meta.first} to ${res.meta.last}. Scroll down to the ${p.region} results and use “Send to QCA DSM engine and analyse”.`);
       g(({NRPC:"n",WRPC:"w",SRPC:"s"})[p.region]+"_card").scrollIntoView({behavior:"smooth",block:"start"});
@@ -3145,6 +3198,7 @@ function dsmReceive(pl){
   if(dCur)dm(note+" Calculated. Open 'Deviation analysis & RCA' to see where and why the limits were crossed.");
 }
 window.dsmReceive=dsmReceive;
+window.KDBUILD={buildDays,SRC};
 function sendUI(p,res){
   const card=g(p+"_card");let box=g(p+"_snd");
   if(!box){box=document.createElement("div");box.id=p+"_snd";box.className="card";box.style.cssText="margin-top:14px;background:var(--bg)";card.appendChild(box)}
@@ -3977,6 +4031,289 @@ g("qc_pdf").onclick=()=>{
 };
 
 drawList();
+})();
+</script>
+<script id="kd-plantcmp">
+// ===== Plant performance comparison (tab 10): several plants and/or DSM methods, with down time and bay-wise frequency =====
+(function(){
+  const g=id=>document.getElementById(id);
+  if(!g("p10"))return;
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+  const inr=(v,d=0)=>(+v).toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
+  const lakh=v=>(v/1e5).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const PAL=["#0f766e","#c2410c","#7c3aed","#2563eb","#b45309","#be185d"];
+  const norm=s=>String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"");
+  const S={rows:[],cache:new Map(),out:[],freq:[],last:null,charts:[]};
+  const msg=(id,t,bad)=>{g(id).textContent=t;g(id).className="note"+(bad?" err":"")};
+
+  /* ---------- saved uploads (down time, frequency) in this browser ---------- */
+  const DB=()=>new Promise((ok,no)=>{const r=indexedDB.open("re-grid-plantcmp",1);r.onupgradeneeded=()=>r.result.createObjectStore("data");r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+  async function put(k,v){try{const db=await DB();await new Promise((ok,no)=>{const t=db.transaction("data","readwrite");v==null?t.objectStore("data").delete(k):t.objectStore("data").put(v,k);t.oncomplete=ok;t.onerror=()=>no(t.error)})}catch(e){}}
+  async function get(k){try{const db=await DB();return await new Promise(ok=>{const r=db.transaction("data").objectStore("data").get(k);r.onsuccess=()=>ok(r.result);r.onerror=()=>ok(null)})}catch(e){return null}}
+
+  /* ---------- rows: plant + method ---------- */
+  const rules=()=>typeof allRules==="function"?allRules():[];
+  function plantOptions(sel){
+    const q=g("pc_q").value.trim().toLowerCase(),list=window.REHIST?REHIST.plants():[];
+    const groups={};list.filter(p=>!q||p.plant.toLowerCase().includes(q)||p.key===sel).forEach(p=>(groups[p.region]=groups[p.region]||[]).push(p));
+    return `<option value="">Choose a plant…</option>`+Object.keys(groups).sort().map(r=>`<optgroup label="${r}">${groups[r].map(p=>`<option value="${esc(p.key)}"${p.key===sel?" selected":""}>${esc(p.plant)} · ${p.first} to ${p.last}${p.added?" · your data":""}</option>`).join("")}</optgroup>`).join("");
+  }
+  const ruleOptions=sel=>rules().map(r=>`<option value="${esc(r.id)}"${r.id===sel?" selected":""}>${esc(ruleName(r.id))}</option>`).join("");
+  function guessType(key){const n=String(key).toLowerCase();return /wind|_w$|\bw\b|wpp|wtg/.test(n.replace(/.*\//,""))&&!/hybrid|hyb/.test(n)?"wind":/hybrid|hyb/.test(n)?"hybrid":"solar"}
+  function draw(){
+    g("pc_list").innerHTML=S.rows.map((r,i)=>`<div class="row" data-i="${i}" style="align-items:flex-end;padding:8px 0;border-top:${i?"1px solid var(--line)":"0"}">
+      <span style="flex:0 0 auto;width:14px;height:14px;border-radius:50%;background:${PAL[i%PAL.length]};margin-bottom:12px"></span>
+      <label class="f" style="flex:3 1 320px">Plant / SPV<select data-k="key">${plantOptions(r.key)}</select></label>
+      <label class="f" style="flex:2 1 220px">DSM method (bands)<select data-k="rule">${ruleOptions(r.rule)}</select></label>
+      <label class="f" style="flex:0 1 130px">Type<select data-k="type">${[["solar","Solar"],["hybrid","Hybrid"],["wind","Wind"]].map(([v,t])=>`<option value="${v}"${v===r.type?" selected":""}>${t}</option>`).join("")}</select></label>
+      <label class="f" style="flex:0 1 140px">AvC (MW) for gaps<input data-k="avc" type="number" min="0" step="0.1" value="${esc(r.avc)}"></label>
+      <label class="f" style="flex:0 1 150px">Rate (₹/kWh) for gaps<input data-k="ppa" type="number" min="0" step="0.01" value="${esc(r.ppa)}"></label>
+      <button type="button" class="alt" data-rm${S.rows.length<=1?" disabled":""}>Remove</button></div>`).join("");
+  }
+  const addRow=(o={})=>{if(S.rows.length>=6)return msg("pc_msg","Up to 6 rows can be compared at once.",true);S.rows.push({key:"",rule:(rules()[0]||{}).id||"",type:"solar",avc:"",ppa:"",...o});draw()};
+  g("pc_list").addEventListener("change",e=>{const row=e.target.closest("[data-i]"),k=e.target.dataset.k;if(!row||!k)return;const r=S.rows[+row.dataset.i];r[k]=e.target.value;if(k==="key"){r.type=guessType(r.key);draw()}});
+  g("pc_list").addEventListener("click",e=>{if(e.target.matches("[data-rm]")){S.rows.splice(+e.target.closest("[data-i]").dataset.i,1);draw()}});
+  g("pc_q").addEventListener("input",draw);
+  g("pc_add").onclick=()=>addRow(S.rows.length?{rule:S.rows[S.rows.length-1].rule}:{});
+  g("pc_allm").onclick=()=>{const r0=S.rows[0];if(!r0||!r0.key)return msg("pc_msg","Choose the plant in row 1 first.",true);
+    S.rows=rules().slice(0,6).map(r=>({...r0,rule:r.id}));draw();msg("pc_msg",`Row 1's plant is now compared under ${S.rows.length} methods.`)};
+  let started=false;
+  async function start(){
+    if(started)return;started=true;
+    if(window.REHIST)await REHIST.ready();
+    if(!S.rows.length){addRow();addRow()}else draw();
+    g("pc_fdate").value=g("pc_fdate").value||new Date().toLocaleDateString("en-CA");
+    if(!g("pc_rate").value)g("pc_rate").value=(g("dppa")&&+g("dppa").value>0?+g("dppa").value:2.5).toFixed(2);
+    S.out=(await get("outages"))||[];S.freq=(await get("freq"))||[];
+    msg("pc_omsg",S.out.length?`${S.out.length} down-time period(s) loaded (saved in this browser).`:"No down time loaded.");
+    msg("pc_fmsg",S.freq.length?`${inr(S.freq.length)} frequency value(s) loaded (saved in this browser).`:"No frequency loaded.");
+  }
+  g("t10").addEventListener("click",start);
+  if(!g("p10").classList.contains("hide"))start();
+
+  /* ---------- Excel helpers ---------- */
+  function sheetRows(buf,name){
+    if(typeof XLSX==="undefined")throw new Error("the Excel reader did not load");
+    const wb=XLSX.read(buf,{type:"array",cellDates:true}),sn=wb.SheetNames.find(n=>n.toLowerCase()===name)||wb.SheetNames[0];
+    return XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:false,defval:"",dateNF:"yyyy-mm-dd hh:mm",blankrows:false});
+  }
+  async function readUpload(file,name){
+    if(/\.csv$/i.test(file.name))return KD.parseCSV(await file.text());
+    return sheetRows(await file.arrayBuffer(),name);
+  }
+  function save(wb,file){XLSX.writeFile(wb,file)}
+  function sheet(aoa,widths){const ws=XLSX.utils.aoa_to_sheet(aoa);ws["!cols"]=widths.map(w=>({wch:w}));return ws}
+  const chosen=()=>{const all=window.REHIST?REHIST.plants():[];return [...new Set(S.rows.map(r=>r.key).filter(Boolean))].map(k=>all.find(p=>p.key===k)).filter(Boolean)};
+  // "2026-11-24 14:30", "24-11-2026 14:30", "24/11/2026 2:30 PM" -> minutes since 1970 (clock time, no time zone)
+  function toMin(v){
+    const s=String(v||"").trim();if(!s)return NaN;
+    let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)?)?$/i),y,mo,d;
+    if(m){y=+m[1];mo=+m[2];d=+m[3]}else{m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})(?:[ T](\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)?)?$/i);if(!m)return NaN;d=+m[1];mo=+m[2];y=+m[3]<100?2000+ +m[3]:+m[3]}
+    let h=+(m[4]||0);const mi=+(m[5]||0),ap=(m[6]||"").toLowerCase();if(ap==="pm"&&h<12)h+=12;if(ap==="am"&&h===12)h=0;
+    return Date.UTC(y,mo-1,d,h,mi)/6e4;
+  }
+  const dayMin=date=>Date.UTC(+date.slice(0,4),+date.slice(5,7)-1,+date.slice(8,10))/6e4;
+
+  /* ---------- down time ---------- */
+  g("pc_otpl").onclick=()=>{
+    const ps=chosen(),ex=ps[0]||{region:"NRPC",plant:"Plant name exactly as in the list"};
+    const data=[["Region (NRPC / WRPC / SRPC)","Plant / SPV","Element (line / bay / ICT)","Down from (YYYY-MM-DD HH:MM)","Down to (YYYY-MM-DD HH:MM)","Remarks"]];
+    (ps.length?ps:[ex]).forEach(p=>data.push([p.region,p.plant,"","","",""]));
+    const help=[["How to use this template"],
+      ["1. One row per down-time period. The plant rows already in the sheet come from your comparison; add more rows as needed."],
+      ["2. Plant / SPV must match the name in the plant list (spaces and capitals do not matter). Use * as the plant to apply a period to every plant of that region."],
+      ["3. Enter the start and end as date and 24-hour time, e.g. 2026-10-14 09:30 and 2026-10-14 13:00. Every 15-minute block that overlaps the period is marked as down time."],
+      ["4. Save and upload it in “Transmission down time” on the Plant performance comparison tab. Results are then shown with and without these blocks."],
+      [""],["Column","What to enter","Example"],
+      ["Region","NRPC, WRPC or SRPC","WRPC"],["Plant / SPV","Plant name as in the list, or *",ex.plant],["Element","Line, bay or ICT that was down (for your reference)","400 kV Bhuj-Khavda line 1"],
+      ["Down from","Start date and time","2026-10-14 09:30"],["Down to","End date and time","2026-10-14 13:00"],["Remarks","Reason (optional)","Planned shutdown"]];
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,sheet(data,[24,40,32,28,28,30]),"Down time");XLSX.utils.book_append_sheet(wb,sheet(help,[28,110,30]),"Instructions");
+    save(wb,"Transmission_down_time_template.xlsx");
+  };
+  g("pc_ofile").onchange=async e=>{
+    const f=e.target.files[0];if(!f)return;e.target.value="";
+    try{
+      const rows=await readUpload(f,"down time"),h=(rows.shift()||[]).map(x=>String(x).toLowerCase());
+      const col=k=>h.findIndex(x=>x.includes(k)),iR=col("region"),iP=col("plant"),iE=col("element"),iF=col("from"),iT=col("to"),iX=col("remark");
+      if(iP<0||iF<0||iT<0)throw new Error("the file needs Plant / SPV, Down from and Down to columns (use the template)");
+      const out=[],bad=[];
+      rows.forEach((r,n)=>{if(!r.some(c=>String(c).trim()))return;const a=toMin(r[iF]),b=toMin(r[iT]);
+        if(!(a<b)){if(String(r[iF]).trim()||String(r[iT]).trim())bad.push(n+2);return}
+        out.push({region:iR>=0?String(r[iR]).trim().toUpperCase():"",plant:String(r[iP]).trim(),el:iE>=0?String(r[iE]):"",from:a,to:b,txt:`${String(r[iF]).trim()} to ${String(r[iT]).trim()}`,rem:iX>=0?String(r[iX]):""})});
+      S.out=out;await put("outages",out);
+      msg("pc_omsg",`${out.length} down-time period(s) loaded and saved in this browser.`+(bad.length?` Skipped row(s) ${bad.slice(0,10).join(", ")}: start and end must be valid and the end after the start.`:""),!out.length);
+    }catch(x){msg("pc_omsg","Could not read the down-time file: "+x.message,true)}
+  };
+  g("pc_oclr").onclick=async()=>{S.out=[];await put("outages",null);msg("pc_omsg","Down time cleared.")};
+
+  /* ---------- frequency ---------- */
+  g("pc_ftpl").onclick=()=>{
+    const ps=chosen();if(!ps.length)return msg("pc_fmsg","Choose the plants in section 1 first; the template is filled with them.",true);
+    const days=Math.min(31,Math.max(1,Math.round(+g("pc_fdays").value)||1)),start=dayMin(g("pc_fdate").value||new Date().toLocaleDateString("en-CA"));
+    if(ps.length*days*96>200000)return msg("pc_fmsg","That is too many rows for one template. Choose fewer days or plants.",true);
+    const hm=m=>String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+    const data=[["Date (YYYY-MM-DD)","Block no.","Time (from-to)","Region","Plant / SPV","Bay","Frequency (Hz)"]];
+    for(let d=0;d<days;d++){const day=new Date((start+d*1440)*6e4).toISOString().slice(0,10);
+      ps.forEach(p=>{for(let b=1;b<=96;b++)data.push([day,b,hm((b-1)*15)+"-"+(b===96?"24:00":hm(b*15)),p.region,p.plant,"Bay-1",""])})}
+    const help=[["How to use this template"],
+      ["1. Fill Frequency (Hz) for each block. Date, block, region, plant and bay are already filled for the plants in your comparison."],
+      ["2. For a plant with several bays, copy its rows and change the Bay name (e.g. Bay-2). The app uses the average of the bays for each block."],
+      ["3. Rows without a frequency are ignored. Save and upload it in “Frequency, bay-wise and block-wise” on the Plant performance comparison tab."],
+      [""],["Column","What to enter","Example"],
+      ["Date","Day of the block","2026-10-14"],["Block no.","1 to 96 (block 1 = 00:00-00:15)","37"],["Time","For reference only","09:00-09:15"],
+      ["Region / Plant / SPV","As in the plant list","WRPC / KHAVDA_PSS1"],["Bay","Bay name or number","Bay-1"],["Frequency (Hz)","Average frequency of the block at that bay","49.98"],
+      [""],["How it is used","A block counts as deviating against the grid when the plant under-injects while frequency is below 49.97 Hz, or over-injects while it is above 50.03 Hz.",""]];
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,sheet(data,[14,9,13,10,40,10,15]),"Frequency");XLSX.utils.book_append_sheet(wb,sheet(help,[24,110,24]),"Instructions");
+    save(wb,"Bay_frequency_template.xlsx");
+  };
+  g("pc_ffile").onchange=async e=>{
+    const f=e.target.files[0];if(!f)return;e.target.value="";
+    try{
+      const rows=await readUpload(f,"frequency"),h=(rows.shift()||[]).map(x=>String(x).toLowerCase());
+      const col=k=>h.findIndex(x=>x.includes(k)),iD=col("date"),iB=col("block"),iR=col("region"),iP=col("plant"),iY=col("bay"),iF=col("freq");
+      if(iD<0||iB<0||iP<0||iF<0)throw new Error("the file needs Date, Block, Plant / SPV and Frequency columns (use the template)");
+      const out=[];let bad=0;
+      rows.forEach(r=>{const fv=parseFloat(String(r[iF]).replace(",","."));if(String(r[iF]).trim()==="")return;
+        const date=KD.parseDate(r[iD]),b=+r[iB];if(!date||!(b>=1&&b<=96)||!(fv>45&&fv<55)){bad++;return}
+        out.push([date,b,iR>=0?String(r[iR]).trim().toUpperCase():"",String(r[iP]).trim(),iY>=0?String(r[iY]).trim():"",fv])});
+      S.freq=out;await put("freq",out);
+      msg("pc_fmsg",`${inr(out.length)} frequency value(s) loaded and saved in this browser.`+(bad?` ${inr(bad)} row(s) skipped (date, block 1-96 or frequency 45-55 Hz not valid).`:""),!out.length);
+    }catch(x){msg("pc_fmsg","Could not read the frequency file: "+x.message,true)}
+  };
+  g("pc_fclr").onclick=async()=>{S.freq=[];await put("freq",null);msg("pc_fmsg","Frequency cleared.")};
+
+  /* ---------- calculation ---------- */
+  const matches=(o,p)=>(!o.region||o.region===p.region)&&(o.plant==="*"||norm(o.plant)===norm(p.plant));
+  function bandOf(b){let j=-1;b.sl.forEach((x,k)=>{if(Math.abs(x)>1e-9)j=k});return j}
+  async function series(r,i){
+    const all=REHIST.plants(),p=all.find(x=>x.key===r.key);
+    if(!p)throw new Error(`row ${i+1}: choose a plant`);
+    let res=S.cache.get(r.key);if(!res){res=await REHIST.load(r.key);S.cache.set(r.key,res)}
+    const built=KDBUILD.buildDays(res,KDBUILD.SRC[p.region].def,"sum");
+    const from=g("pc_from").value,to=g("pc_to").value;
+    const days=built.days.filter(d=>(!from||d.date>=from)&&(!to||d.date<=to));
+    return {i,r,p,days};
+  }
+  function settle(sr,keep){
+    const {r,p}=sr,days=sr.days.filter(d=>keep.has(d.date));
+    if(!days.length)throw new Error(`${p.plant}: no data on the chosen dates`);
+    // blocks without their own rate / AvC use what the user typed, otherwise the plant's typical (median) value
+    const med=k=>{const a=days.flatMap(d=>d.rows.map(x=>x[k]).filter(v=>v>0)).sort((x,y)=>x-y);return a.length?a[a.length>>1]:0};
+    const ppa=+r.ppa||med("p")||+g("pc_rate").value,avc=+r.avc||med("v");
+    const fillP=+r.ppa?0:days.reduce((n,d)=>n+d.rows.filter(x=>!(x.p>0)&&x.a!==x.s).length,0),fillV=+r.avc?0:days.reduce((n,d)=>n+d.rows.filter(x=>!(x.v>0)&&(x.s>0||x.a>0)).length,0);
+    if(!(avc>0)&&days.some(d=>d.rows.some(x=>!(x.v>0)&&(x.s>0||x.a>0))))throw new Error(`${p.plant}: the data has no available capacity (AvC); enter the row's “AvC (MW) for gaps”`);
+    if(!(ppa>0)&&days.some(d=>d.rows.some(x=>!(x.p>0)&&x.a!==x.s)))throw new Error(`${p.plant}: the data has no rate; enter “Rate for plants without a rate” or the row's “Rate (₹/kWh) for gaps”`);
+    const outs=S.out.filter(o=>matches(o,p));
+    const fq=new Map();S.freq.forEach(([d,b,reg,pl,bay,f])=>{if((!reg||reg===p.region)&&norm(pl)===norm(p.plant)){const k=d+"|"+b,a=fq.get(k)||[0,0];a[0]+=f;a[1]++;fq.set(k,a)}});
+    const T={pay:0,recv:0,eAct:0,avcSum:0,avcN:0,days:days.length,blocks:0,down:0,dPay:0,dRecv:0,fN:0,fSum:0,against:0,againstNet:0,bands:null,labels:null,daily:[],hourNet:Array(24).fill(0),hourDev:Array(24).fill(0),hourN:Array(24).fill(0),hourF:Array(24).fill(0),hourFN:Array(24).fill(0)};
+    for(const d of days){
+      const cfg=rpcRuleConfig(r.rule,r.type,d.date);
+      if(!cfg)throw new Error(`${ruleName(r.rule)} has no settings for ${d.date}; change the dates or the method`);
+      const c=dCompute(d.rows,ppa,avc,"slice",cfg),k=cfg.limits.length+1;
+      if(!T.bands){T.bands=Array.from({length:k},()=>({n:0,net:0}));T.labels=cfg.limits.map((l,j)=>`${j?cfg.limits[j-1]+"–":"≤ "}${l}%`).concat(`> ${cfg.limits[k-2]}%`)}
+      const d0=dayMin(d.date);let dn=0,dnEx=0;
+      c.blocks.forEach((b,j)=>{
+        const net=b.pay-b.recv,down=outs.some(o=>o.from<d0+(j+1)*15&&o.to>d0+j*15),h=Math.floor(j/4),fk=fq.get(d.date+"|"+(j+1));
+        T.blocks++;T.pay+=b.pay;T.recv+=b.recv;T.eAct+=b.a*.25;if(b.avc>0){T.avcSum+=b.avc;T.avcN++}dn+=net;
+        if(down){T.down++;T.dPay+=b.pay;T.dRecv+=b.recv}else dnEx+=net;
+        const bj=bandOf(b);if(bj>=0&&T.bands[bj]){T.bands[bj].n++;T.bands[bj].net+=net}
+        T.hourNet[h]+=net;T.hourDev[h]+=b.avc>0?Math.abs(b.dev)/b.avc*100:0;T.hourN[h]++;
+        if(fk){const f=fk[0]/fk[1];T.fN++;T.fSum+=f;T.hourF[h]+=f;T.hourFN[h]++;if((b.dev<0&&f<49.97)||(b.dev>0&&f>50.03)){T.against++;T.againstNet+=net}}
+      });
+      T.daily.push({date:d.date,net:dn,netEx:dnEx});
+    }
+    T.net=T.pay-T.recv;T.netEx=T.net-(T.dPay-T.dRecv);T.avc=T.avcN?T.avcSum/T.avcN:avc;
+    T.perMWday=T.avc>0?T.net/T.avc/T.days:null;T.perMWdayEx=T.avc>0?T.netEx/T.avc/T.days:null;
+    T.perMWh=T.eAct>0?T.net/T.eAct:null;
+    T.fillP=fillP?{n:fillP,v:ppa}:null;T.fillV=fillV?{n:fillV,v:avc}:null;
+    return T;
+  }
+
+  g("pc_go").onclick=async()=>{
+    S.charts.forEach(c=>c.destroy());S.charts=[];
+    const rows=S.rows.filter(r=>r.key);
+    if(rows.length<2)return msg("pc_msg","Choose at least 2 rows to compare (a plant in each).",true);
+    g("pc_go").disabled=true;msg("pc_msg","Loading plant data…");
+    try{
+      const srs=[];for(const [i,r] of rows.entries())srs.push(await series(r,i));
+      const sets=srs.map(s=>new Set(s.days.map(d=>d.date)));
+      const common=g("pc_common").value==="common";
+      const keepAll=common?new Set([...sets[0]].filter(d=>sets.every(s=>s.has(d)))):null;
+      if(common&&!keepAll.size)throw new Error("these rows have no dates in common. Choose “All dates of each row”, or plants with overlapping dates.");
+      msg("pc_msg","Calculating…");await new Promise(r=>setTimeout(r,20));
+      const res=srs.map((s,k)=>({...s,T:settle(s,keepAll||sets[k])}));
+      S.last=res;render(res,keepAll);g("pc_dl").disabled=false;
+      msg("pc_msg",`Compared ${res.length} rows${keepAll?` on ${keepAll.size} common day(s)`:""}.`);
+    }catch(x){msg("pc_msg","Could not compare: "+x.message,true);g("pc_res").innerHTML=""}
+    g("pc_go").disabled=false;
+  };
+
+  /* ---------- results ---------- */
+  const label=s=>`${s.p.plant} · ${ruleName(s.r.rule)}`;
+  const dot=s=>`<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${PAL[s.i%PAL.length]};margin-right:6px"></span>`;
+  function render(res,keep){
+    const anyDown=res.some(s=>s.T.down),anyF=res.some(s=>s.T.fN);
+    const best=res.filter(s=>s.T.perMWday!=null).reduce((a,b)=>!a||b.T.perMWday<a.T.perMWday?b:a,null);
+    const maxB=Math.max(...res.map(s=>s.T.bands.length));
+    g("pc_res").innerHTML=`<div class="card">
+      <h2 style="margin:0 0 6px;font-size:17px">DSM cost per MW and per MWh</h2>
+      <p class="note" style="margin:0 0 8px">Positive = the plant pays. “Per MW per day” divides by the average available capacity and the number of days, so plants of different sizes and periods compare fairly.</p>
+      ${best?`<p style="margin:0 0 8px">Lowest DSM cost per MW: ${dot(best)}<b>${esc(label(best))}</b>, ₹ ${inr(best.T.perMWday)} per MW per day.</p>`:""}
+      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant · method</th><th>Region</th><th>Days</th><th>Avg AvC (MW)</th><th>Actual energy (MWh)</th><th>Payable (₹ lakh)</th><th>Receivable (₹ lakh)</th><th>Net DSM (₹ lakh)</th><th>₹ per MW per day</th><th>₹ per MWh</th>${anyDown?"<th>Down-time blocks</th><th>Net without down time (₹ lakh)</th><th>₹ per MW per day without down time</th><th>Down-time effect (₹ lakh)</th>":""}</tr></thead><tbody>
+      ${res.map(s=>{const T=s.T;return `<tr><td style="text-align:left">${dot(s)}${esc(label(s))}</td><td>${s.p.region}</td><td>${T.days}</td><td>${inr(T.avc,1)}</td><td>${inr(T.eAct)}</td><td>${lakh(T.pay)}</td><td>${lakh(T.recv)}</td><td><b>${lakh(T.net)}</b></td><td>${T.perMWday==null?"–":inr(T.perMWday)}</td><td>${T.perMWh==null?"–":inr(T.perMWh,1)}</td>${anyDown?`<td>${inr(T.down)}</td><td>${lakh(T.netEx)}</td><td>${T.perMWdayEx==null?"–":inr(T.perMWdayEx)}</td><td>${lakh(T.net-T.netEx)}</td>`:""}</tr>`}).join("")}
+      </tbody></table></div>
+      ${res.some(s=>s.T.fillP||s.T.fillV)?`<p class="note" style="margin:6px 0 0">Filled gaps: ${res.filter(s=>s.T.fillP||s.T.fillV).map(s=>`${esc(s.p.plant)}: ${[s.T.fillP?`${inr(s.T.fillP.n)} block(s) without a rate used ₹ ${s.T.fillP.v.toFixed(2)}/kWh`:"",s.T.fillV?`${inr(s.T.fillV.n)} block(s) without AvC used ${inr(s.T.fillV.v,1)} MW`:""].filter(Boolean).join(" and ")}`).join("; ")} (the plant's typical value, or “Rate for plants without a rate” when the data has none; type your own in the row to change it).</p>`:""}
+      ${anyDown?`<p class="note" style="margin:6px 0 0">Down-time effect = net DSM in the blocks marked as transmission down time. “Without down time” leaves those blocks out.</p>`:""}
+    </div>
+    <div class="card">
+      <h2 style="margin:0 0 6px;font-size:17px">Band-wise blocks and charges</h2>
+      <p class="note" style="margin:0 0 8px">Number of blocks whose deviation reached each band of that row's method, and the net DSM from those blocks (₹ lakh). Bands are % of the deviation base (AvC, or the X-factor mix).</p>
+      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant · method</th>${Array.from({length:maxB},(_,j)=>`<th>Band ${j+1} blocks</th><th>Band ${j+1} net (₹ lakh)</th>`).join("")}</tr></thead><tbody>
+      ${res.map(s=>`<tr><td style="text-align:left">${dot(s)}${esc(label(s))}</td>${Array.from({length:maxB},(_,j)=>{const b=s.T.bands[j];return b?`<td>${inr(b.n)} <span class="note">(${s.T.labels[j]})</span></td><td>${lakh(b.net)}</td>`:"<td>–</td><td>–</td>"}).join("")}</tr>`).join("")}
+      </tbody></table></div>
+      <div class="chartbox" style="height:260px;margin-top:10px"><canvas id="pc_cb"></canvas></div>
+    </div>
+    <div class="card">
+      <h2 style="margin:0 0 6px;font-size:17px">Day pattern</h2>
+      ${anyDown?`<div class="tools" style="margin-bottom:6px"><label class="note"><input type="checkbox" id="pc_ex"> Leave out down-time blocks in this chart</label></div>`:""}
+      <div class="chartbox" style="height:300px"><canvas id="pc_cd"></canvas></div>
+    </div>
+    <div class="card">
+      <h2 style="margin:0 0 6px;font-size:17px">Time-of-day pattern</h2>
+      <p class="note" style="margin:0 0 8px">Average over the compared days, by hour of the day${anyF?". The dotted line is the average frequency from your bay-wise data":""}.</p>
+      <div class="chartbox" style="height:300px"><canvas id="pc_ch"></canvas></div>
+      <div class="chartbox" style="height:260px;margin-top:10px"><canvas id="pc_cv"></canvas></div>
+    </div>
+    ${anyF?`<div class="card">
+      <h2 style="margin:0 0 6px;font-size:17px">Frequency (bay-wise data)</h2>
+      <p class="note" style="margin:0 0 8px">Against the grid = under-injection while frequency is below 49.97 Hz, or over-injection while it is above 50.03 Hz.</p>
+      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant · method</th><th>Blocks with frequency</th><th>Average frequency (Hz)</th><th>Blocks deviating against the grid</th><th>Net DSM in those blocks (₹ lakh)</th></tr></thead><tbody>
+      ${res.map(s=>`<tr><td style="text-align:left">${dot(s)}${esc(label(s))}</td><td>${inr(s.T.fN)}</td><td>${s.T.fN?(s.T.fSum/s.T.fN).toFixed(3):"–"}</td><td>${inr(s.T.against)}${s.T.fN?` (${(s.T.against/s.T.fN*100).toFixed(1)}%)`:""}</td><td>${lakh(s.T.againstNet)}</td></tr>`).join("")}
+      </tbody></table></div></div>`:""}`;
+    if(typeof Chart==="undefined")return;
+    const ds=(f,extra={})=>res.map(s=>({label:label(s),data:f(s),borderColor:PAL[s.i%PAL.length],backgroundColor:PAL[s.i%PAL.length],borderWidth:2,pointRadius:0,tension:.15,...extra}));
+    const opt=(title,y,more={})=>({responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{title:{display:true,text:title}},scales:{y:{title:{display:true,text:y}},...more}});
+    S.charts.push(new Chart(g("pc_cb"),{type:"bar",data:{labels:Array.from({length:maxB},(_,j)=>"Band "+(j+1)),datasets:res.map(s=>({label:label(s),data:Array.from({length:maxB},(_,j)=>s.T.bands[j]?s.T.bands[j].n:0),backgroundColor:PAL[s.i%PAL.length]}))},options:opt("Blocks in each deviation band","Blocks")}));
+    const dates=[...new Set(res.flatMap(s=>s.T.daily.map(d=>d.date)))].sort();
+    const dayChart=ex=>new Chart(g("pc_cd"),{type:"line",data:{labels:dates,datasets:ds(s=>{const m=new Map(s.T.daily.map(d=>[d.date,d]));return dates.map(dt=>{const d=m.get(dt);return d&&s.T.avc>0?+((ex?d.netEx:d.net)/s.T.avc).toFixed(2):null})},{spanGaps:false})},options:opt(`Net DSM per MW per day${ex?" (without down-time blocks)":""} (₹, positive = plant pays)`,"₹ per MW",{x:{ticks:{maxTicksLimit:14}}})});
+    let dc=dayChart(false);S.charts.push(dc);
+    if(g("pc_ex"))g("pc_ex").onchange=e=>{dc.destroy();S.charts=S.charts.filter(c=>c!==dc);dc=dayChart(e.target.checked);S.charts.push(dc)};
+    const hrs=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+":00");
+    const hourDs=ds(s=>s.T.hourNet.map((v,h)=>s.T.hourN[h]&&s.T.avc>0?+(v/s.T.avc/(s.T.hourN[h]/4)).toFixed(2):null));
+    const fAll=hrs.map((_,h)=>{let a=0,n=0;res.forEach(s=>{a+=s.T.hourF[h];n+=s.T.hourFN[h]});return n?+(a/n).toFixed(3):null});
+    if(anyF)hourDs.push({label:"Average frequency (Hz)",data:fAll,borderColor:"#64748b",backgroundColor:"#64748b",borderDash:[4,4],borderWidth:1.5,pointRadius:0,yAxisID:"f"});
+    S.charts.push(new Chart(g("pc_ch"),{type:"line",data:{labels:hrs,datasets:hourDs},options:opt("Net DSM per MW in each hour of an average day (₹, positive = plant pays)","₹ per MW per hour",anyF?{f:{position:"right",title:{display:true,text:"Hz"},grid:{drawOnChartArea:false}}}:{})}));
+    S.charts.push(new Chart(g("pc_cv"),{type:"line",data:{labels:hrs,datasets:ds(s=>s.T.hourDev.map((v,h)=>s.T.hourN[h]?+(v/s.T.hourN[h]).toFixed(2):null))},options:opt("Average deviation by hour (% of AvC)","% of AvC")}));
+  }
+
+  g("pc_dl").onclick=()=>{
+    const res=S.last;if(!res)return;const q=v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v;
+    const maxB=Math.max(...res.map(s=>s.T.bands.length));
+    let t=["Plant","Region","Method","Type","Days","Avg AvC MW","Actual energy MWh","Payable Rs","Receivable Rs","Net DSM Rs","Rs per MW per day","Rs per MWh","Down-time blocks","Net without down time Rs","Rs per MW per day without down time",...Array.from({length:maxB},(_,j)=>[`Band ${j+1} blocks`,`Band ${j+1} net Rs`]).flat(),"Blocks with frequency","Average frequency Hz","Blocks against grid","Net DSM in against-grid blocks Rs"].map(q).join(",")+"\n";
+    res.forEach(s=>{const T=s.T;t+=[s.p.plant,s.p.region,ruleName(s.r.rule),s.r.type,T.days,T.avc.toFixed(2),T.eAct.toFixed(2),T.pay.toFixed(2),T.recv.toFixed(2),T.net.toFixed(2),T.perMWday==null?"":T.perMWday.toFixed(2),T.perMWh==null?"":T.perMWh.toFixed(2),T.down,T.netEx.toFixed(2),T.perMWdayEx==null?"":T.perMWdayEx.toFixed(2),
+      ...Array.from({length:maxB},(_,j)=>T.bands[j]?[T.bands[j].n,T.bands[j].net.toFixed(2)]:["",""]).flat(),T.fN,T.fN?(T.fSum/T.fN).toFixed(3):"",T.against,T.againstNet.toFixed(2)].map(v=>q(String(v))).join(",")+"\n"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+t],{type:"text/csv"}));a.download="Plant_performance_comparison.csv";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  };
 })();
 </script>
 <script type="text/plain" id="re_d_plants">

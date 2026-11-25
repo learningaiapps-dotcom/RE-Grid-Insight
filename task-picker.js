@@ -10,6 +10,7 @@
       ["qca", "t5", "QCA DSM & analysis", "Calculate and review deviations"],
       ["imports", "t6", "NRPC, WRPC & SRPC imports", "Extract and prepare regional data"],
       ["qcacmp", "t9", "QCA performance comparison", "Compare DSM cost and scheduling of QCAs"],
+      ["plantcmp", "t10", "Plant performance comparison", "Compare plants, bands, down time and frequency"],
     ]],
     ["Maps", [
       ["ists", "t7", "ISTS pooling stations", "Explore grid connection points"],
