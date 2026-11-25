@@ -74,7 +74,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <div id="task-workspace" class="wrap">
 <p><a class="task-back" href="index.html?view=full">← All tools</a></p>
 <div class="tabs"><button id="t1" class="on">Weather data</button><button id="t2">Solar forecast correction</button><button id="t3">Wind forecast correction</button><button id="t4">DSM calculator</button><button id="t5">QCA DSM engine &amp; analysis</button><button id="t6">NRPC, WRPC &amp; SRPC imports</button><button id="t9">QCA performance comparison</button><button id="t10">Plant performance comparison</button><button id="t7">ISTS pooling stations map</button><button id="t8">India RE plants map</button></div>
-<div id="steps" class="note" style="margin:-6px 0 14px"><b>Workflow:</b> <button class="alt" data-go="t6" style="padding:4px 10px">1. Plant region and regional import</button> → <button class="alt" data-go="t5-1" style="padding:4px 10px">2. QCA DSM engine</button> → <button class="alt" data-go="t5-3" style="padding:4px 10px">3. Deviation analysis &amp; RCA</button> → <button class="alt" data-go="t5-4" style="padding:4px 10px">4. Weather model comparison</button></div>
+<div id="steps" class="note" style="margin:-6px 0 14px"><b>Workflow:</b> <button class="alt" data-go="t6" style="padding:4px 10px">1. Plant region and regional import</button> → <button class="alt" data-go="t5-1" style="padding:4px 10px">2. QCA DSM engine</button> → <button class="alt" data-go="t5-3" style="padding:4px 10px">3. Deviation analysis &amp; RCA</button></div>
 <div id="p1">
 <h1>Solar &amp; wind in 96 time blocks</h1>
 <p class="sub">Type a place (the country is optional) and the coordinates fill in by themselves, or type latitude and longitude (or paste "lat, lon") and the place name fills in. Pick 1 to 3 weather models and compare 15-minute forecasts for one day or a date range (up to 93 days). Data: Open-Meteo.</p>
@@ -315,7 +315,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <div id="p5" class="hide">
 <h1>QCA DSM engine (96 blocks)</h1>
 <p class="sub">Pick an SPV, upload schedule and actual generation for one day or many days, set the PPA rate (or a price for each block), the available capacity and your own deviation bands. You get the payable for under-injection and the receivable for over-injection for each block, and totals by day, week, month or quarter. Everything stays in this browser.</p>
-<div class="tabs" style="margin-bottom:12px"><button id="d_t1" class="on">Calculation engine</button><button id="d_t3">Deviation analysis &amp; RCA</button><button id="d_t4">Model comparison</button><button id="d_t2">Historical logs</button></div>
+<div class="tabs" style="margin-bottom:12px"><button id="d_t1" class="on">Calculation engine</button><button id="d_t3">Deviation analysis &amp; RCA</button><button id="d_t2">Historical logs</button></div>
 <div id="d_p1">
 <div class="card">
   <fieldset style="margin:0 0 14px;border:1px solid var(--line);border-radius:8px">
@@ -323,6 +323,11 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
     <div class="tools">
       <label><input type="radio" name="dsource" id="dsource_import"> Use NRPC, WRPC or SRPC imports</label>
       <label><input type="radio" name="dsource" id="dsource_own" checked> Upload my own CSV or Excel file</label>
+    </div>
+    <div id="dsource_ownbox" style="margin-top:8px">
+      <div class="tools"><button type="button" class="alt" id="dsdl">Download sample CSV</button>
+      <span class="note">One row per SPV, date and 15-minute block: <code>spv, date, block, schedule_mw, actual_mw, avc_mw, price</code>. The PPA rate (price, ₹/kWh) and available capacity (avc_mw) come from your file.</span></div>
+      <p class="note" style="margin:6px 0 0"><a href="#" id="downshow">My file has no price or AvC column: enter them here instead</a></p>
     </div>
     <div id="dsource_picker" class="hide">
       <label>Extracted plant data <select id="dsource_choice"></select></label>
@@ -338,7 +343,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
     <label class="f"><span class="tip" data-g="avc">Available capacity AvC (MW)</span><input id="davc" type="number" step="0.1" placeholder="e.g. 100"></label>
   </div>
   <div class="tools" style="margin-top:10px"><button class="alt" id="dspvadd">Add SPV</button><button class="alt" id="dspvdel">Delete selected SPV</button><span class="note">Each SPV keeps its own PPA rate, AvC and bands.</span></div>
-  <details id="dplant" open style="margin-top:12px"><summary><b>Plant details</b> (type, location and capacity: used by the analysis and the model comparison)</summary>
+  <details id="dplant" open style="margin-top:12px"><summary><b>Plant details</b> (type, location and capacity: used by the deviation analysis)</summary>
    <div class="row" style="margin-top:8px">
     <label class="f" style="flex:0 1 190px">Plant type<select id="dtype"><option value="solar">Solar</option><option value="wind">Wind</option><option value="hybrid">Hybrid (solar + wind)</option></select></label>
     <label class="f">Location<input id="dloc" placeholder="e.g. Khavda"></label>
@@ -388,7 +393,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
       </div>
     </details>
   </div>
-  <div class="tools" style="margin-top:12px"><button id="dcalc">Calculate DSM</button><button class="alt" id="dsamp">Try sample data (2 SPVs, 10 days, dynamic price)</button><button class="alt" id="dsdl">Download sample CSV</button></div>
+  <div class="tools" style="margin-top:12px"><button id="dcalc">Calculate DSM</button><button class="alt" id="dsamp">Try sample data (2 SPVs, 10 days, dynamic price)</button></div>
   <label class="note" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="dlive" checked> Update the results automatically when I change the bands, rates, PPA, AvC or formula</label>
   <details><summary>How the calculation works and how the files are read</summary>
    <p>• Per block: Deviation = Actual − Schedule. Negative = under-injection (SPV pays). Positive = over-injection (SPV receives).</p>
@@ -1557,7 +1562,9 @@ const GRP={day:"Results by day",week:"Results by week (Monday to Sunday)",month:
 // ----- calculate -----
 function dCalc(){
   if(!dData)return dm("Choose a file or click Try sample data.",true);
-  const ppa=+$("dppa").value,avc=+$("davc").value,mode=dPublished?"slice":$("dmode").value,spv=$("dspv").value;
+  // an uploaded file brings its own price and AvC, so hidden boxes are not used as silent defaults
+  const ownHidden=$("dsource_own").checked&&$("dppa").closest("label").style.display==="none";
+  const ppa=ownHidden?0:+$("dppa").value,avc=ownHidden?0:+$("davc").value,mode=dPublished?"slice":$("dmode").value,spv=$("dspv").value;
   let g;
   if(dData.names[0]==="")g=dData.groups[""];
   else{const n=dData.names.find(x=>x.toLowerCase()===spv.toLowerCase());
@@ -1567,8 +1574,8 @@ function dCalc(){
   if(!list.length)return dm("No days fall inside the dates you chose.",true);
   let cfg=dPublished?null:dBandRead();
   const priced=list.map(d=>({...d,rows:d.rows.map((r,i)=>{let p=r.p;if(!(p>0)&&dPrice)p=dPrice.bd.get(d.date+"|"+(i+1))??dPrice.bl.get(i+1)??0;return {...r,p}})}));
-  if(!(ppa>0)&&priced.some(d=>d.rows.some(r=>!(r.p>0))))return dm("Enter the PPA rate (INR/kWh). Some blocks have no price of their own.",true);
-  if(!(avc>0)&&priced.some(d=>d.rows.some(r=>!(r.v>0)&&(r.s>0||r.a>0))))return dm("Enter the available capacity (MW). Your file does not give it for every block.",true);
+  if(!(ppa>0)&&priced.some(d=>d.rows.some(r=>!(r.p>0)))){if(ownHidden){dOwnShow();return dm("Some blocks in your file have no price. Add a price column (₹/kWh) to the file, as in the sample, or enter the Contract PPA rate below for those blocks.",true)}return dm("Enter the PPA rate (INR/kWh). Some blocks have no price of their own.",true)}
+  if(!(avc>0)&&priced.some(d=>d.rows.some(r=>!(r.v>0)&&(r.s>0||r.a>0)))){if(ownHidden){dOwnShow();return dm("Some blocks in your file have no available capacity. Add an avc_mw column to the file, as in the sample, or enter the AvC below for those blocks.",true)}return dm("Enter the available capacity (MW). Your file does not give it for every block.",true)}
   let dayCfg=null;
   if(dPublished){
     const type=$("dtype").value,pick=$("drule").value,first=priced[0].date;
@@ -3154,6 +3161,8 @@ function switchSource(regional){
 }
 g("dsource_import").onchange=()=>switchSource(true);
 g("dsource_own").onchange=()=>switchSource(false);
+g("downshow").onclick=e=>{e.preventDefault();dOwnShow();g("dppa").focus()};
+dSrcMode(g("dsource_import").checked);
 g("dsource_open").onclick=()=>g("t6").click();
 g("t5").addEventListener("click",refreshImportChoices);
 g("dsource_load").onclick=()=>{
@@ -3162,12 +3171,18 @@ g("dsource_load").onclick=()=>{
   g(prefix+"_send").click();
   g("dsource_status").textContent=g(prefix+"_smsg").textContent;
 };
+function dOwnShow(){for(const id of ["dppa","davc"])g(id).closest("label").style.display=""}
+window.dOwnShow=dOwnShow;
 function dSrcMode(on,src,name){
   g("dsource_import").checked=on;g("dsource_own").checked=!on;
   g("dsource_picker").classList.toggle("hide",!on);
   if(on)refreshImportChoices();
   const row=g("dsrcrow"),note=g("dsrcnote");if(!row)return;
-  ["dfile","dpfile","dppa","davc"].forEach(id=>{g(id).closest("label").style.display=on?"none":""});
+  ["dfile","dpfile"].forEach(id=>{g(id).closest("label").style.display=on?"none":""});
+  // uploads carry their own price and AvC; latitude, longitude and performance ratio are not needed
+  ["dppa","davc","dlat","dlon","dpr"].forEach(id=>{g(id).closest("label").style.display="none"});
+  g("dgeo").style.display=on?"":"none";
+  g("dsource_ownbox").style.display=on?"none":"";
   g("dplant").style.display=on?"none":"";
   note.style.display=on&&src?"":"none";
   if(on&&src){
@@ -3261,7 +3276,7 @@ const CAUSE={
  ramp:["Schedule timing or ramp mismatch (sunrise, sunset or a shifted forecast)","Revise the schedule more often around the start and end of generation, shape the schedule ramp to the plant's real ramp, and check whether the forecast is running early or late."],
  vari:["Intermittent output (cloud or wind variability)","Use more frequent revisions, short-term nowcasting (satellite cloud or hourly wind updates) and, if possible, storage or smoothing to absorb fast swings."],
  cons:["Schedule set below what the plant could deliver (conservative scheduling)","Raise the schedule floor and revise upward sooner when actual output stays above the schedule."],
- over:["Schedule consistently above what the plant delivered (over-forecast)","Apply a bias correction learned from recent days, and use the best-performing weather model (see Model comparison)."],
+ over:["Schedule consistently above what the plant delivered (over-forecast)","Apply a bias correction learned from recent days, and compare weather forecasts in Weather & Forecasting."],
  other:["Unclassified","Look at these episodes individually with SCADA and weather data."]};
 const MS=x=>String(x);
 function anBuild(cur,thr){
@@ -3675,11 +3690,11 @@ function anExport(){
 }
 g("an_xl").onclick=anExport;
 function dsub(n){
-  [1,2,3,4].forEach(i=>{g("d_p"+i).classList.toggle("hide",i!==n);g("d_t"+i).classList.toggle("on",i===n)});
-  if(n===2)hRender();if(n===3)anRender();if(n===4)mcInit();
+  [1,2,3,4].forEach(i=>{g("d_p"+i).classList.toggle("hide",i!==n);if(g("d_t"+i))g("d_t"+i).classList.toggle("on",i===n)});
+  if(n===2)hRender();if(n===3)anRender();
 }
 window.dsub=dsub;
-[1,2,3,4].forEach(i=>{g("d_t"+i).onclick=()=>dsub(i)});
+[1,2,3].forEach(i=>{g("d_t"+i).onclick=()=>dsub(i)});
 // workflow bar
 document.querySelectorAll("#steps [data-go]").forEach(b=>b.onclick=()=>{
   const v=b.dataset.go;
