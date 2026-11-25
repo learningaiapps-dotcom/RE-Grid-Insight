@@ -413,7 +413,6 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   <div class="kpis" id="dkpi"></div>
   <p class="note" id="dnote"></p>
   <div id="dpub" class="hide" style="margin:12px 0;border:1px solid var(--line);border-radius:8px;padding:12px"></div>
-  <div id="dcmp" class="hide" style="margin:12px 0;border:1px solid var(--line);border-radius:8px;padding:12px"></div>
   <div class="tools" style="margin:8px 0"><button id="dsave">Save run(s) to history</button><button class="alt" id="dxl">Download Excel report</button></div>
   <div id="dperiod" class="hide"><p class="note" style="margin:10px 0 4px"><b id="dptitle"></b></p><div class="chartbox" style="height:260px"><canvas id="dcp"></canvas></div><div id="dptab" style="margin-top:10px"></div></div>
   <div class="tools" style="margin-top:14px"><span class="note">Block-by-block detail for each day (band chart, block map and table) is in </span><button type="button" class="alt" id="dgoan">Deviation analysis &amp; RCA</button></div>
@@ -443,7 +442,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
    <div class="tools" style="flex-wrap:wrap;align-items:flex-end;gap:8px"><label class="f" style="flex:0 1 220px;margin:0">Plant report for<select id="an_rday"></select></label><button id="an_rep">Plant report: what went wrong and why (PDF)</button><button class="alt" id="an_xl">Download analysis report (Excel)</button><span class="note" id="an_msg"></span></div>
   </div>
   <div class="card"><b>Areas of improvement</b><div id="an_find"></div></div>
-  <div class="card"><b>Root cause analysis (RCA)</b><div id="an_rca" style="margin-top:8px"></div><div class="chartbox" style="height:240px;margin-top:10px"><canvas id="an_cp"></canvas></div></div>
+  <div class="card"><b>Root cause analysis (RCA)</b><div id="an_rca" style="margin-top:8px"></div><div class="hide"><div class="chartbox"><canvas id="an_cp"></canvas></div></div></div>
   <div class="card"><b>At what time of day the limits were crossed</b>
    <div class="hide"><div class="note" id="an_leg"></div><div id="an_hm_box"><canvas id="an_hm"></canvas></div><div class="note" id="an_hmi"></div><div class="chartbox"><canvas id="an_ch2"></canvas></div></div>
    <div class="chartbox" style="height:260px;margin-top:10px"><canvas id="an_ch1"></canvas></div>
@@ -661,51 +660,69 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 </div>
 </div>
 <div id="p10" class="hide">
+<style>#p10 details>summary{cursor:pointer}</style>
 <h1>Plant performance comparison</h1>
-<p class="sub">Compare DSM performance of different plants (across NRPC, WRPC and SRPC), or the same plant under different DSM methods and bands. Add transmission down time and bay-wise frequency to see their effect.</p>
+<p class="sub">See which plant pays the least DSM, or how much one plant would pay under different DSM methods.</p>
 
+<div class="tabs" style="margin-bottom:12px"><button type="button" id="pc_m1" class="on">Compare plants</button><button type="button" id="pc_m2">Compare DSM methods for one plant</button><button type="button" id="pc_m3">Down time &amp; frequency</button></div>
+
+<div id="pc_mode1">
 <div class="card">
-  <h2 style="margin:0 0 6px;font-size:17px">1 · Plants and methods to compare</h2>
-  <p class="note" style="margin:0 0 8px">Add 2 to 6 rows. Each row is one plant settled under one method. Use different plants with the same method to compare plants, or the same plant with different methods to compare bands. Plants come from Stored history (NRPC, WRPC &amp; SRPC imports tab), including data you added there.</p>
-  <div class="row">
-    <label class="f" style="flex:1 1 240px">Search plants (filters the plant lists)<input id="pc_q" placeholder="Type part of a plant name"></label>
-    <label class="f" style="flex:0 1 170px">From (optional)<input id="pc_from" type="date"></label>
-    <label class="f" style="flex:0 1 170px">To (optional)<input id="pc_to" type="date"></label>
-    <label class="f" style="flex:0 1 210px">Rate for plants without a rate (₹/kWh)<input id="pc_rate" type="number" min="0" step="0.01"></label>
-    <label class="f" style="flex:0 1 280px">Dates<select id="pc_common"><option value="common">Only dates every row has (fair comparison)</option><option value="all">All dates of each row</option></select></label>
+  <b>1 · Choose the plants (2 to 6)</b>
+  <div class="row" style="margin-top:8px">
+    <label class="f" style="flex:1 1 240px">Search plants<input id="pc_q" placeholder="Type part of a plant name"></label>
+    <label class="f" style="flex:1 1 260px">DSM method for all plants<select id="pc_rule"></select></label>
   </div>
   <div id="pc_list" style="margin-top:8px"></div>
-  <div class="tools" style="margin-top:10px">
-    <button type="button" class="alt" id="pc_add">+ Add plant</button>
-    <button type="button" class="alt" id="pc_allm">Same plant under every method (uses row 1)</button>
-  </div>
+  <div class="tools" style="margin-top:10px"><button type="button" class="alt" id="pc_add">+ Add plant</button></div>
+  <details style="margin-top:10px"><summary class="note">More options: dates and rate</summary>
+    <div class="row" style="margin-top:8px">
+      <label class="f" style="flex:0 1 170px">From<input id="pc_from" type="date"></label>
+      <label class="f" style="flex:0 1 170px">To<input id="pc_to" type="date"></label>
+      <label class="f" style="flex:0 1 280px">Dates<select id="pc_common"><option value="common">Only dates every plant has (fair comparison)</option><option value="all">All dates of each plant</option></select></label>
+      <label class="f" style="flex:0 1 230px">Rate for plants without a rate (₹/kWh)<input id="pc_rate" type="number" min="0" step="0.01"></label>
+    </div>
+  </details>
 </div>
 
+
+<div class="tools">
+  <button type="button" id="pc_go">Compare plants</button>
+  <button type="button" class="alt" id="pc_dl" disabled>Download results (CSV)</button>
+  <span id="pc_msg" class="note" role="status"></span>
+</div>
+<div id="pc_res"></div>
+</div>
+
+<div id="pc_mode3" class="hide">
 <div class="card">
-  <h2 style="margin:0 0 6px;font-size:17px">2 · Transmission down time (optional)</h2>
-  <p class="note" style="margin:0 0 8px">Periods when a line, bay or ICT was out. Blocks inside these periods are marked, and results are shown with and without them.</p>
+  <p class="note" style="margin:0 0 6px">Optional. What you upload here is used in <b>Compare plants</b> and saved in this browser.</p>
+  <p style="margin:10px 0 4px"><b>Transmission down time</b> <span class="note">Periods when a line, bay or ICT was out. Results are shown with and without these blocks.</span></p>
   <div class="tools"><button type="button" class="alt" id="pc_otpl">Download down-time template (Excel)</button>
     <label class="f" style="flex:0 1 300px">Upload filled down-time file<input id="pc_ofile" type="file" accept=".xlsx,.xls,.csv"></label>
     <button type="button" class="alt" id="pc_oclr">Clear down time</button></div>
   <p class="note" id="pc_omsg" role="status" style="margin:6px 0 0"></p>
-</div>
-
-<div class="card">
-  <h2 style="margin:0 0 6px;font-size:17px">3 · Frequency, bay-wise and block-wise (optional)</h2>
-  <p class="note" style="margin:0 0 8px">Frequency at each bay for each 15-minute block. Where a plant has several bays, the average is used. The template is filled with the plants in your rows.</p>
+  <p style="margin:14px 0 4px"><b>Frequency, bay-wise and block-wise</b> <span class="note">Where a plant has several bays, the average is used. The template is filled with the plants chosen in Compare plants.</span></p>
   <div class="tools"><label class="note">First day <input id="pc_fdate" type="date"></label><label class="note">Days <input id="pc_fdays" type="number" min="1" max="31" value="1" style="width:64px"></label>
     <button type="button" class="alt" id="pc_ftpl">Download frequency template (Excel)</button>
     <label class="f" style="flex:0 1 300px">Upload filled frequency file<input id="pc_ffile" type="file" accept=".xlsx,.xls,.csv"></label>
     <button type="button" class="alt" id="pc_fclr">Clear frequency</button></div>
   <p class="note" id="pc_fmsg" role="status" style="margin:6px 0 0"></p>
 </div>
-
-<div class="tools">
-  <button type="button" id="pc_go">Compare</button>
-  <button type="button" class="alt" id="pc_dl" disabled>Download results (CSV)</button>
-  <span id="pc_msg" class="note" role="status"></span>
 </div>
-<div id="pc_res"></div>
+
+<div id="pc_mode2" class="hide">
+<div class="card">
+  <b>Choose the plant</b>
+  <div class="row" style="margin-top:8px">
+    <label class="f" style="flex:1 1 220px">Search plants<input id="pc_q2" placeholder="Type part of a plant name"></label>
+    <label class="f" style="flex:3 1 380px">Plant / SPV<select id="pc_p2"></select></label>
+  </div>
+  <div class="tools" style="margin-top:10px"><button type="button" id="pc_go2">Compare DSM methods</button><span class="note" id="pc_msg2" role="status"></span></div>
+  <p class="note" style="margin:8px 0 0" id="pc_eng"></p>
+</div>
+<div class="card hide" id="dcmp"></div>
+</div>
 </div>
 </div>
 <div id="tipbox"></div>
@@ -1782,23 +1799,23 @@ function dRuleCompare(){
   const shown=rows.filter(x=>dCmpSel.has(x.r.id));
   if(!shown.some(x=>x.r.id===dCmpBase))dCmpBase=shown.some(x=>x.r.id===cur)?cur:(shown[0]?shown[0].r.id:"");
   const base=shown.find(x=>x.r.id===dCmpBase),sg=v=>(v>0?"+":"")+f2(v);
-  const nm=x=>esc(ruleName(x.r.id))+(x.r.id===cur?" (used above)":"");
+  const nm=x=>esc(ruleName(x.r.id));
   const cheapest=shown.length>1?shown.reduce((a,b)=>b.net<a.net?b:a):null;
   box.classList.remove("hide");
-  box.innerHTML=`<b>Compare DSM calculation methods on this data</b>
-   <p class="note" style="margin:4px 0 8px">The same schedule, actual and prices, settled under each method (${type==="wind"?"wind":"solar / hybrid"} settings). Tick 2 methods to compare one against the other, or all of them. Positive net = the plant pays. To change the method used for the results above, pick it in “RPC rule for this plant”.</p>
+  box.innerHTML=`<b>${esc(dCur.meta.spv)}: DSM under each method</b> <span class="note">${dCur.meta.from===dCur.meta.to?dCur.meta.from:dCur.meta.from+" to "+dCur.meta.to}</span>
+   <p class="note" style="margin:4px 0 8px">The same schedule, actual and prices, settled under each method (${type==="wind"?"wind":"solar / hybrid"} settings). Tick 2 methods to compare one against the other, or all of them. Positive net = the plant pays.</p>
    <div class="row" style="align-items:flex-end;gap:14px">
     <fieldset style="border:0;padding:0;margin:0"><legend class="note" style="padding:0">Methods to compare</legend>${ok.map(x=>`<label style="display:inline-flex;gap:6px;align-items:center;margin-right:14px;font-size:14px"><input type="checkbox" data-cmp="${esc(x.r.id)}"${dCmpSel.has(x.r.id)?" checked":""}> ${esc(ruleName(x.r.id))}</label>`).join("")}</fieldset>
     <label class="f" style="flex:0 1 300px">Compare against<select id="dcmp_base">${shown.filter(x=>!x.na).map(x=>`<option value="${esc(x.r.id)}"${x.r.id===dCmpBase?" selected":""}>${esc(ruleName(x.r.id))}</option>`).join("")}</select></label>
     <button class="alt" id="dcmp_dl" type="button">Download comparison (CSV)</button>
    </div>
-   <div class="scroll" style="max-height:none;margin-top:10px"><table><thead><tr><th>Method</th><th>Band limits</th><th>X (%)</th><th>Shortfall charge (₹)</th><th>Excess receivable (₹)</th><th>Net charge (₹)</th>${base?`<th>Net vs ${esc(ruleName(base.r.id))} (₹)</th>`:""}${hasPub?"<th>Blocks matching published</th>":""}</tr></thead><tbody>
-   ${shown.map(x=>x.na?`<tr><td>${esc(ruleName(x.r.id))}</td><td colspan="${5+(base?1:0)+(hasPub?1:0)}" class="note">Not available: ${x.na}</td></tr>`
-     :`<tr${x.r.id===dCmpBase?' style="font-weight:600"':""}><td>${nm(x)}</td><td>${esc(x.bands)}</td><td>${esc(x.x)}</td><td>${f2(x.pay)}</td><td>${f2(x.recv)}</td><td>${f2(x.net)}</td>${base?`<td>${x===base?"base":sg(x.net-base.net)}</td>`:""}${hasPub?`<td>${x.n?`${(x.n-x.m).toLocaleString("en-IN")} of ${x.n.toLocaleString("en-IN")}`:"–"}</td>`:""}</tr>`).join("")}
+   <div class="scroll" style="max-height:none;margin-top:10px"><table><thead><tr><th>Method</th><th>Band limits</th><th>X (%)</th><th>Shortfall charge (₹)</th><th>Excess receivable (₹)</th><th>Net charge (₹)</th>${base?`<th>Net vs ${esc(ruleName(base.r.id))} (₹)</th>`:""}</tr></thead><tbody>
+   ${shown.map(x=>x.na?`<tr><td>${esc(ruleName(x.r.id))}</td><td colspan="${5+(base?1:0)}" class="note">Not available: ${x.na}</td></tr>`
+     :`<tr${x.r.id===dCmpBase?' style="font-weight:600"':""}><td>${nm(x)}</td><td>${esc(x.bands)}</td><td>${esc(x.x)}</td><td>${f2(x.pay)}</td><td>${f2(x.recv)}</td><td>${f2(x.net)}</td>${base?`<td>${x===base?"base":sg(x.net-base.net)}</td>`:""}</tr>`).join("")}
    </tbody></table></div>
    ${cheapest?`<p style="margin:8px 0 0">Lowest net charge: <b>${esc(ruleName(cheapest.r.id))}</b> (₹ ${f2(cheapest.net)})${base&&cheapest!==base&&base.net-cheapest.net>0.005?`, ₹ ${f2(base.net-cheapest.net)} less than ${esc(ruleName(base.r.id))}`:""}.${shown.filter(x=>!x.na&&Math.abs(x.net-cheapest.net)<0.005).length>1?" Some methods give the same result for these dates (their settings are identical in this period).":""}</p>`:""}
    ${days.length>1&&shown.length?`<div class="chartbox" style="height:280px;margin-top:10px"><canvas id="dcmp_c"></canvas></div>`:""}
-   <p class="note" style="margin:6px 0 0">Add your own method (for example other bands or another X) in the RPC rule library above and it appears here. Downloads ${dPublished?"and charts above use the rule shown in “RPC rule for this plant”":"and charts above use your own bands"}.</p>`;
+   <p class="note" style="margin:6px 0 0">To add your own method (other bands or another X), use the RPC rule library in the QCA DSM engine; it then appears here.</p>`;
   box.querySelectorAll("[data-cmp]").forEach(cb=>cb.onchange=()=>{cb.checked?dCmpSel.add(cb.dataset.cmp):dCmpSel.delete(cb.dataset.cmp);if(!dCmpSel.size){dCmpSel.add(cb.dataset.cmp);cb.checked=true}dRuleCompare()});
   $("dcmp_base").onchange=e=>{dCmpBase=e.target.value;dRuleCompare()};
   $("dcmp_dl").onclick=()=>{
@@ -4079,25 +4096,22 @@ drawList();
   function draw(){
     g("pc_list").innerHTML=S.rows.map((r,i)=>`<div class="row" data-i="${i}" style="align-items:flex-end;padding:8px 0;border-top:${i?"1px solid var(--line)":"0"}">
       <span style="flex:0 0 auto;width:14px;height:14px;border-radius:50%;background:${PAL[i%PAL.length]};margin-bottom:12px"></span>
-      <label class="f" style="flex:3 1 320px">Plant / SPV<select data-k="key">${plantOptions(r.key)}</select></label>
-      <label class="f" style="flex:2 1 220px">DSM method (bands)<select data-k="rule">${ruleOptions(r.rule)}</select></label>
+      <label class="f" style="flex:3 1 380px">Plant / SPV<select data-k="key">${plantOptions(r.key)}</select></label>
       <label class="f" style="flex:0 1 130px">Type<select data-k="type">${[["solar","Solar"],["hybrid","Hybrid"],["wind","Wind"]].map(([v,t])=>`<option value="${v}"${v===r.type?" selected":""}>${t}</option>`).join("")}</select></label>
-      <label class="f" style="flex:0 1 140px">AvC (MW) for gaps<input data-k="avc" type="number" min="0" step="0.1" value="${esc(r.avc)}"></label>
-      <label class="f" style="flex:0 1 150px">Rate (₹/kWh) for gaps<input data-k="ppa" type="number" min="0" step="0.01" value="${esc(r.ppa)}"></label>
       <button type="button" class="alt" data-rm${S.rows.length<=1?" disabled":""}>Remove</button></div>`).join("");
   }
   const addRow=(o={})=>{if(S.rows.length>=6)return msg("pc_msg","Up to 6 rows can be compared at once.",true);S.rows.push({key:"",rule:(rules()[0]||{}).id||"",type:"solar",avc:"",ppa:"",...o});draw()};
   g("pc_list").addEventListener("change",e=>{const row=e.target.closest("[data-i]"),k=e.target.dataset.k;if(!row||!k)return;const r=S.rows[+row.dataset.i];r[k]=e.target.value;if(k==="key"){r.type=guessType(r.key);draw()}});
   g("pc_list").addEventListener("click",e=>{if(e.target.matches("[data-rm]")){S.rows.splice(+e.target.closest("[data-i]").dataset.i,1);draw()}});
   g("pc_q").addEventListener("input",draw);
-  g("pc_add").onclick=()=>addRow(S.rows.length?{rule:S.rows[S.rows.length-1].rule}:{});
-  g("pc_allm").onclick=()=>{const r0=S.rows[0];if(!r0||!r0.key)return msg("pc_msg","Choose the plant in row 1 first.",true);
-    S.rows=rules().slice(0,6).map(r=>({...r0,rule:r.id}));draw();msg("pc_msg",`Row 1's plant is now compared under ${S.rows.length} methods.`)};
+  g("pc_add").onclick=()=>addRow();
   let started=false;
   async function start(){
     if(started)return;started=true;
     if(window.REHIST)await REHIST.ready();
+    g("pc_rule").innerHTML=ruleOptions(g("pc_rule").value||(rules()[0]||{}).id);
     if(!S.rows.length){addRow();addRow()}else draw();
+    fill2();
     g("pc_fdate").value=g("pc_fdate").value||new Date().toLocaleDateString("en-CA");
     if(!g("pc_rate").value)g("pc_rate").value=(g("dppa")&&+g("dppa").value>0?+g("dppa").value:2.5).toFixed(2);
     S.out=(await get("outages"))||[];S.freq=(await get("freq"))||[];
@@ -4106,6 +4120,38 @@ drawList();
   }
   g("t10").addEventListener("click",start);
   if(!g("p10").classList.contains("hide"))start();
+
+  /* ---------- mode: different plants, or one plant under different methods ---------- */
+  function setMode(m){
+    [1,2,3].forEach(i=>{g("pc_m"+i).classList.toggle("on",i===m);g("pc_mode"+i).classList.toggle("hide",i!==m)});
+    if(m===2)showEngine();
+  }
+  g("pc_m1").onclick=()=>setMode(1);g("pc_m2").onclick=()=>setMode(2);g("pc_m3").onclick=()=>setMode(3);
+  function fill2(){
+    const q=g("pc_q2").value.trim().toLowerCase(),prev=g("pc_p2").value,list=(window.REHIST?REHIST.plants():[]).filter(p=>!q||p.plant.toLowerCase().includes(q));
+    g("pc_p2").innerHTML=list.length?list.map(p=>`<option value="${esc(p.key)}"${p.key===prev?" selected":""}>${p.region} · ${esc(p.plant)} · ${p.first} to ${p.last}</option>`).join(""):`<option value="">No plant matches the search</option>`;
+  }
+  g("pc_q2").addEventListener("input",fill2);
+  // the comparison works on the data in the QCA DSM engine; say which data that is
+  function showEngine(){
+    const has=typeof dCur!=="undefined"&&dCur;
+    g("pc_eng").textContent=has?`Showing the data now in the QCA DSM engine (${dCur.meta.spv}). Choose another plant above to compare it instead.`:"Choose a plant and click Compare DSM methods. You can also calculate your own file in the QCA DSM engine and come back here.";
+    if(has&&typeof dRuleCompare==="function")dRuleCompare();else g("dcmp").classList.add("hide");
+  }
+  g("pc_go2").onclick=async()=>{
+    const key=g("pc_p2").value;if(!key)return msg("pc_msg2","Choose a plant first.",true);
+    g("pc_go2").disabled=true;msg("pc_msg2","Loading and calculating…");
+    try{
+      const p=REHIST.plants().find(x=>x.key===key),res=await REHIST.load(key),b=KDBUILD.buildDays(res,KDBUILD.SRC[p.region].def,"sum");
+      if(!b.days.length)throw new Error("no data");
+      dsmReceive({name:p.plant,type:guessType(key)==="wind"?"wind":guessType(key),region:p.region,source:p.region,days:b.days,missS:b.missS,missA:b.missA});
+      g("t10").click();setMode(2);
+      if(typeof dCur!=="undefined"&&dCur&&dCur.meta.spv.toLowerCase()===p.plant.toLowerCase()){msg("pc_msg2","");g("dcmp").scrollIntoView({behavior:"smooth",block:"start"})}
+      else msg("pc_msg2",(g("dmsg").textContent||"This plant could not be calculated.").replace(/Open 'Deviation analysis & RCA'.*$/,""),true);
+    }catch(x){msg("pc_msg2","Could not load this plant: "+x.message,true)}
+    g("pc_go2").disabled=false;
+  };
+  g("t10").addEventListener("click",()=>{if(!g("pc_mode2").classList.contains("hide"))showEngine()});
 
   /* ---------- Excel helpers ---------- */
   function sheetRows(buf,name){
@@ -4164,7 +4210,7 @@ drawList();
 
   /* ---------- frequency ---------- */
   g("pc_ftpl").onclick=()=>{
-    const ps=chosen();if(!ps.length)return msg("pc_fmsg","Choose the plants in section 1 first; the template is filled with them.",true);
+    const ps=chosen();if(!ps.length)return msg("pc_fmsg","Choose the plants in the Compare plants tab first; the template is filled with them.",true);
     const days=Math.min(31,Math.max(1,Math.round(+g("pc_fdays").value)||1)),start=dayMin(g("pc_fdate").value||new Date().toLocaleDateString("en-CA"));
     if(ps.length*days*96>200000)return msg("pc_fmsg","That is too many rows for one template. Choose fewer days or plants.",true);
     const hm=m=>String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
@@ -4217,8 +4263,8 @@ drawList();
     const med=k=>{const a=days.flatMap(d=>d.rows.map(x=>x[k]).filter(v=>v>0)).sort((x,y)=>x-y);return a.length?a[a.length>>1]:0};
     const ppa=+r.ppa||med("p")||+g("pc_rate").value,avc=+r.avc||med("v");
     const fillP=+r.ppa?0:days.reduce((n,d)=>n+d.rows.filter(x=>!(x.p>0)&&x.a!==x.s).length,0),fillV=+r.avc?0:days.reduce((n,d)=>n+d.rows.filter(x=>!(x.v>0)&&(x.s>0||x.a>0)).length,0);
-    if(!(avc>0)&&days.some(d=>d.rows.some(x=>!(x.v>0)&&(x.s>0||x.a>0))))throw new Error(`${p.plant}: the data has no available capacity (AvC); enter the row's “AvC (MW) for gaps”`);
-    if(!(ppa>0)&&days.some(d=>d.rows.some(x=>!(x.p>0)&&x.a!==x.s)))throw new Error(`${p.plant}: the data has no rate; enter “Rate for plants without a rate” or the row's “Rate (₹/kWh) for gaps”`);
+    if(!(avc>0)&&days.some(d=>d.rows.some(x=>!(x.v>0)&&(x.s>0||x.a>0))))throw new Error(`${p.plant}: its data has no available capacity (AvC), so it cannot be compared. Choose another plant.`);
+    if(!(ppa>0)&&days.some(d=>d.rows.some(x=>!(x.p>0)&&x.a!==x.s)))throw new Error(`${p.plant}: its data has no rate; enter “Rate for plants without a rate” under More options`);
     const outs=S.out.filter(o=>matches(o,p));
     const fq=new Map();S.freq.forEach(([d,b,reg,pl,bay,f])=>{if((!reg||reg===p.region)&&norm(pl)===norm(p.plant)){const k=d+"|"+b,a=fq.get(k)||[0,0];a[0]+=f;a[1]++;fq.set(k,a)}});
     const T={pay:0,recv:0,eAct:0,avcSum:0,avcN:0,days:days.length,blocks:0,down:0,dPay:0,dRecv:0,fN:0,fSum:0,against:0,againstNet:0,bands:null,labels:null,daily:[],hourNet:Array(24).fill(0),hourDev:Array(24).fill(0),hourN:Array(24).fill(0),hourF:Array(24).fill(0),hourFN:Array(24).fill(0)};
@@ -4247,8 +4293,8 @@ drawList();
 
   g("pc_go").onclick=async()=>{
     S.charts.forEach(c=>c.destroy());S.charts=[];
-    const rows=S.rows.filter(r=>r.key);
-    if(rows.length<2)return msg("pc_msg","Choose at least 2 rows to compare (a plant in each).",true);
+    const rule=g("pc_rule").value,rows=S.rows.filter(r=>r.key).map(r=>({...r,rule,avc:"",ppa:""}));
+    if(rows.length<2)return msg("pc_msg","Choose at least 2 plants to compare.",true);
     g("pc_go").disabled=true;msg("pc_msg","Loading plant data…");
     try{
       const srs=[];for(const [i,r] of rows.entries())srs.push(await series(r,i));
@@ -4259,57 +4305,54 @@ drawList();
       msg("pc_msg","Calculating…");await new Promise(r=>setTimeout(r,20));
       const res=srs.map((s,k)=>({...s,T:settle(s,keepAll||sets[k])}));
       S.last=res;render(res,keepAll);g("pc_dl").disabled=false;
-      msg("pc_msg",`Compared ${res.length} rows${keepAll?` on ${keepAll.size} common day(s)`:""}.`);
+      msg("pc_msg",`Compared ${res.length} plants${keepAll?` on the ${keepAll.size} day(s) they all have`:""}.`);
     }catch(x){msg("pc_msg","Could not compare: "+x.message,true);g("pc_res").innerHTML=""}
     g("pc_go").disabled=false;
   };
 
   /* ---------- results ---------- */
-  const label=s=>`${s.p.plant} · ${ruleName(s.r.rule)}`;
+  const label=s=>s.p.plant;
   const dot=s=>`<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${PAL[s.i%PAL.length]};margin-right:6px"></span>`;
   function render(res,keep){
     const anyDown=res.some(s=>s.T.down),anyF=res.some(s=>s.T.fN);
     const best=res.filter(s=>s.T.perMWday!=null).reduce((a,b)=>!a||b.T.perMWday<a.T.perMWday?b:a,null);
     const maxB=Math.max(...res.map(s=>s.T.bands.length));
     g("pc_res").innerHTML=`<div class="card">
-      <h2 style="margin:0 0 6px;font-size:17px">DSM cost per MW and per MWh</h2>
-      <p class="note" style="margin:0 0 8px">Positive = the plant pays. “Per MW per day” divides by the average available capacity and the number of days, so plants of different sizes and periods compare fairly.</p>
+      <h2 style="margin:0 0 6px;font-size:17px">Which plant pays the least DSM?</h2>
+      <p class="note" style="margin:0 0 8px">Method: ${esc(ruleName(res[0].r.rule))}. Positive = the plant pays. “Per MW per day” lets plants of different sizes compare fairly.</p>
       ${best?`<p style="margin:0 0 8px">Lowest DSM cost per MW: ${dot(best)}<b>${esc(label(best))}</b>, ₹ ${inr(best.T.perMWday)} per MW per day.</p>`:""}
-      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant · method</th><th>Region</th><th>Days</th><th>Avg AvC (MW)</th><th>Actual energy (MWh)</th><th>Payable (₹ lakh)</th><th>Receivable (₹ lakh)</th><th>Net DSM (₹ lakh)</th><th>₹ per MW per day</th><th>₹ per MWh</th>${anyDown?"<th>Down-time blocks</th><th>Net without down time (₹ lakh)</th><th>₹ per MW per day without down time</th><th>Down-time effect (₹ lakh)</th>":""}</tr></thead><tbody>
-      ${res.map(s=>{const T=s.T;return `<tr><td style="text-align:left">${dot(s)}${esc(label(s))}</td><td>${s.p.region}</td><td>${T.days}</td><td>${inr(T.avc,1)}</td><td>${inr(T.eAct)}</td><td>${lakh(T.pay)}</td><td>${lakh(T.recv)}</td><td><b>${lakh(T.net)}</b></td><td>${T.perMWday==null?"–":inr(T.perMWday)}</td><td>${T.perMWh==null?"–":inr(T.perMWh,1)}</td>${anyDown?`<td>${inr(T.down)}</td><td>${lakh(T.netEx)}</td><td>${T.perMWdayEx==null?"–":inr(T.perMWdayEx)}</td><td>${lakh(T.net-T.netEx)}</td>`:""}</tr>`}).join("")}
+      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant</th><th>Region</th><th>Days</th><th>Capacity (MW)</th><th>Net DSM (₹ lakh)</th><th>₹ per MW per day</th><th>₹ per MWh generated</th>${anyDown?"<th>Down-time blocks</th><th>₹ per MW per day without down time</th>":""}</tr></thead><tbody>
+      ${res.map(s=>{const T=s.T;return `<tr><td style="text-align:left">${dot(s)}${esc(label(s))}</td><td>${s.p.region}</td><td>${T.days}</td><td>${inr(T.avc,1)}</td><td>${lakh(T.net)}</td><td><b>${T.perMWday==null?"–":inr(T.perMWday)}</b></td><td>${T.perMWh==null?"–":inr(T.perMWh,1)}</td>${anyDown?`<td>${inr(T.down)}</td><td>${T.perMWdayEx==null?"–":inr(T.perMWdayEx)}</td>`:""}</tr>`}).join("")}
       </tbody></table></div>
-      ${res.some(s=>s.T.fillP||s.T.fillV)?`<p class="note" style="margin:6px 0 0">Filled gaps: ${res.filter(s=>s.T.fillP||s.T.fillV).map(s=>`${esc(s.p.plant)}: ${[s.T.fillP?`${inr(s.T.fillP.n)} block(s) without a rate used ₹ ${s.T.fillP.v.toFixed(2)}/kWh`:"",s.T.fillV?`${inr(s.T.fillV.n)} block(s) without AvC used ${inr(s.T.fillV.v,1)} MW`:""].filter(Boolean).join(" and ")}`).join("; ")} (the plant's typical value, or “Rate for plants without a rate” when the data has none; type your own in the row to change it).</p>`:""}
-      ${anyDown?`<p class="note" style="margin:6px 0 0">Down-time effect = net DSM in the blocks marked as transmission down time. “Without down time” leaves those blocks out.</p>`:""}
+      ${res.some(s=>s.T.fillP||s.T.fillV)?`<p class="note" style="margin:6px 0 0">Filled gaps: ${res.filter(s=>s.T.fillP||s.T.fillV).map(s=>`${esc(s.p.plant)}: ${[s.T.fillP?`${inr(s.T.fillP.n)} block(s) without a rate used ₹ ${s.T.fillP.v.toFixed(2)}/kWh`:"",s.T.fillV?`${inr(s.T.fillV.n)} block(s) without AvC used ${inr(s.T.fillV.v,1)} MW`:""].filter(Boolean).join(" and ")}`).join("; ")} (the plant's typical value, or “Rate for plants without a rate” under More options when the data has none).</p>`:""}
+      ${anyDown?`<p class="note" style="margin:6px 0 0">“Without down time” leaves out the blocks when the transmission line, bay or ICT was down.</p>`:""}
     </div>
     <div class="card">
-      <h2 style="margin:0 0 6px;font-size:17px">Band-wise blocks and charges</h2>
-      <p class="note" style="margin:0 0 8px">Number of blocks whose deviation reached each band of that row's method, and the net DSM from those blocks (₹ lakh). Bands are % of the deviation base (AvC, or the X-factor mix).</p>
-      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant · method</th>${Array.from({length:maxB},(_,j)=>`<th>Band ${j+1} blocks</th><th>Band ${j+1} net (₹ lakh)</th>`).join("")}</tr></thead><tbody>
+      <h2 style="margin:0 0 6px;font-size:17px">How big were the deviations?</h2>
+      <p class="note" style="margin:0 0 8px">Blocks in each deviation band and the DSM from them (₹ lakh). Small deviations fall in band 1; band ${maxB} is the costly one.</p>
+      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant</th>${Array.from({length:maxB},(_,j)=>`<th>Band ${j+1} blocks</th><th>Band ${j+1} net (₹ lakh)</th>`).join("")}</tr></thead><tbody>
       ${res.map(s=>`<tr><td style="text-align:left">${dot(s)}${esc(label(s))}</td>${Array.from({length:maxB},(_,j)=>{const b=s.T.bands[j];return b?`<td>${inr(b.n)} <span class="note">(${s.T.labels[j]})</span></td><td>${lakh(b.net)}</td>`:"<td>–</td><td>–</td>"}).join("")}</tr>`).join("")}
       </tbody></table></div>
-      <div class="chartbox" style="height:260px;margin-top:10px"><canvas id="pc_cb"></canvas></div>
     </div>
     <div class="card">
-      <h2 style="margin:0 0 6px;font-size:17px">Day pattern</h2>
+      <h2 style="margin:0 0 6px;font-size:17px">DSM day by day</h2>
       ${anyDown?`<div class="tools" style="margin-bottom:6px"><label class="note"><input type="checkbox" id="pc_ex"> Leave out down-time blocks in this chart</label></div>`:""}
       <div class="chartbox" style="height:300px"><canvas id="pc_cd"></canvas></div>
     </div>
     <div class="card">
-      <h2 style="margin:0 0 6px;font-size:17px">Time-of-day pattern</h2>
-      <p class="note" style="margin:0 0 8px">Average over the compared days, by hour of the day${anyF?". The dotted line is the average frequency from your bay-wise data":""}.</p>
+      <h2 style="margin:0 0 6px;font-size:17px">Which hours cost the most?</h2>
+      <p class="note" style="margin:0 0 8px">Average day${anyF?". The dotted line is the average frequency from your bay-wise data":""}.</p>
       <div class="chartbox" style="height:300px"><canvas id="pc_ch"></canvas></div>
-      <div class="chartbox" style="height:260px;margin-top:10px"><canvas id="pc_cv"></canvas></div>
     </div>
     ${anyF?`<div class="card">
       <h2 style="margin:0 0 6px;font-size:17px">Frequency (bay-wise data)</h2>
       <p class="note" style="margin:0 0 8px">Against the grid = under-injection while frequency is below 49.97 Hz, or over-injection while it is above 50.03 Hz.</p>
-      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant · method</th><th>Blocks with frequency</th><th>Average frequency (Hz)</th><th>Blocks deviating against the grid</th><th>Net DSM in those blocks (₹ lakh)</th></tr></thead><tbody>
+      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant</th><th>Blocks with frequency</th><th>Average frequency (Hz)</th><th>Blocks deviating against the grid</th><th>Net DSM in those blocks (₹ lakh)</th></tr></thead><tbody>
       ${res.map(s=>`<tr><td style="text-align:left">${dot(s)}${esc(label(s))}</td><td>${inr(s.T.fN)}</td><td>${s.T.fN?(s.T.fSum/s.T.fN).toFixed(3):"–"}</td><td>${inr(s.T.against)}${s.T.fN?` (${(s.T.against/s.T.fN*100).toFixed(1)}%)`:""}</td><td>${lakh(s.T.againstNet)}</td></tr>`).join("")}
       </tbody></table></div></div>`:""}`;
     if(typeof Chart==="undefined")return;
     const ds=(f,extra={})=>res.map(s=>({label:label(s),data:f(s),borderColor:PAL[s.i%PAL.length],backgroundColor:PAL[s.i%PAL.length],borderWidth:2,pointRadius:0,tension:.15,...extra}));
     const opt=(title,y,more={})=>({responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{title:{display:true,text:title}},scales:{y:{title:{display:true,text:y}},...more}});
-    S.charts.push(new Chart(g("pc_cb"),{type:"bar",data:{labels:Array.from({length:maxB},(_,j)=>"Band "+(j+1)),datasets:res.map(s=>({label:label(s),data:Array.from({length:maxB},(_,j)=>s.T.bands[j]?s.T.bands[j].n:0),backgroundColor:PAL[s.i%PAL.length]}))},options:opt("Blocks in each deviation band","Blocks")}));
     const dates=[...new Set(res.flatMap(s=>s.T.daily.map(d=>d.date)))].sort();
     const dayChart=ex=>new Chart(g("pc_cd"),{type:"line",data:{labels:dates,datasets:ds(s=>{const m=new Map(s.T.daily.map(d=>[d.date,d]));return dates.map(dt=>{const d=m.get(dt);return d&&s.T.avc>0?+((ex?d.netEx:d.net)/s.T.avc).toFixed(2):null})},{spanGaps:false})},options:opt(`Net DSM per MW per day${ex?" (without down-time blocks)":""} (₹, positive = plant pays)`,"₹ per MW",{x:{ticks:{maxTicksLimit:14}}})});
     let dc=dayChart(false);S.charts.push(dc);
@@ -4319,7 +4362,6 @@ drawList();
     const fAll=hrs.map((_,h)=>{let a=0,n=0;res.forEach(s=>{a+=s.T.hourF[h];n+=s.T.hourFN[h]});return n?+(a/n).toFixed(3):null});
     if(anyF)hourDs.push({label:"Average frequency (Hz)",data:fAll,borderColor:"#64748b",backgroundColor:"#64748b",borderDash:[4,4],borderWidth:1.5,pointRadius:0,yAxisID:"f"});
     S.charts.push(new Chart(g("pc_ch"),{type:"line",data:{labels:hrs,datasets:hourDs},options:opt("Net DSM per MW in each hour of an average day (₹, positive = plant pays)","₹ per MW per hour",anyF?{f:{position:"right",title:{display:true,text:"Hz"},grid:{drawOnChartArea:false}}}:{})}));
-    S.charts.push(new Chart(g("pc_cv"),{type:"line",data:{labels:hrs,datasets:ds(s=>s.T.hourDev.map((v,h)=>s.T.hourN[h]?+(v/s.T.hourN[h]).toFixed(2):null))},options:opt("Average deviation by hour (% of AvC)","% of AvC")}));
   }
 
   g("pc_dl").onclick=()=>{
