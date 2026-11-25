@@ -672,13 +672,14 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   <div class="row" style="margin-top:8px">
     <label class="f" style="flex:1 1 240px">Search plants<input id="pc_q" placeholder="Type part of a plant name"></label>
     <label class="f" style="flex:1 1 260px">DSM method for all plants<select id="pc_rule"></select></label>
+    <label class="f" style="flex:0 1 170px">From date<input id="pc_from" type="date"></label>
+    <label class="f" style="flex:0 1 170px">To date<input id="pc_to" type="date"></label>
   </div>
+  <p class="note" style="margin:4px 0 0">Leave the dates empty to use every date the plants have.</p>
   <div id="pc_list" style="margin-top:8px"></div>
   <div class="tools" style="margin-top:10px"><button type="button" class="alt" id="pc_add">+ Add plant</button></div>
-  <details style="margin-top:10px"><summary class="note">More options: dates and rate</summary>
+  <details style="margin-top:10px"><summary class="note">More options</summary>
     <div class="row" style="margin-top:8px">
-      <label class="f" style="flex:0 1 170px">From<input id="pc_from" type="date"></label>
-      <label class="f" style="flex:0 1 170px">To<input id="pc_to" type="date"></label>
       <label class="f" style="flex:0 1 280px">Dates<select id="pc_common"><option value="common">Only dates every plant has (fair comparison)</option><option value="all">All dates of each plant</option></select></label>
       <label class="f" style="flex:0 1 230px">Rate for plants without a rate (₹/kWh)<input id="pc_rate" type="number" min="0" step="0.01"></label>
     </div>
@@ -717,7 +718,10 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   <div class="row" style="margin-top:8px">
     <label class="f" style="flex:1 1 220px">Search plants<input id="pc_q2" placeholder="Type part of a plant name"></label>
     <label class="f" style="flex:3 1 380px">Plant / SPV<select id="pc_p2"></select></label>
+    <label class="f" style="flex:0 1 170px">From date<input id="pc_from2" type="date"></label>
+    <label class="f" style="flex:0 1 170px">To date<input id="pc_to2" type="date"></label>
   </div>
+  <p class="note" style="margin:4px 0 0">Leave the dates empty to use every date the plant has.</p>
   <div class="tools" style="margin-top:10px"><button type="button" id="pc_go2">Compare DSM methods</button><span class="note" id="pc_msg2" role="status"></span></div>
   <p class="note" style="margin:8px 0 0" id="pc_eng"></p>
 </div>
@@ -4144,7 +4148,11 @@ drawList();
     try{
       const p=REHIST.plants().find(x=>x.key===key),res=await REHIST.load(key),b=KDBUILD.buildDays(res,KDBUILD.SRC[p.region].def,"sum");
       if(!b.days.length)throw new Error("no data");
-      dsmReceive({name:p.plant,type:guessType(key)==="wind"?"wind":guessType(key),region:p.region,source:p.region,days:b.days,missS:b.missS,missA:b.missA});
+      const f2=g("pc_from2").value,t2=g("pc_to2").value;
+      if(f2&&t2&&t2<f2)throw new Error("the To date is before the From date");
+      const days=b.days.filter(d=>(!f2||d.date>=f2)&&(!t2||d.date<=t2));
+      if(!days.length)throw new Error(`no data between these dates (this plant has ${p.first} to ${p.last})`);
+      dsmReceive({name:p.plant,type:guessType(key)==="wind"?"wind":guessType(key),region:p.region,source:p.region,days,missS:b.missS,missA:b.missA});
       g("t10").click();setMode(2);
       if(typeof dCur!=="undefined"&&dCur&&dCur.meta.spv.toLowerCase()===p.plant.toLowerCase()){msg("pc_msg2","");g("dcmp").scrollIntoView({behavior:"smooth",block:"start"})}
       else msg("pc_msg2",(g("dmsg").textContent||"This plant could not be calculated.").replace(/Open 'Deviation analysis & RCA'.*$/,""),true);
@@ -4253,6 +4261,7 @@ drawList();
     let res=S.cache.get(r.key);if(!res){res=await REHIST.load(r.key);S.cache.set(r.key,res)}
     const built=KDBUILD.buildDays(res,KDBUILD.SRC[p.region].def,"sum");
     const from=g("pc_from").value,to=g("pc_to").value;
+    if(from&&to&&to<from)throw new Error("the To date is before the From date");
     const days=built.days.filter(d=>(!from||d.date>=from)&&(!to||d.date<=to));
     return {i,r,p,days};
   }

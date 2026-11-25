@@ -27,7 +27,7 @@ button.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
 @media (prefers-color-scheme:dark){.tabs button.on{color:#08201d}}
 .hide{display:none}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;margin-bottom:12px}
-.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}.kpi b{display:block;font-size:19px}.kpi span{font-size:12px;color:var(--mute)}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}.kpi b{display:block;font-size:19px}.kpi span{font-size:12px;color:var(--mute)}.kpi b span{font-size:inherit}.kpi b span.pay{color:var(--pay)}.kpi b span.rec{color:var(--rec)}
 .chartbox{height:340px;position:relative}
 .scroll{overflow:auto;max-height:460px;border:1px solid var(--line);border-radius:6px}
 table{border-collapse:collapse;width:100%;font-size:13px}
@@ -62,6 +62,14 @@ ul.rules{padding-left:18px;font-size:14px}ul.rules li{margin:4px 0}
   <div class="tools"><label class="note">Unit name <input id="tpl_unit" value="BESS-1" style="width:120px"></label><label class="note">First day <input id="tpl_date" type="date"></label><label class="note">Days <input id="tpl_days" type="number" min="1" max="31" value="1" style="width:64px"></label><button id="tpl_dl">Download Excel template</button></div>
 </div>
 <div class="card">
+  <div class="tools" style="margin-bottom:10px"><label class="note" style="display:flex;flex-direction:column;gap:4px;flex:1 1 420px">Calculation method
+    <select id="meth">
+      <option value="auto">Automatic: the method that best matches the RLDC amounts in the file</option>
+      <option value="gs">CERC general seller, Reg. 8(1) with 8(5) (same as thermal)</option>
+      <option value="rldc">RLDC practice (Oct 2026 accounts): charging &amp; idle drawal at ACP DAM rate, unscheduled injection at Normal Rate up to ₹2/kWh</option>
+      <option value="trial">Trial / infirm operation (Jun 2026 accounts): discharge not charged, charging &amp; idle drawal at ACP DAM rate</option>
+    </select></label></div>
+  <p class="note" style="margin:0 0 10px">For your own data (filled template), Automatic uses the CERC general seller rule. Pick another method to calculate it the way your RLDC account does. See “Rules used” for each method.</p>
   <div class="drop" id="drop">Drop one or more DSM files here (filled template .xlsx, or RLDC .csv), or <label style="color:var(--accent);cursor:pointer;text-decoration:underline">choose files<input type="file" id="file" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple style="display:none"></label><br><span class="note">RLDC CSV columns: Date, Time, Block, Freq(Hz), Constituents, Actual (MWH), Schedule (MWH), SRAS, Deviation, Deviation %, DSM Payable, DSM Receivable, Normal Rate, Wt. Avg. Hybrid Rate, …</span></div>
   <div class="tools"><label class="note">Unit: <select id="unit"></select></label><label class="note">Date: <select id="date"><option value="">All dates</option></select></label><button class="alt" id="dl">Download annotated CSV</button></div>
   <div id="msg" class="note"></div>
@@ -75,7 +83,7 @@ ul.rules{padding-left:18px;font-size:14px}ul.rules li{margin:4px 0}
 </div>
 <div class="card">
   <h2>Where the money went</h2>
-  <div class="scroll" style="max-height:300px"><table><thead><tr><th>Category</th><th>Meaning</th><th>Blocks</th><th>Deviation MWh</th><th>Payable Rs</th><th>Receivable Rs</th><th>Net Rs</th></tr></thead><tbody id="cat"></tbody></table></div>
+  <div class="scroll" style="max-height:300px"><table><thead><tr><th>Category</th><th>Meaning</th><th>Blocks</th><th>Deviation MWh</th><th>Payable Rs</th><th>Receivable Rs</th><th>Net Rs</th><th>Method net Rs</th><th>Difference Rs</th></tr></thead><tbody id="cat"></tbody></table></div>
 </div>
 <div class="card">
   <h2>Net DSM per day (Rs lakh; positive = unit pays)</h2>
@@ -119,6 +127,17 @@ ul.rules{padding-left:18px;font-size:14px}ul.rules li{margin:4px 0}
 
 <!-- ============ TAB 3 ============ -->
 <div id="p3" class="hide">
+<div class="card">
+  <h2>Calculation methods</h2>
+  <p>Choose the method on the Block-wise impact tab. With an RLDC file, <b>Automatic</b> picks the method that reproduces the most blocks of that file and shows how well each one matches.</p>
+  <div class="scroll"><table><thead><tr><th scope="col">Block type</th><th scope="col">CERC general seller, Reg. 8(1) with 8(5)</th><th scope="col">RLDC practice (Oct 2026 accounts)</th><th scope="col">Trial / infirm operation (Jun 2026 accounts)</th></tr></thead><tbody>
+  <tr><td>Discharging, below or above schedule</td><td>General seller formula below (10% volume limit, frequency-linked %)</td><td>Same as general seller</td><td>Not charged (Rs 0)</td></tr>
+  <tr><td>Charging, more or less than scheduled</td><td>General seller formula below</td><td>Deviation × Wt. Avg. ACP DAM rate, 100%, no volume limit</td><td>Same as RLDC practice</td></tr>
+  <tr><td>No schedule, drawing power</td><td>General seller formula below</td><td>Deviation × Wt. Avg. ACP DAM rate</td><td>Same as RLDC practice</td></tr>
+  <tr><td>No schedule, injecting</td><td>General seller formula below (earns nothing beyond the limit)</td><td>Deviation × Normal Rate, capped at Rs 2.00/kWh</td><td>Not paid (Rs 0)</td></tr>
+  </tbody></table></div>
+  <p class="note">Regulation 8(5) of the CERC DSM Regulations 2024 says a standalone energy storage system is charged as a general seller (other than RoR and municipal solid waste stations). The two RLDC methods describe how RLDC settled the sample accounts studied (October and June 2026); they are observations from those files, not regulation text. If the file has no ACP DAM rate, the reference rate is used instead.</p>
+</div>
 <div class="card">
   <h2>How standalone BESS DSM is calculated</h2>
   <p>DSM settles the difference between what the battery was scheduled to do and what it actually did in each 15-minute block. Discharging is positive MWh and charging is negative MWh.</p>
@@ -171,11 +190,23 @@ function mOverBeyond(f){ return f>=50.10?-.10:0 }
 const toRs=(mwh,rr)=>mwh*1000*rr/100;
 
 // compute one block. returns {pay,rec,net,steps[],cat}
-function calc(sch,act,f,rr,capMW){
+const METHODS={gs:'CERC general seller, Reg. 8(1) with 8(5)',rldc:'RLDC practice (Oct 2026 accounts)',trial:'Trial / infirm operation (Jun 2026 accounts)'};
+function calc(sch,act,f,rr,capMW,acp,nr,meth){
   const dev=act-sch, vl=Math.min(0.10*Math.abs(sch),(capMW||100)/4), steps=[];
   let pay=0,rec=0,cat;
   if(sch>0) cat=dev<0?'A':'B'; else if(sch<0) cat=dev<0?'C':'D'; else cat=dev<0?'E':'F';
-  if(dev<0){ // under-injection OR charging over-drawal -> payable
+  const pr=acp>0?acp:rr, prName=acp>0?'Wt. Avg. ACP DAM rate':'reference rate (no ACP DAM rate in the file)';
+  if(meth==='trial'&&sch>0){
+    steps.push('Trial / infirm operation: discharge deviation is not charged (Rs 0).');
+  } else if((meth==='rldc'||meth==='trial')&&(sch<0||(sch===0&&dev<0))){ // charging, or drawing with no schedule: energy at the ACP DAM rate, 100%, no volume limit
+    const a=toRs(Math.abs(dev),pr);
+    if(dev<0)pay=a;else if(dev>0)rec=a;
+    if(dev)steps.push(`${sch<0?'Charging':'No schedule, drawing power'}: ${Math.abs(dev).toFixed(4)} MWh × Rs ${(pr/100).toFixed(2)}/kWh (${prName}), 100%, no volume limit = Rs ${fmt(a)} ${dev<0?'payable':'receivable'}`);
+    else steps.push('No deviation.');
+  } else if((meth==='rldc'||meth==='trial')&&sch===0&&dev>0){ // injecting with no schedule
+    if(meth==='trial')steps.push('Trial / infirm operation: injection with no schedule is not paid (Rs 0).');
+    else{const r=Math.min(nr>0?nr:rr,200);rec=toRs(dev,r);steps.push(`No schedule, injecting: ${dev.toFixed(4)} MWh × Rs ${(r/100).toFixed(2)}/kWh (Normal Rate, capped at Rs 2.00/kWh) = Rs ${fmt(rec)} receivable`)}
+  } else if(dev<0){ // under-injection OR charging over-drawal -> payable
     const inside=Math.min(-dev,vl), beyond=Math.max(-dev-vl,0);
     const m1=mUnderIn(f), m2=mUnderBeyond(f);
     const a=toRs(inside,rr)*m1, b=toRs(beyond,rr)*m2; pay=a+b;
@@ -191,7 +222,7 @@ function calc(sch,act,f,rr,capMW){
   } else steps.push('No deviation.');
   return {pay,rec,net:pay-rec,steps,cat,vl,dev};
 }
-const CATS={A:'Discharging: delivered LESS than schedule (payable)',B:'Discharging: delivered MORE than schedule (receivable, max 10%)',C:'Charging: drew MORE than schedule (payable)',D:'Charging: drew LESS than schedule (receivable, max 10%)',E:'No schedule: drawing power / auxiliary (payable)',F:'No schedule: injecting (receivable)'};
+const CATS={A:'Discharging: delivered LESS than schedule (payable)',B:'Discharging: delivered MORE than schedule (receivable, max 10%)',C:'Charging: drew MORE than schedule (payable)',D:'Charging: drew LESS than schedule (receivable)',E:'No schedule: drawing power / auxiliary (payable)',F:'No schedule: injecting (receivable)'};
 function fmt(n){return (Math.round(n*100)/100).toLocaleString('en-IN',{maximumFractionDigits:2})}
 function lakh(n){return (n/1e5).toFixed(2)}
 
@@ -199,18 +230,18 @@ function lakh(n){return (n/1e5).toFixed(2)}
 function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(l=>l.trim()); if(!lines.length)throw new Error('Empty CSV'); const hdr=splitLine(lines[0]).map(h=>h.trim().toLowerCase());
   const col=(...names)=>{for(const n of names){const i=hdr.findIndex(h=>h.includes(n));if(i>=0)return i}return -1};
-  const ix={date:col('date'),time:col('time'),block:col('block'),f:col('freq'),unit:col('constituent'),act:col('actual'),sch:col('schedule'),dev:col('deviation(mwh)','deviation (mwh)'),pay:col('payable'),rec:col('receivable'),nr:col('normal rate'),hyb:col('hybrid'),hpn:col('hpdam normal'),rate:col('rate (p/kwh)')};
+  const ix={date:col('date'),time:col('time'),block:col('block'),f:col('freq'),unit:col('constituent'),act:col('actual'),sch:col('schedule'),dev:col('deviation(mwh)','deviation (mwh)'),pay:col('payable'),rec:col('receivable'),nr:col('normal rate'),hyb:col('hybrid'),hpn:col('hpdam normal'),rate:col('rate (p/kwh)'),acp:col('acp dam')};
   if([ix.date,ix.time,ix.act,ix.sch,ix.f].some(i=>i<0)) throw new Error('Expected Date, Time, Actual, Schedule and Frequency columns');
   const rows=[];
   for(let i=1;i<lines.length;i++){const c=splitLine(lines[i]); if(c.length<8)continue;
-    const r={date:c[ix.date],time:c[ix.time],block:+c[ix.block],f:+c[ix.f],unit:ix.unit>=0?c[ix.unit]:'unit',act:+c[ix.act],sch:+c[ix.sch],pay:ix.pay>=0?+c[ix.pay]:0,rec:ix.rec>=0?+c[ix.rec]:0,nr:ix.nr>=0?+c[ix.nr]:0,hyb:ix.hyb>=0?+c[ix.hyb]:ix.rate>=0?+c[ix.rate]:0};
+    const r={date:c[ix.date],time:c[ix.time],block:+c[ix.block],f:+c[ix.f],unit:ix.unit>=0?c[ix.unit]:'unit',act:+c[ix.act],sch:+c[ix.sch],pay:ix.pay>=0?+c[ix.pay]:0,rec:ix.rec>=0?+c[ix.rec]:0,nr:ix.nr>=0?+c[ix.nr]:0,hyb:ix.hyb>=0?+c[ix.hyb]:ix.rate>=0?+c[ix.rate]:0,acp:ix.acp>=0?+c[ix.acp]||0:0};
     r.fileAmt=[ix.pay,ix.rec].some(k=>k>=0&&String(c[k]??'').trim()!=='');
     if(![r.act,r.sch,r.f,r.pay,r.rec,r.nr,r.hyb].every(Number.isFinite)||!c[ix.f]?.trim()||!c[ix.act]?.trim()||!c[ix.sch]?.trim())continue; r.dev=r.act-r.sch; rows.push(r)}
   if(!rows.length)throw new Error('No valid DSM blocks found');
   return rows;
 }
 // ---------- Excel template (download / upload) ----------
-const TPL_HEAD=['Date (YYYY-MM-DD)','Block no.','Time (from-to)','Unit / constituent','Frequency (Hz)','Schedule (MWh)','Actual (MWh)','Normal Rate (p/kWh)','Wt. Avg. Hybrid Rate (p/kWh, optional)','DSM payable from RLDC (Rs, optional)','DSM receivable from RLDC (Rs, optional)'];
+const TPL_HEAD=['Date (YYYY-MM-DD)','Block no.','Time (from-to)','Unit / constituent','Frequency (Hz)','Schedule (MWh)','Actual (MWh)','Normal Rate (p/kWh)','Wt. Avg. Hybrid Rate (p/kWh, optional)','Wt. Avg. ACP DAM Rate (p/kWh, optional)','DSM payable from RLDC (Rs, optional)','DSM receivable from RLDC (Rs, optional)'];
 function xlsxToCSV(buf){
   if(typeof XLSX==='undefined')throw new Error('Excel reader did not load; save the file as CSV and upload that instead');
   const wb=XLSX.read(buf,{type:'array'}), name=wb.SheetNames.find(n=>/dsm data/i.test(n))||wb.SheetNames[0];
@@ -222,9 +253,9 @@ function downloadTemplate(){
   const hm=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
   const data=[TPL_HEAD];
   for(let d=0;d<days;d++){const day=new Date(start.getTime()+d*864e5).toISOString().slice(0,10);
-    for(let b=1;b<=96;b++)data.push([day,b,hm((b-1)*15)+'-'+(b===96?'24:00':hm(b*15)),unit,'','','','','','',''])}
+    for(let b=1;b<=96;b++)data.push([day,b,hm((b-1)*15)+'-'+(b===96?'24:00':hm(b*15)),unit,'','','','','','','',''])}
   const ws=XLSX.utils.aoa_to_sheet(data);
-  ws['!cols']=[14,9,13,18,15,15,14,20,30,32,34].map(w=>({wch:w}));
+  ws['!cols']=[14,9,13,18,15,15,14,20,30,32,32,34].map(w=>({wch:w}));
   const help=[
     ['How to use this template'],
     ['1. Fill one row per 15-minute block in the "DSM data" sheet. Date, block, time and unit are already filled in; you can change them.'],
@@ -242,11 +273,12 @@ function downloadTemplate(){
     ['Actual (MWh)','Metered energy in the block, same sign rule: discharge positive, charge negative.','23.4'],
     ['Normal Rate (p/kWh)','Normal Rate of the block in paise per kWh, as shown in the RLDC DSM account. Rs 10/kWh = 1000.','1000'],
     ['Wt. Avg. Hybrid Rate (p/kWh, optional)','Weighted average hybrid (contract) rate of the block in paise per kWh, as in the RLDC DSM account. Leave blank if not applicable.','1250'],
+    ['Wt. Avg. ACP DAM Rate (p/kWh, optional)','Weighted average Day-Ahead Market clearing price of the block in paise per kWh (as in the RLDC DSM account). Needed for the “RLDC practice” and “Trial / infirm operation” methods, which settle charging and idle drawal at this rate.','350'],
     ['Which rate is used?','Reference rate (RR) = Wt. Avg. Hybrid Rate when it is filled and above 0; otherwise Normal Rate. This is the same rule the app uses for RLDC CSV files.',''],
     ['DSM payable from RLDC (Rs, optional)','Leave blank to let the app calculate. If you enter the RLDC figure, the app compares it with its own formula.',''],
     ['DSM receivable from RLDC (Rs, optional)','Leave blank to let the app calculate. If you enter the RLDC figure, the app compares it with its own formula.',''],
     [''],
-    ['The app applies the CERC DSM Regulations 2024 (energy storage), with a volume limit of 10% of schedule capped at 25 MWh (100 MW) per block.']
+    ['Pick the calculation method on the page before uploading: CERC general seller (Reg. 8(1) with 8(5), same as thermal; 10% volume limit capped at 25 MWh per block), RLDC practice (Oct 2026 accounts) or Trial / infirm operation (Jun 2026 accounts). See “Rules used” on the page.']
   ];
   const hs=XLSX.utils.aoa_to_sheet(help); hs['!cols']=[{wch:38},{wch:100},{wch:14}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'DSM data'); XLSX.utils.book_append_sheet(wb,hs,'Instructions');
@@ -262,14 +294,25 @@ function load(files){
   const reads=[...files].map(async f=>{try{return {rows:parseCSV(/\.xlsx?$/i.test(f.name)?xlsxToCSV(await f.arrayBuffer()):await f.text())}}catch(e){return {rows:[],error:f.name+': '+e.message}}});
   Promise.all(reads).then(res=>{
     ALL=ALL.concat(res.flatMap(result=>result.rows));
-    ALL.forEach(r=>{ r.rr=r.hyb>0?r.hyb:r.nr; const m=calc(r.sch,r.act,r.f,r.rr,100); Object.assign(r,{m}); r.cat=m.cat;
-      if(!r.fileAmt){r.pay=m.pay;r.rec=m.rec;r.calc=true} r.diff=(r.pay-r.rec)-m.net; });
+    ALL.forEach(r=>{r.rr=r.hyb>0?r.hyb:r.nr;if(r.fpay===undefined){r.fpay=r.pay;r.frec=r.rec}});
+    settle();
     const noRate=ALL.filter(r=>r.calc&&!(r.rr>0)&&r.dev!==0).length;
     const units=[...new Set(ALL.map(r=>r.unit))]; $('unit').innerHTML=units.map(u=>`<option>${escapeHTML(u)}</option>`).join('');
     const dates=[...new Set(ALL.map(r=>r.date))].sort(); $('date').innerHTML='<option value="">All dates</option>'+dates.map(d=>`<option>${escapeHTML(d)}</option>`).join('');
     $('msg').textContent=`${ALL.length} blocks loaded for ${units.length} unit(s), ${dates.length} day(s). ${ALL.some(r=>r.calc)?' Where the file has no RLDC payable/receivable, the amounts are calculated with the CERC formula.':''}${noRate?` Warning: ${noRate} block(s) with a deviation have no rate, so their amount is 0.`:''} ${res.map(result=>result.error).filter(Boolean).join(" ")}`;
     render();
   });
+}
+// settle every block with the chosen method; "Automatic" scores each method against the RLDC amounts in the file
+let USED='gs',SCORE=null;
+function settle(){
+  const file=ALL.filter(r=>r.fileAmt),hit=(r,m)=>Math.abs((r.fpay-r.frec)-m.net)<=Math.max(1,0.01*Math.abs(r.fpay-r.frec));
+  SCORE=file.length?Object.keys(METHODS).map(k=>{let n=0,e=0,net=0;file.forEach(r=>{const m=calc(r.sch,r.act,r.f,r.rr,100,r.acp,r.nr,k);net+=m.net;e+=Math.abs((r.fpay-r.frec)-m.net);if(hit(r,m))n++});return {k,n,e,net}}):null;
+  const sel=$('meth').value;
+  USED=sel!=='auto'?sel:SCORE?SCORE.reduce((a,b)=>b.e<a.e?b:a).k:'gs';
+  ALL.forEach(r=>{const m=calc(r.sch,r.act,r.f,r.rr,100,r.acp,r.nr,USED);r.m=m;r.cat=m.cat;
+    if(r.fileAmt){r.pay=r.fpay;r.rec=r.frec}else{r.pay=m.pay;r.rec=m.rec;r.calc=true}
+    r.diff=(r.pay-r.rec)-m.net});
 }
 function view(){const u=$('unit').value,d=$('date').value;return ALL.filter(r=>r.unit===u&&(!d||r.date===d))}
 function render(){
@@ -286,10 +329,19 @@ function render(){
   ].map(([b,s])=>`<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join('');
   const dis=rows.filter(r=>r.sch>0), ok=dis.filter(r=>Math.abs(r.diff)<=0.01*Math.max(1,r.pay+r.rec)).length;
   const modelNet=rows.reduce((a,r)=>a+r.m.net,0);
-  $('fit').innerHTML=rows.every(r=>r.calc)?`Amounts calculated block by block with the CERC DSM 2024 formula (volume limit cap 100 MW). Click any row in "All blocks" to see how its amount is built up.`:`Formula check: ${ok} of ${dis.length} discharge blocks reproduced within 1% (contract rate known). Formula net for all blocks Rs ${lakh(modelNet)} L vs file Rs ${lakh(net)} L; the gap is mainly charging/idle blocks where the purchase price is not in the file.`;
+  const mline=`<p style="margin:0 0 6px">Calculation method: <b>${METHODS[USED]}</b>${$('meth').value==='auto'&&SCORE?' (chosen automatically: it is closest to the RLDC amounts, block by block)':''}.</p>`;
+  const vRows=rows.filter(r=>r.fileAmt),tbl=vRows.length?`<p style="margin:8px 0 4px"><b>How well each method matches this file</b> (unit and dates shown)</p><div class="scroll" style="max-height:none"><table><thead><tr><th>Method</th><th>Blocks matching (within 1%)</th><th>Total block-by-block difference (Rs lakh)</th><th>Method net Rs lakh</th><th>RLDC net Rs lakh</th></tr></thead><tbody>${Object.keys(METHODS).map(k=>{let n=0,e=0,mn=0;vRows.forEach(r=>{const m=calc(r.sch,r.act,r.f,r.rr,100,r.acp,r.nr,k);mn+=m.net;e+=Math.abs((r.fpay-r.frec)-m.net);if(Math.abs((r.fpay-r.frec)-m.net)<=Math.max(1,0.01*Math.abs(r.fpay-r.frec)))n++});return `<tr${k===USED?' style="font-weight:600"':''}><td>${METHODS[k]}${k===USED?' (in use)':''}</td><td>${n} of ${vRows.length} (${(n/vRows.length*100).toFixed(0)}%)</td><td>${lakh(e)}</td><td>${lakh(mn)}</td><td>${lakh(vRows.reduce((a,r)=>a+r.fpay-r.frec,0))}</td></tr>`}).join('')}</tbody></table></div>`:'';
+  $('fit').innerHTML=mline+(rows.every(r=>r.calc)?`Amounts calculated block by block with this method (volume limit cap 100 MW where it applies). Click any row in "All blocks" to see how its amount is built up.`:`Check against the RLDC file: ${rows.filter(r=>r.fileAmt&&Math.abs(r.diff)<=Math.max(1,0.01*Math.abs(r.pay-r.rec))).length} of ${rows.length} blocks reproduced within 1%. Method net Rs ${lakh(modelNet)} L vs file Rs ${lakh(net)} L.`)+tbl;
   // categories
-  const cats={}; rows.forEach(r=>{const c=cats[r.cat]||(cats[r.cat]={n:0,dev:0,pay:0,rec:0});c.n++;c.dev+=r.dev;c.pay+=r.pay;c.rec+=r.rec});
-  $('cat').innerHTML=Object.keys(CATS).map(k=>{const c=cats[k]||{n:0,dev:0,pay:0,rec:0};const n=c.pay-c.rec;return `<tr><td>${k}</td><td>${CATS[k]}</td><td>${c.n}</td><td>${c.dev.toFixed(1)}</td><td>${fmt(c.pay)}</td><td>${fmt(c.rec)}</td><td class="${n>0?'pay':'rec'}">${fmt(n)}</td></tr>`}).join('');
+  const cats={}; rows.forEach(r=>{const c=cats[r.cat]||(cats[r.cat]={n:0,dev:0,pay:0,rec:0,m:0,ok:0,zero:0});c.n++;c.dev+=r.dev;c.pay+=r.pay;c.rec+=r.rec;c.m+=r.m.net;
+    if(Math.abs(r.diff)<=Math.max(1,0.01*Math.abs(r.pay-r.rec)))c.ok++;if(r.dev!==0&&!r.pay&&!r.rec&&Math.abs(r.m.net)>1)c.zero++});
+  $('cat').innerHTML=Object.keys(CATS).map(k=>{const c=cats[k]||{n:0,dev:0,pay:0,rec:0,m:0};const n=c.pay-c.rec,d=c.m-n;return `<tr><td>${k}</td><td>${CATS[k]}</td><td>${c.n}</td><td>${c.dev.toFixed(1)}</td><td>${fmt(c.pay)}</td><td>${fmt(c.rec)}</td><td class="${n>0?'pay':'rec'}">${fmt(n)}</td><td>${fmt(c.m)}</td><td>${Math.abs(d)<1?'–':fmt(d)}</td></tr>`}).join('');
+  if(!rows.every(r=>r.calc)){
+    const name={A:'discharging below schedule',B:'discharging above schedule',C:'charging more than scheduled',D:'charging less than scheduled',E:'drawing power with no schedule',F:'injecting with no schedule'};
+    const notes=Object.keys(CATS).filter(k=>cats[k]&&Math.abs(cats[k].m-(cats[k].pay-cats[k].rec))>=1000).sort((a,b)=>Math.abs(cats[b].m-cats[b].pay+cats[b].rec)-Math.abs(cats[a].m-cats[a].pay+cats[a].rec)).map(k=>{const c=cats[k];
+      return `<li><b>${k} · ${name[k]}</b>: file Rs ${lakh(c.pay-c.rec)} L, this method Rs ${lakh(c.m)} L (${c.ok} of ${c.n} blocks match).${c.zero>c.n/2?` RLDC settled ${c.zero} of these blocks at Rs 0, so this method does not describe them; try another method above.`:''}${['C','D','E'].includes(k)&&USED!=='gs'&&!rows.some(r=>r.acp>0)?' This file has no Wt. Avg. ACP DAM rate column, so the reference rate was used instead.':''}</li>`});
+    $('fit').innerHTML+=notes.length?`<p style="margin:8px 0 2px"><b>Where this method and the RLDC file differ</b> (the totals above are always the RLDC figures):</p><ul style="margin:0;padding-left:20px">${notes.join('')}</ul>`:'<p style="margin:8px 0 0">This method matches the RLDC file in every category.</p>';
+  }
   // daily chart
   const byDay=Object.create(null); rows.forEach(r=>{byDay[r.date]=(byDay[r.date]||0)+r.pay-r.rec});
   const days=Object.keys(byDay).sort();
@@ -344,7 +396,8 @@ $('file').addEventListener('change',e=>load(e.target.files));
 const dz=$('drop');['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('on')}));
 ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('on')}));
 dz.addEventListener('drop',e=>load(e.dataTransfer.files));
-$('unit').addEventListener('change',render);$('date').addEventListener('change',render);
+$('unit').addEventListener('change',render);
+$('meth').addEventListener('change',()=>{if(ALL.length){settle();render()}});$('date').addEventListener('change',render);
 $('onlydev').addEventListener('change',renderAll);$('onlybad').addEventListener('change',renderAll);
 $('all').addEventListener('click',e=>{const tr=e.target.closest('tr[data-i]');if(tr)explain(ALL[+tr.dataset.i])});
 $('dl').addEventListener('click',()=>{const rows=view();if(!rows.length)return;const h='Date,Time,Freq,Unit,Schedule_MWh,Actual_MWh,Deviation_MWh,Deviation_pct,Category,Rate_p_kWh,File_payable,File_receivable,Formula_payable,Formula_receivable,Diff\n';
