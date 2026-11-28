@@ -15,7 +15,7 @@
     },
     {
       "id": "legacy15",
-      "name": "Legacy ±15%",
+      "name": "Temporary Band",
       "desc": "Older projects still settled on the earlier rule: 100% both ways up to 15% of AvC, beyond that shortfall 110% and excess 90%.",
       "rates": {"dsm": [0, 10], "pay": [100, 100], "over": [100, 90], "loss": [0, 10]},
       "periods": [

@@ -281,7 +281,7 @@ function genDay(plant,date,seed){
   const o={};SRC.forEach(s=>o[s]={plant,date,cols:c[s],agg:buildAgg(c[s]),n:96,sample:true});return o;
 }
 function buildSample(){
-  const id='BESS-PSS-08',plants={[id]:{...PDEF,id,name:'BESS PSS-08',loc:'Gujarat',cod:'2025-03-31',cyclesPerDay:2,maxCyclesYear:730,sample:true}};
+  const id='BESS-01',plants={[id]:{...PDEF,id,name:'BESS-01',loc:'Gujarat',cod:'2025-03-31',cyclesPerDay:2,maxCyclesYear:730,sample:true}};
   const src={meter:{},schedule:{},scada:{},price:{}},bds={},now=new Date();
   const days=[];for(let k=1;k<now.getDate();k++)days.push(ymd(new Date(now.getFullYear(),now.getMonth(),k)));
   if(!days.length)for(let k=1;k<=28;k++)days.push(ymd(new Date(now.getFullYear(),now.getMonth()-1,k)));
@@ -1661,7 +1661,7 @@ function subPlant(){
 }
 
 /* ================= standalone file: keep data in this browser ================= */
-function persistLocal(){if(db||window.claude)return;try{const mem={ops:{},site:{},log:{}};for(const t in mem)for(const k in MEM[t])if(!k.startsWith('BESS-PSS-08__')||S.real.plants['BESS-PSS-08'])mem[t][k]=MEM[t][k];
+function persistLocal(){if(db||window.claude)return;try{const mem={ops:{},site:{},log:{}};for(const t in mem)for(const k in MEM[t])if(!k.startsWith('BESS-01__')||S.real.plants['BESS-01'])mem[t][k]=MEM[t][k];
   localStorage.setItem('bessDGR',JSON.stringify({real:S.real,mem}))}catch(e){toast('Browser storage is full — export your data')}}
 function loadLocal(){if(window.claude)return;try{const d=JSON.parse(localStorage.getItem('bessDGR')||'null');if(!d)return;
   S.real={...S.real,...d.real,src:{...S.real.src,...(d.real.src||{})}};Object.assign(MEM.ops,d.mem?.ops||{});Object.assign(MEM.site,d.mem?.site||{});Object.assign(MEM.log,d.mem?.log||{})}catch{}}
