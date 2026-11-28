@@ -338,7 +338,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   </fieldset>
   <div class="row">
     <label class="f"><span class="tip" data-g="spv">SPV</span><select id="dspv"></select></label>
-    <label class="f">Run date<input id="drun" type="date"></label>
+    <label class="f" style="display:none">Run date<input id="drun" type="date"></label>
     <label class="f"><span class="tip" data-g="ppa">Contract PPA rate (INR/kWh)</span><input id="dppa" type="number" step="0.01" value="2.50"></label>
     <label class="f"><span class="tip" data-g="avc">Available capacity AvC (MW)</span><input id="davc" type="number" step="0.1" placeholder="e.g. 100"></label>
   </div>
@@ -366,7 +366,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
   <div class="row" style="margin-top:12px">
     <label class="f"><span class="tip" data-g="dfrom">Only from date (optional)</span><input id="dfrom" type="date"></label>
     <label class="f">Up to date (optional)<input id="dto" type="date"></label>
-    <label class="f"><span class="tip" data-g="dgrp">Show results by</span><select id="dgrp"><option value="day">Each day</option><option value="week">Each week</option><option value="month">Each month</option><option value="quarter">Each quarter</option><option value="all">Whole period</option></select></label>
+    <label class="f" style="display:none"><span class="tip" data-g="dgrp">Show results by</span><select id="dgrp"><option value="day">Each day</option><option value="week">Each week</option><option value="month">Each month</option><option value="quarter">Each quarter</option><option value="all">Whole period</option></select></label>
   </div>
   <div style="margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:12px">
     <b><span id="dBandTitle" class="tip" data-g="bands">Deviation bands (set by you, as % of AvC)</span></b>
@@ -402,7 +402,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
    <p>• For each band: part of the deviation in that band × price × rate × 250. The number 250 is kWh per MW in one 15-minute block. Example with AvC 2,120 MW and a 329.4 MW shortfall: 106 MW in the first band, 106 MW in the second and 117.4 MW above the second limit; the DSM penalty is 106 × price × 0% × 250 + 106 × price × 10% × 250 + 117.4 × price × 100% × 250.</p>
    <p>• <b>Total charge</b> = payable + DSM penalty. <b>Net settlement</b> = receivable − total charge. Hover over a cell in the block table to see the working.</p>
    <p>• Price: each block uses its own price if the file has a price column (or you upload a price file). Blocks without a price use the PPA rate.</p>
-   <p>• Many days: the file needs a date column (YYYY-MM-DD or DD-MM-YYYY, day first) and a block column (1 to 96) or a time column (block 1 = 00:00 to 00:15). Without a date column, every 96 rows count as one day starting from the Run date. Results are shown by day, week (Monday to Sunday), month or financial-year quarter (Q1 = April to June).</p>
+   <p>• Many days: the file needs a date column (YYYY-MM-DD or DD-MM-YYYY, day first) and a block column (1 to 96) or a time column (block 1 = 00:00 to 00:15). Without a date column, every 96 rows count as one day starting from today. Results are shown by day, week (Monday to Sunday), month or financial-year quarter (Q1 = April to June).</p>
    <p>• Several SPVs: a column named spv, plant or project groups the rows. The SPV you select is calculated. New names are added to your SPV list.</p>
    <p>• Other: headers containing "schedule" and "actual" are found automatically. Without headers, columns 1 to 3 are block, schedule and actual. Empty or non-numeric cells count as 0. Saved runs (one per day) live in this browser only. Use "Download all runs" in Historical logs as a backup.</p>
   </details>
@@ -1249,7 +1249,7 @@ const esc=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const avcT=a=>a>0?f2(a):"from file";
 const gp=s=>s.pay!=null?s.pay:s.total,gr=s=>s.recv||0;
 let dData=null,dPrice=null,dCur=null,hCur=null,hSel=null,dCfg=dfltCfg();
-$("drun").value=new Date().toISOString().slice(0,10);
+$("drun").value=new Date().toISOString().slice(0,10);$("dgrp").value="day";
 
 $("d_t1").onclick=()=>{$("d_p1").classList.remove("hide");$("d_p2").classList.add("hide");$("d_t1").classList.add("on");$("d_t2").classList.remove("on")};
 $("d_t2").onclick=()=>{$("d_p2").classList.remove("hide");$("d_p1").classList.add("hide");$("d_t2").classList.add("on");$("d_t1").classList.remove("on");hRender()};
@@ -1414,7 +1414,7 @@ function dSet(aoa,label){
   }else{
     const g=r.groups[""];info=` ${g.days.length} day(s)${rangeOf(g)}.`;
   }
-  if(r.seqDays)info+=" No date column found, so every 96 rows count as one day starting from the Run date.";
+  if(r.seqDays)info+=" No date column found, so every 96 rows count as one day starting from today.";
   const short=Object.values(r.groups).reduce((t,g)=>t+g.days.filter(d=>d.count<96).length,0);
   if(short)info+=` ${short} day(s) have fewer than 96 blocks (missing blocks count as 0).`;
   dm(`${label}:${info}${r.bad?` ${r.bad} non-numeric cells treated as 0.`:""} Check the settings, then click Calculate DSM.`,r.bad>0||short>0);
@@ -3208,7 +3208,7 @@ function dSrcMode(on,src,name){
   g("dplant").style.display=on?"none":"";
   note.style.display=on&&src?"":"none";
   if(on&&src){
-    note.innerHTML=`Data source: <b>${esc(src)}</b> import for <b>${esc(name)}</b>. <a href="#" id="dsrcback">Show plant and rate inputs for this import</a>`;
+    note.innerHTML=`Data source: <b>${esc(src)}</b> import for <b>${esc(name)}</b>.<a href="#" id="dsrcback" style="display:none;margin-left:6px">Enter AvC and rate for this import</a>`;
     g("dsrcback").onclick=e=>{e.preventDefault();for(const id of ["dppa","davc"])g(id).closest("label").style.display="";g("dplant").style.display=""};
     const kl=g("k_loc"),pl=g("dloc");
     if(kl&&kl.value.trim()&&pl&&!pl.value.trim()){pl.value=kl.value.trim();pl.dispatchEvent(new Event("input",{bubbles:true}))}
@@ -3230,7 +3230,7 @@ function dsmReceive(pl){
   dSrcMode(true,pl.source,sp.name);
   const hasAvc=pl.days.some(d=>d.rows.some(r=>r.v>0)),needAvc=!hasAvc&&!(+g("davc").value>0);
   const note=`${pl.source} data received for ${sp.name}: ${pl.days.length} day(s), ${pl.days[0].date} to ${pl.days[pl.days.length-1].date}.`+(pl.missS||pl.missA?` ${nf(pl.missS)} schedule and ${nf(pl.missA)} actual value(s) were blank and are treated as 0.`:"");
-  if(needAvc){dm(note+" No available capacity (AvC) was supplied. Map an AvC column in the import, or select “Show plant and rate inputs for this import” to enter AvC and calculate.",true);return}
+  if(needAvc){g("dsrcback").style.display="";dm(note+" No available capacity (AvC) was supplied. Map an AvC column in the import, or click “Enter AvC and rate for this import” to type it and calculate.",true);return}
   dm(note);dCalc();
   if(dCur)dm(note+" Calculated. Open 'Deviation analysis & RCA' to see where and why the limits were crossed.");
 }
