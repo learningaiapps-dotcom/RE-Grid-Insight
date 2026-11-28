@@ -664,7 +664,7 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <h1>Plant performance comparison</h1>
 <p class="sub">See which plant pays the least DSM, or how much one plant would pay under different DSM methods.</p>
 
-<div class="tabs" style="margin-bottom:12px"><button type="button" id="pc_m1" class="on">Compare plants</button><button type="button" id="pc_m2">Compare DSM methods for one plant</button><button type="button" id="pc_m3">Down time &amp; frequency</button></div>
+<div class="tabs" style="margin-bottom:12px"><button type="button" id="pc_m1" class="on">Compare plants</button><button type="button" id="pc_m2">Compare DSM methods for one plant</button><button type="button" id="pc_m3">TRAS down &amp; frequency</button></div>
 
 <div id="pc_mode1">
 <div class="card">
@@ -698,10 +698,10 @@ details{margin-top:10px;font-size:13px;color:var(--mute)}details p{margin:6px 0}
 <div id="pc_mode3" class="hide">
 <div class="card">
   <p class="note" style="margin:0 0 6px">Optional. What you upload here is used in <b>Compare plants</b> and saved in this browser.</p>
-  <p style="margin:10px 0 4px"><b>Transmission down time</b> <span class="note">Periods when a line, bay or ICT was out. Results are shown with and without these blocks.</span></p>
-  <div class="tools"><button type="button" class="alt" id="pc_otpl">Download down-time template (Excel)</button>
-    <label class="f" style="flex:0 1 300px">Upload filled down-time file<input id="pc_ofile" type="file" accept=".xlsx,.xls,.csv"></label>
-    <button type="button" class="alt" id="pc_oclr">Clear down time</button></div>
+  <p style="margin:10px 0 4px"><b>TRAS down</b> <span class="note">Periods when the plant was instructed to back down under TRAS (Tertiary Reserve Ancillary Service, down regulation). Results are shown with and without these blocks.</span></p>
+  <div class="tools"><button type="button" class="alt" id="pc_otpl">Download TRAS down template (Excel)</button>
+    <label class="f" style="flex:0 1 300px">Upload filled TRAS down file<input id="pc_ofile" type="file" accept=".xlsx,.xls,.csv"></label>
+    <button type="button" class="alt" id="pc_oclr">Clear TRAS down</button></div>
   <p class="note" id="pc_omsg" role="status" style="margin:6px 0 0"></p>
   <p style="margin:14px 0 4px"><b>Frequency, bay-wise and block-wise</b> <span class="note">Where a plant has several bays, the average is used. The template is filled with the plants chosen in Compare plants.</span></p>
   <div class="tools"><label class="note">First day <input id="pc_fdate" type="date"></label><label class="note">Days <input id="pc_fdays" type="number" min="1" max="31" value="1" style="width:64px"></label>
@@ -4071,7 +4071,7 @@ drawList();
 })();
 </script>
 <script id="kd-plantcmp">
-// ===== Plant performance comparison (tab 10): several plants and/or DSM methods, with down time and bay-wise frequency =====
+// ===== Plant performance comparison (tab 10): several plants and/or DSM methods, with TRAS down and bay-wise frequency =====
 (function(){
   const g=id=>document.getElementById(id);
   if(!g("p10"))return;
@@ -4083,7 +4083,7 @@ drawList();
   const S={rows:[],cache:new Map(),out:[],freq:[],last:null,charts:[]};
   const msg=(id,t,bad)=>{g(id).textContent=t;g(id).className="note"+(bad?" err":"")};
 
-  /* ---------- saved uploads (down time, frequency) in this browser ---------- */
+  /* ---------- saved uploads (TRAS down, frequency) in this browser ---------- */
   const DB=()=>new Promise((ok,no)=>{const r=indexedDB.open("re-grid-plantcmp",1);r.onupgradeneeded=()=>r.result.createObjectStore("data");r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
   async function put(k,v){try{const db=await DB();await new Promise((ok,no)=>{const t=db.transaction("data","readwrite");v==null?t.objectStore("data").delete(k):t.objectStore("data").put(v,k);t.oncomplete=ok;t.onerror=()=>no(t.error)})}catch(e){}}
   async function get(k){try{const db=await DB();return await new Promise(ok=>{const r=db.transaction("data").objectStore("data").get(k);r.onsuccess=()=>ok(r.result);r.onerror=()=>ok(null)})}catch(e){return null}}
@@ -4119,7 +4119,7 @@ drawList();
     g("pc_fdate").value=g("pc_fdate").value||new Date().toLocaleDateString("en-CA");
     if(!g("pc_rate").value)g("pc_rate").value=(g("dppa")&&+g("dppa").value>0?+g("dppa").value:2.5).toFixed(2);
     S.out=(await get("outages"))||[];S.freq=(await get("freq"))||[];
-    msg("pc_omsg",S.out.length?`${S.out.length} down-time period(s) loaded (saved in this browser).`:"No down time loaded.");
+    msg("pc_omsg",S.out.length?`${S.out.length} TRAS down period(s) loaded (saved in this browser).`:"No TRAS down loaded.");
     msg("pc_fmsg",S.freq.length?`${inr(S.freq.length)} frequency value(s) loaded (saved in this browser).`:"No frequency loaded.");
   }
   g("t10").addEventListener("click",start);
@@ -4184,37 +4184,37 @@ drawList();
   }
   const dayMin=date=>Date.UTC(+date.slice(0,4),+date.slice(5,7)-1,+date.slice(8,10))/6e4;
 
-  /* ---------- down time ---------- */
+  /* ---------- TRAS down ---------- */
   g("pc_otpl").onclick=()=>{
     const ps=chosen(),ex=ps[0]||{region:"NRPC",plant:"Plant name exactly as in the list"};
-    const data=[["Region (NRPC / WRPC / SRPC)","Plant / SPV","Element (line / bay / ICT)","Down from (YYYY-MM-DD HH:MM)","Down to (YYYY-MM-DD HH:MM)","Remarks"]];
+    const data=[["Region (NRPC / WRPC / SRPC)","Plant / SPV","TRAS instruction / reference","TRAS down from (YYYY-MM-DD HH:MM)","TRAS down to (YYYY-MM-DD HH:MM)","Remarks"]];
     (ps.length?ps:[ex]).forEach(p=>data.push([p.region,p.plant,"","","",""]));
     const help=[["How to use this template"],
-      ["1. One row per down-time period. The plant rows already in the sheet come from your comparison; add more rows as needed."],
+      ["1. One row per TRAS down period. The plant rows already in the sheet come from your comparison; add more rows as needed."],
       ["2. Plant / SPV must match the name in the plant list (spaces and capitals do not matter). Use * as the plant to apply a period to every plant of that region."],
-      ["3. Enter the start and end as date and 24-hour time, e.g. 2026-10-14 09:30 and 2026-10-14 13:00. Every 15-minute block that overlaps the period is marked as down time."],
-      ["4. Save and upload it in “Transmission down time” on the Plant performance comparison tab. Results are then shown with and without these blocks."],
+      ["3. Enter the start and end as date and 24-hour time, e.g. 2026-10-14 09:30 and 2026-10-14 13:00. Every 15-minute block that overlaps the period is marked as TRAS down."],
+      ["4. Save and upload it in the “TRAS down & frequency” tab of Plant performance comparison. Results are then shown with and without these blocks."],
       [""],["Column","What to enter","Example"],
-      ["Region","NRPC, WRPC or SRPC","WRPC"],["Plant / SPV","Plant name as in the list, or *",ex.plant],["Element","Line, bay or ICT that was down (for your reference)","400 kV Bhuj-Khavda line 1"],
-      ["Down from","Start date and time","2026-10-14 09:30"],["Down to","End date and time","2026-10-14 13:00"],["Remarks","Reason (optional)","Planned shutdown"]];
-    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,sheet(data,[24,40,32,28,28,30]),"Down time");XLSX.utils.book_append_sheet(wb,sheet(help,[28,110,30]),"Instructions");
-    save(wb,"Transmission_down_time_template.xlsx");
+      ["Region","NRPC, WRPC or SRPC","WRPC"],["Plant / SPV","Plant name as in the list, or *",ex.plant],["TRAS instruction / reference","Instruction number or note (for your reference)","TRAS-DOWN/WR/2026/0142"],
+      ["TRAS down from","Start date and time of the back-down","2026-10-14 09:30"],["TRAS down to","End date and time of the back-down","2026-10-14 13:00"],["Remarks","Optional","Instructed by WRLDC"]];
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,sheet(data,[24,40,32,32,32,30]),"TRAS down");XLSX.utils.book_append_sheet(wb,sheet(help,[28,110,30]),"Instructions");
+    save(wb,"TRAS_down_template.xlsx");
   };
   g("pc_ofile").onchange=async e=>{
     const f=e.target.files[0];if(!f)return;e.target.value="";
     try{
-      const rows=await readUpload(f,"down time"),h=(rows.shift()||[]).map(x=>String(x).toLowerCase());
+      const rows=await readUpload(f,"tras down"),h=(rows.shift()||[]).map(x=>String(x).toLowerCase());
       const col=k=>h.findIndex(x=>x.includes(k)),iR=col("region"),iP=col("plant"),iE=col("element"),iF=col("from"),iT=col("to"),iX=col("remark");
-      if(iP<0||iF<0||iT<0)throw new Error("the file needs Plant / SPV, Down from and Down to columns (use the template)");
+      if(iP<0||iF<0||iT<0)throw new Error("the file needs Plant / SPV, TRAS down from and TRAS down to columns (use the template)");
       const out=[],bad=[];
       rows.forEach((r,n)=>{if(!r.some(c=>String(c).trim()))return;const a=toMin(r[iF]),b=toMin(r[iT]);
         if(!(a<b)){if(String(r[iF]).trim()||String(r[iT]).trim())bad.push(n+2);return}
         out.push({region:iR>=0?String(r[iR]).trim().toUpperCase():"",plant:String(r[iP]).trim(),el:iE>=0?String(r[iE]):"",from:a,to:b,txt:`${String(r[iF]).trim()} to ${String(r[iT]).trim()}`,rem:iX>=0?String(r[iX]):""})});
       S.out=out;await put("outages",out);
-      msg("pc_omsg",`${out.length} down-time period(s) loaded and saved in this browser.`+(bad.length?` Skipped row(s) ${bad.slice(0,10).join(", ")}: start and end must be valid and the end after the start.`:""),!out.length);
-    }catch(x){msg("pc_omsg","Could not read the down-time file: "+x.message,true)}
+      msg("pc_omsg",`${out.length} TRAS down period(s) loaded and saved in this browser.`+(bad.length?` Skipped row(s) ${bad.slice(0,10).join(", ")}: start and end must be valid and the end after the start.`:""),!out.length);
+    }catch(x){msg("pc_omsg","Could not read the TRAS down file: "+x.message,true)}
   };
-  g("pc_oclr").onclick=async()=>{S.out=[];await put("outages",null);msg("pc_omsg","Down time cleared.")};
+  g("pc_oclr").onclick=async()=>{S.out=[];await put("outages",null);msg("pc_omsg","TRAS down cleared.")};
 
   /* ---------- frequency ---------- */
   g("pc_ftpl").onclick=()=>{
@@ -4330,11 +4330,11 @@ drawList();
       <h2 style="margin:0 0 6px;font-size:17px">Which plant pays the least DSM?</h2>
       <p class="note" style="margin:0 0 8px">Method: ${esc(ruleName(res[0].r.rule))}. Positive = the plant pays. “Per MW per day” lets plants of different sizes compare fairly.</p>
       ${best?`<p style="margin:0 0 8px">Lowest DSM cost per MW: ${dot(best)}<b>${esc(label(best))}</b>, ₹ ${inr(best.T.perMWday)} per MW per day.</p>`:""}
-      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant</th><th>Region</th><th>Days</th><th>Capacity (MW)</th><th>Net DSM (₹ lakh)</th><th>₹ per MW per day</th><th>₹ per MWh generated</th>${anyDown?"<th>Down-time blocks</th><th>₹ per MW per day without down time</th>":""}</tr></thead><tbody>
+      <div class="scroll" style="max-height:none"><table><thead><tr><th>Plant</th><th>Region</th><th>Days</th><th>Capacity (MW)</th><th>Net DSM (₹ lakh)</th><th>₹ per MW per day</th><th>₹ per MWh generated</th>${anyDown?"<th>TRAS down blocks</th><th>₹ per MW per day without TRAS down</th>":""}</tr></thead><tbody>
       ${res.map(s=>{const T=s.T;return `<tr><td style="text-align:left">${dot(s)}${esc(label(s))}</td><td>${s.p.region}</td><td>${T.days}</td><td>${inr(T.avc,1)}</td><td>${lakh(T.net)}</td><td><b>${T.perMWday==null?"–":inr(T.perMWday)}</b></td><td>${T.perMWh==null?"–":inr(T.perMWh,1)}</td>${anyDown?`<td>${inr(T.down)}</td><td>${T.perMWdayEx==null?"–":inr(T.perMWdayEx)}</td>`:""}</tr>`}).join("")}
       </tbody></table></div>
       ${res.some(s=>s.T.fillP||s.T.fillV)?`<p class="note" style="margin:6px 0 0">Filled gaps: ${res.filter(s=>s.T.fillP||s.T.fillV).map(s=>`${esc(s.p.plant)}: ${[s.T.fillP?`${inr(s.T.fillP.n)} block(s) without a rate used ₹ ${s.T.fillP.v.toFixed(2)}/kWh`:"",s.T.fillV?`${inr(s.T.fillV.n)} block(s) without AvC used ${inr(s.T.fillV.v,1)} MW`:""].filter(Boolean).join(" and ")}`).join("; ")} (the plant's typical value, or “Rate for plants without a rate” under More options when the data has none).</p>`:""}
-      ${anyDown?`<p class="note" style="margin:6px 0 0">“Without down time” leaves out the blocks when the transmission line, bay or ICT was down.</p>`:""}
+      ${anyDown?`<p class="note" style="margin:6px 0 0">“Without TRAS down” leaves out the blocks when the plant was backed down under TRAS.</p>`:""}
     </div>
     <div class="card">
       <h2 style="margin:0 0 6px;font-size:17px">How big were the deviations?</h2>
@@ -4345,7 +4345,7 @@ drawList();
     </div>
     <div class="card">
       <h2 style="margin:0 0 6px;font-size:17px">DSM day by day</h2>
-      ${anyDown?`<div class="tools" style="margin-bottom:6px"><label class="note"><input type="checkbox" id="pc_ex"> Leave out down-time blocks in this chart</label></div>`:""}
+      ${anyDown?`<div class="tools" style="margin-bottom:6px"><label class="note"><input type="checkbox" id="pc_ex"> Leave out TRAS down blocks in this chart</label></div>`:""}
       <div class="chartbox" style="height:300px"><canvas id="pc_cd"></canvas></div>
     </div>
     <div class="card">
@@ -4363,7 +4363,7 @@ drawList();
     const ds=(f,extra={})=>res.map(s=>({label:label(s),data:f(s),borderColor:PAL[s.i%PAL.length],backgroundColor:PAL[s.i%PAL.length],borderWidth:2,pointRadius:0,tension:.15,...extra}));
     const opt=(title,y,more={})=>({responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{title:{display:true,text:title}},scales:{y:{title:{display:true,text:y}},...more}});
     const dates=[...new Set(res.flatMap(s=>s.T.daily.map(d=>d.date)))].sort();
-    const dayChart=ex=>new Chart(g("pc_cd"),{type:"line",data:{labels:dates,datasets:ds(s=>{const m=new Map(s.T.daily.map(d=>[d.date,d]));return dates.map(dt=>{const d=m.get(dt);return d&&s.T.avc>0?+((ex?d.netEx:d.net)/s.T.avc).toFixed(2):null})},{spanGaps:false})},options:opt(`Net DSM per MW per day${ex?" (without down-time blocks)":""} (₹, positive = plant pays)`,"₹ per MW",{x:{ticks:{maxTicksLimit:14}}})});
+    const dayChart=ex=>new Chart(g("pc_cd"),{type:"line",data:{labels:dates,datasets:ds(s=>{const m=new Map(s.T.daily.map(d=>[d.date,d]));return dates.map(dt=>{const d=m.get(dt);return d&&s.T.avc>0?+((ex?d.netEx:d.net)/s.T.avc).toFixed(2):null})},{spanGaps:false})},options:opt(`Net DSM per MW per day${ex?" (without TRAS down blocks)":""} (₹, positive = plant pays)`,"₹ per MW",{x:{ticks:{maxTicksLimit:14}}})});
     let dc=dayChart(false);S.charts.push(dc);
     if(g("pc_ex"))g("pc_ex").onchange=e=>{dc.destroy();S.charts=S.charts.filter(c=>c!==dc);dc=dayChart(e.target.checked);S.charts.push(dc)};
     const hrs=Array.from({length:24},(_,h)=>String(h).padStart(2,"0")+":00");
@@ -4376,7 +4376,7 @@ drawList();
   g("pc_dl").onclick=()=>{
     const res=S.last;if(!res)return;const q=v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v;
     const maxB=Math.max(...res.map(s=>s.T.bands.length));
-    let t=["Plant","Region","Method","Type","Days","Avg AvC MW","Actual energy MWh","Payable Rs","Receivable Rs","Net DSM Rs","Rs per MW per day","Rs per MWh","Down-time blocks","Net without down time Rs","Rs per MW per day without down time",...Array.from({length:maxB},(_,j)=>[`Band ${j+1} blocks`,`Band ${j+1} net Rs`]).flat(),"Blocks with frequency","Average frequency Hz","Blocks against grid","Net DSM in against-grid blocks Rs"].map(q).join(",")+"\n";
+    let t=["Plant","Region","Method","Type","Days","Avg AvC MW","Actual energy MWh","Payable Rs","Receivable Rs","Net DSM Rs","Rs per MW per day","Rs per MWh","TRAS down blocks","Net without TRAS down Rs","Rs per MW per day without TRAS down",...Array.from({length:maxB},(_,j)=>[`Band ${j+1} blocks`,`Band ${j+1} net Rs`]).flat(),"Blocks with frequency","Average frequency Hz","Blocks against grid","Net DSM in against-grid blocks Rs"].map(q).join(",")+"\n";
     res.forEach(s=>{const T=s.T;t+=[s.p.plant,s.p.region,ruleName(s.r.rule),s.r.type,T.days,T.avc.toFixed(2),T.eAct.toFixed(2),T.pay.toFixed(2),T.recv.toFixed(2),T.net.toFixed(2),T.perMWday==null?"":T.perMWday.toFixed(2),T.perMWh==null?"":T.perMWh.toFixed(2),T.down,T.netEx.toFixed(2),T.perMWdayEx==null?"":T.perMWdayEx.toFixed(2),
       ...Array.from({length:maxB},(_,j)=>T.bands[j]?[T.bands[j].n,T.bands[j].net.toFixed(2)]:["",""]).flat(),T.fN,T.fN?(T.fSum/T.fN).toFixed(3):"",T.against,T.againstNet.toFixed(2)].map(v=>q(String(v))).join(",")+"\n"});
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+t],{type:"text/csv"}));a.download="Plant_performance_comparison.csv";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
